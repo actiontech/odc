@@ -58,18 +58,18 @@ public class SqlDiagnoseService {
     private OBQueryProfileManager profileManager;
 
     public SqlExplain explain(ConnectionSession session, ResourceSql odcSql) {
-        return session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((StatementCallback<SqlExplain>) stmt -> ConnectionPluginUtil
                         .getDiagnoseExtension(session.getDialectType()).getExplain(stmt, odcSql.getSql()));
     }
 
     public SqlExplain getPhysicalPlan(ConnectionSession session, ResourceSql odcSql) {
         return StringUtils.isBlank(odcSql.getTag())
-                ? session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+                ? session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                         .execute((ConnectionCallback<SqlExplain>) con -> ConnectionPluginUtil
                                 .getDiagnoseExtension(session.getDialectType()).getPhysicalPlanBySql(con,
                                         odcSql.getSql()))
-                : session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+                : session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                         .execute((ConnectionCallback<SqlExplain>) con -> ConnectionPluginUtil
                                 .getDiagnoseExtension(session.getDialectType()).getPhysicalPlanBySqlId(con,
                                         odcSql.getTag()));
@@ -77,11 +77,11 @@ public class SqlDiagnoseService {
 
     public SqlExecDetail getExecutionDetail(ConnectionSession session, ResourceSql odcSql) {
         return StringUtils.isBlank(odcSql.getTag())
-                ? session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+                ? session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                         .execute((ConnectionCallback<SqlExecDetail>) con -> ConnectionPluginUtil
                                 .getDiagnoseExtension(session.getDialectType()).getExecutionDetailBySql(con,
                                         odcSql.getSql()))
-                : session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+                : session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                         .execute((ConnectionCallback<SqlExecDetail>) con -> ConnectionPluginUtil
                                 .getDiagnoseExtension(session.getDialectType()).getExecutionDetailById(con,
                                         odcSql.getTag()));

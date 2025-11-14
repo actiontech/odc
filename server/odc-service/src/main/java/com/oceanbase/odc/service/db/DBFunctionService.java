@@ -42,7 +42,7 @@ public class DBFunctionService {
 
     public List<DBFunction> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBPLObjectIdentity>>) con -> getFunctionExtensionPoint(
                         connectionSession).list(con, dbName))
                 .stream().map(
@@ -58,7 +58,7 @@ public class DBFunctionService {
 
     public DBFunction detail(ConnectionSession connectionSession, String dbName, String funName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBFunction>) con -> getFunctionExtensionPoint(connectionSession)
                         .getDetail(con, dbName, funName));
     }
@@ -66,7 +66,7 @@ public class DBFunctionService {
     public ResourceSql getCreateSql(@NonNull ConnectionSession session,
             @NonNull DBFunction function) {
         return ResourceSql.ofSql(session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getFunctionExtensionPoint(session)
                         .generateCreateTemplate(function)));
     }

@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DBSchemaAccessors {
 
     public static DBSchemaAccessor create(ConnectionSession connectionSession) {
-        return create(connectionSession, ConnectionSessionConstants.BACKEND_DS_KEY);
+        return create(connectionSession, ConnectionSessionConstants.CONSOLE_DS_KEY);
     }
 
     public static DBSchemaAccessor create(ConnectionSession connectionSession, String dataSourceName) {
