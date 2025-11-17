@@ -15,6 +15,7 @@
  */
 package com.oceanbase.odc.service.session;
 
+import static com.oceanbase.odc.core.session.ConnectionSessionConstants.BACKEND_DS_KEY;
 import static com.oceanbase.odc.core.session.ConnectionSessionConstants.CONSOLE_DS_KEY;
 
 import java.util.Collections;
@@ -76,7 +77,7 @@ public class OBQueryProfileExecutionListener implements SqlExecutionListener {
         if (CollectionUtils.isEmpty(sessionIds) || !isSqlTypeSupportProfile(sqlTuple)) {
             return;
         }
-        String traceId = session.getSyncJdbcExecutor(CONSOLE_DS_KEY).execute((StatementCallback<String>) stmt -> OBUtils
+        String traceId = session.getSyncJdbcExecutor(BACKEND_DS_KEY).execute((StatementCallback<String>) stmt -> OBUtils
                 .queryTraceIdFromASH(stmt, sessionIds, session.getConnectType()));
         if (StringUtils.isNotEmpty(traceId)) {
             context.setCurrentExecutingSqlTraceId(traceId);

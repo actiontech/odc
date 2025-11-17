@@ -71,7 +71,7 @@ public class ShadowTableSyncTask implements Callable<ShadowTableSyncTaskResult> 
                 TableComparing tableComparing = tables.get(i);
                 String sql = tableComparing.getComparingDDL();
                 try {
-                    connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute(sql);
+                    connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute(sql);
                     succeedCount++;
                     executingResult.setStatus(TableSyncExecuteStatus.SUCCESS);
                     log.info("table sync succeed, originalTableName={}, destTableName={}",
