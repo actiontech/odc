@@ -66,7 +66,7 @@ public class DBRecyclebinService {
         if (session.getConnectType().isODPSharding()) {
             throw new UnsupportedException("RecycleBin not supported for ODP sharding mode");
         }
-        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
         if (session.getDialectType().isOracle()) {
             SqlBuilder sqlBuilder = new OracleSqlBuilder();
             sqlBuilder.append("SELECT ")
@@ -151,7 +151,7 @@ public class DBRecyclebinService {
             }
             return sqlBuilder.toString();
         }).collect(Collectors.toList())));
-        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
         jdbcOperations.execute((ConnectionCallback<Void>) con -> {
             for (Entry<String, List<String>> entry : schema2Sqls.entrySet()) {
                 try (Statement statement = con.createStatement()) {
@@ -183,7 +183,7 @@ public class DBRecyclebinService {
             }
             return sqlBuilder.append("purge ").append(type).append(" ").identifier(i.getObjName()).toString();
         }).collect(Collectors.toList())));
-        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
         jdbcOperations.execute((ConnectionCallback<Void>) con -> {
             String schema = extensionPoint.getCurrentSchema(con);
             try {
@@ -207,7 +207,7 @@ public class DBRecyclebinService {
     }
 
     public void purgeAllObjects(@NonNull ConnectionSession session) {
-        session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute("purge recyclebin");
+        session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute("purge recyclebin");
     }
 
     private SqlBuilder getBuilder(ConnectionSession session) {

@@ -64,7 +64,7 @@ public class DBViewService {
 
     public List<DBView> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBObjectIdentity>>) con -> getDBViewExtensionPoint(
                         connectionSession).list(con, dbName))
                 .stream().map(identity -> DBView.of(identity.getSchemaName(), identity.getName()))
@@ -73,7 +73,7 @@ public class DBViewService {
 
     public DBViewResponse detail(ConnectionSession connectionSession, String schemaName, String viewName) {
         return new DBViewResponse(connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBView>) con -> getDBViewExtensionPoint(connectionSession)
                         .getDetail(con, schemaName, viewName)));
     }
@@ -81,7 +81,7 @@ public class DBViewService {
     public String getCreateSql(@NonNull ConnectionSession session,
             @NonNull DBView resource) {
         return session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getDBViewExtensionPoint(session)
                         .generateCreateTemplate(resource));
     }

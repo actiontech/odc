@@ -50,7 +50,7 @@ public class DBSynonymService {
     public List<DBSynonym> list(ConnectionSession connectionSession, String dbName,
             DBSynonymType synonymType) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBObjectIdentity>>) con -> getSynonymExtensionPoint(connectionSession)
                         .list(con, dbName, synonymType))
                 .stream().map(item -> {
@@ -62,14 +62,14 @@ public class DBSynonymService {
 
     public String generateCreateSql(@NonNull ConnectionSession session, @NonNull DBSynonym synonym) {
         return session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getSynonymExtensionPoint(session)
                         .generateCreateDDL(synonym));
     }
 
     public DBSynonym detail(ConnectionSession connectionSession, DBSynonym synonym) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBSynonym>) con -> getSynonymExtensionPoint(connectionSession)
                         .getDetail(con, synonym.getOwner(), synonym.getSynonymName(), synonym.getSynonymType()));
     }

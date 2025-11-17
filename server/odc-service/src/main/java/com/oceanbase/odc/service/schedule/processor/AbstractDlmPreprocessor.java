@@ -60,7 +60,7 @@ public class AbstractDlmPreprocessor implements Preprocessor {
     public void process(ScheduleChangeParams req) {}
 
     public List<DataArchiveTableConfig> getAllTables(ConnectionSession sourceSession, String schemaName) {
-        return Objects.requireNonNull(sourceSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return Objects.requireNonNull(sourceSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBObjectIdentity>>) con -> SchemaPluginUtil.getTableExtension(
                         sourceSession.getDialectType())
                         .list(con, schemaName, DBObjectType.TABLE)))

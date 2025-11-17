@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DBSchemaService {
 
     public List<DBDatabase> listDatabases(ConnectionSession sess) {
-        return sess.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return sess.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBDatabase>>) con -> listDatabases(sess.getDialectType(), con));
     }
 
@@ -58,7 +58,7 @@ public class DBSchemaService {
     }
 
     public DBDatabase detail(ConnectionSession sess, String dbName) {
-        return sess.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return sess.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBDatabase>) con -> detail(sess.getDialectType(), con, dbName));
     }
 

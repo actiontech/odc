@@ -87,7 +87,7 @@ public class DBMaterializedViewService {
         Database database = databaseService.detail(params.getDatabaseId());
         List<Table> tables = new ArrayList<>();
         Set<String> latestTableNames = connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBObjectIdentity>>) con -> getDBMViewExtensionPoint(connectionSession)
                         .list(con, database.getName()))
                 .stream().map(DBObjectIdentity::getName).collect(Collectors.toCollection(LinkedHashSet::new));
@@ -111,7 +111,7 @@ public class DBMaterializedViewService {
     public String getCreateSql(@NonNull ConnectionSession session,
             @NonNull DBMaterializedView resource) {
         return session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getDBMViewExtensionPoint(session)
                         .generateCreateTemplate(resource));
     }
@@ -120,7 +120,7 @@ public class DBMaterializedViewService {
             @NotNull GenerateUpdateMViewDDLReq req) {
 
         String ddl = session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getDBMViewExtensionPoint(session).generateUpdateDDL(con,
                         req.getPrevious(), req.getCurrent()));
 
@@ -135,7 +135,7 @@ public class DBMaterializedViewService {
     public DBMaterializedView detail(@NonNull ConnectionSession connectionSession, @NotEmpty String schemaName,
             @NotEmpty String mViewName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBMaterializedView>) con -> getDBMViewExtensionPoint(connectionSession)
                         .getDetail(con, schemaName, mViewName));
     }
@@ -143,14 +143,14 @@ public class DBMaterializedViewService {
     public Boolean refresh(@NotNull ConnectionSession connectionSession, @NotNull MViewRefreshReq refreshReq) {
         DBMViewRefreshParameter syncDataParameter = refreshReq.convertToDBMViewRefreshParameter();
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<Boolean>) con -> getDBMViewExtensionPoint(connectionSession)
                         .refresh(con, syncDataParameter));
     }
 
     public List<DBMViewRefreshRecord> listRefreshRecords(@NonNull ConnectionSession connectionSession,
             @NonNull DBMViewRefreshRecordParam param) {
-        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute(
+        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute(
                 (ConnectionCallback<List<DBMViewRefreshRecord>>) con -> getDBMViewExtensionPoint(connectionSession)
                         .listRefreshRecords(con, param));
     }

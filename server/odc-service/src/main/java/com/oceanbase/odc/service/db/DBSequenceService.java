@@ -42,7 +42,7 @@ public class DBSequenceService {
 
     public List<DBSequence> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute(
                         (ConnectionCallback<List<DBObjectIdentity>>) con -> getSequenceExtensionPoint(connectionSession)
                                 .list(con, dbName))
@@ -55,7 +55,7 @@ public class DBSequenceService {
 
     public DBSequence detail(ConnectionSession connectionSession, String schemaName, String sequenceName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBSequence>) con -> getSequenceExtensionPoint(connectionSession)
                         .getDetail(con, schemaName, sequenceName));
     }
@@ -63,7 +63,7 @@ public class DBSequenceService {
     public ResourceSql getCreateSql(@NonNull ConnectionSession session,
             @NonNull DBSequence sequence) {
         return ResourceSql.ofSql(session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getSequenceExtensionPoint(session)
                         .generateCreateDDL(sequence)));
     }
@@ -73,7 +73,7 @@ public class DBSequenceService {
         DBSequence oldOne = new DBSequence();
         oldOne.setName(sequence.getName());
         return ResourceSql.ofSql(session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getSequenceExtensionPoint(session)
                         .generateUpdateDDL(oldOne, sequence)));
     }

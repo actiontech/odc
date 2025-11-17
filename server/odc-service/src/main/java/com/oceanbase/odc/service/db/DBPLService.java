@@ -358,7 +358,7 @@ public class DBPLService {
 
     private List<DBPLObjectIdentity> getPLList(@NonNull ConnectionSession session,
             DBObjectType objectType, boolean isInvalid) {
-        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
         SqlBuilder sqlBuilder = new OracleSqlBuilder();
         OracleDataDictTableNames tableNames = new ALLDataDictTableNames();
         sqlBuilder.append("SELECT OBJECT_NAME,STATUS,OBJECT_TYPE,OWNER FROM").space()
