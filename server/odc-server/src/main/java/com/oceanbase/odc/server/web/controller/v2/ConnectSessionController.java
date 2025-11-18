@@ -259,4 +259,20 @@ public class ConnectSessionController {
                 SidUtils.getSessionId(sessionId), req.getTableConfigs(), req.isOnlyForPartitionName()));
     }
 
+    /**
+     * 删除并释放某个用户某个数据源下的所有数据库连接
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID
+     * @return 关闭的会话数量
+     */
+    @ApiOperation(value = "closeUserDatasourceSessions", notes = "删除并释放指定用户指定数据源下的所有数据库连接，并清空连接数限制")
+    @RequestMapping(value = "/users/{userId:[\\d]+}/datasources/{dataSourceId:[\\d]+}/sessions", method = RequestMethod.DELETE)
+    public SuccessResponse<Integer> closeUserDatasourceSessions(
+            @PathVariable Long userId,
+            @PathVariable Long dataSourceId) {
+        int closedCount = sessionService.closeUserDatasourceSessions(userId, dataSourceId);
+        return Responses.success(closedCount);
+    }
+
 }
