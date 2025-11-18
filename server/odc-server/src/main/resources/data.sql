@@ -523,6 +523,9 @@ INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('o
 INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('odc.security.file.upload.safe-suffix-list',
    '*', '允许上传的文件名扩展名，默认 *，表示允许所有文件扩展名') ON DUPLICATE KEY UPDATE `id`=`id`;
 
+INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('odc.session.sql-execute.user-datasource-max-count',
+   '-1', '用户对单个数据源的最大连接数，默认 -1，表示不限制') ON DUPLICATE KEY UPDATE `id`=`id`;
+
 --
 -- cloud object-storage
 --
