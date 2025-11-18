@@ -62,6 +62,11 @@ public class SessionLimitService {
 
     private Map<String, AtomicInteger> userId2SessionCountMap = new ConcurrentHashMap<>();
 
+    /**
+     * 记录 userId + dataSourceId 的会话数 Key格式: userId:dataSourceId
+     */
+    private Map<String, AtomicInteger> userId2DataSourceId2SessionCountMap = new ConcurrentHashMap<>();
+
     public boolean isResourceAvailable() {
         long userMaxCount = sessionProperties.getUserMaxCount();
         return userMaxCount <= 0 || allowCreateSessionUserMap.size() < userMaxCount;
@@ -169,6 +174,69 @@ public class SessionLimitService {
             }
             return sessionCount;
         });
+    }
+
+    /**
+     * 增加用户对指定数据源的会话计数
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID
+     * @return 增加后的会话数
+     */
+    public int incrementUserDatasourceSessionCount(String userId, Long dataSourceId) {
+        PreConditions.notNull(userId, "userId");
+        PreConditions.notNull(dataSourceId, "dataSourceId");
+        String key = userId + ":" + dataSourceId;
+        return this.userId2DataSourceId2SessionCountMap
+                .computeIfAbsent(key, t -> new AtomicInteger(0))
+                .incrementAndGet();
+    }
+
+    /**
+     * 减少用户对指定数据源的会话计数
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID
+     */
+    public void decrementUserDatasourceSessionCount(String userId, Long dataSourceId) {
+        PreConditions.notNull(userId, "userId");
+        PreConditions.notNull(dataSourceId, "dataSourceId");
+        String key = userId + ":" + dataSourceId;
+        userId2DataSourceId2SessionCountMap.computeIfPresent(key, (k, sessionCount) -> {
+            if (sessionCount.decrementAndGet() < 0) {
+                log.warn("user datasource session count is less than 0, userId={}, dataSourceId={}",
+                        userId, dataSourceId);
+                throw new UnexpectedException("user datasource session count is less than 0");
+            }
+            return sessionCount;
+        });
+    }
+
+    /**
+     * 获取用户对指定数据源的当前会话数
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID
+     * @return 当前会话数
+     */
+    public int getUserDatasourceSessionCount(String userId, Long dataSourceId) {
+        String key = userId + ":" + dataSourceId;
+        AtomicInteger count = userId2DataSourceId2SessionCountMap.get(key);
+        return count == null ? 0 : count.get();
+    }
+
+    /**
+     * 清空用户对指定数据源的连接数限制
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID
+     */
+    public void clearUserDatasourceSessionCount(String userId, Long dataSourceId) {
+        PreConditions.notNull(userId, "userId");
+        PreConditions.notNull(dataSourceId, "dataSourceId");
+        String key = userId + ":" + dataSourceId;
+        userId2DataSourceId2SessionCountMap.remove(key);
+        log.info("Cleared user datasource session count, userId={}, dataSourceId={}", userId, dataSourceId);
     }
 
     /**

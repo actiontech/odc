@@ -63,6 +63,12 @@ public class SessionProperties {
     private long userMaxCount = -1;
 
     /**
+     * 用户对单个数据源的最大连接数，默认 -1，表示不限制
+     */
+    @Value("${odc.session.sql-execute.user-datasource-max-count:-1}")
+    private long userDatasourceMaxCount = -1;
+
+    /**
      * 单次执行的最大 SQL 语句长度，默认值 -1， <=0 表示不限制
      */
     @Value("${odc.session.sql-execute.max-sql-length:0}")
