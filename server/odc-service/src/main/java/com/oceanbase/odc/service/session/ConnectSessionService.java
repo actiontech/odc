@@ -416,53 +416,64 @@ public class ConnectSessionService {
     }
 
     /**
-     * 关闭并释放某个用户某个数据源下的所有数据库连接
+     * 关闭并释放某个用户某个数据源下的所有数据库连接，当 dataSourceId 为空时关闭该用户的全部连接
      * 
      * @param userId 用户ID
-     * @param dataSourceId 数据源ID
+     * @param dataSourceId 数据源ID，可为空
      * @return 关闭的会话数量
      */
     @SkipAuthorize("check permission internally")
-    public int closeUserDatasourceSessions(@NotNull Long userId, @NotNull Long dataSourceId) {
+    public int closeUserDatasourceSessions(@NotNull Long userId, Long dataSourceId) {
         PreConditions.notNull(userId, "userId");
-        PreConditions.notNull(dataSourceId, "dataSourceId");
-        
+
         Collection<ConnectionSession> allSessions = listAllSessions();
         int closedCount = 0;
-        
+        Set<Long> affectedDataSourceIds = new HashSet<>();
+
         for (ConnectionSession session : allSessions) {
             try {
                 Long sessionUserId = ConnectionSessionUtil.getUserId(session);
                 if (sessionUserId == null || !sessionUserId.equals(userId)) {
                     continue;
                 }
-                
+
                 Object connectionConfigObj = ConnectionSessionUtil.getConnectionConfig(session);
-                if (connectionConfigObj instanceof ConnectionConfig) {
-                    ConnectionConfig connectionConfig = (ConnectionConfig) connectionConfigObj;
-                    Long sessionDataSourceId = connectionConfig.id();
-                    if (sessionDataSourceId != null && sessionDataSourceId.equals(dataSourceId)) {
-                        try {
-                            session.expire();
-                            closedCount++;
-                            log.info("Closed session for user {} and datasource {}, sessionId={}", 
-                                    userId, dataSourceId, session.getId());
-                        } catch (Exception e) {
-                            log.warn("Failed to close session, sessionId={}, userId={}, dataSourceId={}", 
-                                    session.getId(), userId, dataSourceId, e);
-                        }
+                if (!(connectionConfigObj instanceof ConnectionConfig)) {
+                    continue;
+                }
+                ConnectionConfig connectionConfig = (ConnectionConfig) connectionConfigObj;
+                Long sessionDataSourceId = connectionConfig.id();
+                if (dataSourceId != null && !Objects.equals(sessionDataSourceId, dataSourceId)) {
+                    continue;
+                }
+
+                try {
+                    session.expire();
+                    closedCount++;
+                    log.info("Closed session for user {} and datasource {}, sessionId={}",
+                            userId, sessionDataSourceId, session.getId());
+                    if (sessionDataSourceId != null) {
+                        affectedDataSourceIds.add(sessionDataSourceId);
                     }
+                } catch (Exception e) {
+                    log.warn("Failed to close session, sessionId={}, userId={}, dataSourceId={}",
+                            session.getId(), userId, sessionDataSourceId, e);
                 }
             } catch (Exception e) {
                 log.warn("Error processing session, sessionId={}", session.getId(), e);
             }
         }
-        
-        // 清空该数据源的连接数限制
-        limitService.clearUserDatasourceSessionCount(userId.toString(), dataSourceId);
-        log.info("Closed {} sessions and cleared session count limit for user {} and datasource {}", 
-                closedCount, userId, dataSourceId);
-        
+
+        if (dataSourceId != null) {
+            limitService.clearUserDatasourceSessionCount(userId.toString(), dataSourceId);
+            log.info("Closed {} sessions and cleared session count limit for user {} and datasource {}",
+                    closedCount, userId, dataSourceId);
+        } else {
+            affectedDataSourceIds.forEach(id -> limitService.clearUserDatasourceSessionCount(userId.toString(), id));
+            log.info("Closed {} sessions for user {} across datasources {}", closedCount, userId,
+                    affectedDataSourceIds);
+        }
+
         return closedCount;
     }
 

@@ -260,17 +260,17 @@ public class ConnectSessionController {
     }
 
     /**
-     * 删除并释放某个用户某个数据源下的所有数据库连接
-     * 
+     * 删除并释放某个用户某个数据源下的所有数据库连接，当 dataSourceId 为空时关闭该用户的所有连接
+     *
      * @param userId 用户ID
-     * @param dataSourceId 数据源ID
+     * @param dataSourceId 数据源ID，可为空
      * @return 关闭的会话数量
      */
-    @ApiOperation(value = "closeUserDatasourceSessions", notes = "删除并释放指定用户指定数据源下的所有数据库连接，并清空连接数限制")
-    @RequestMapping(value = "/users/{userId:[\\d]+}/datasources/{dataSourceId:[\\d]+}/sessions", method = RequestMethod.DELETE)
+    @ApiOperation(value = "closeUserDatasourceSessions", notes = "删除并释放指定用户指定数据源下的数据库连接；若未指定数据源则关闭该用户的全部连接")
+    @RequestMapping(value = {"/users/{userId:[\\d]+}/datasources/sessions", "/users/{userId:[\\d]+}/datasources/{dataSourceId:[\\d]+}/sessions"}, method = RequestMethod.DELETE)
     public SuccessResponse<Integer> closeUserDatasourceSessions(
             @PathVariable Long userId,
-            @PathVariable Long dataSourceId) {
+            @RequestParam(required = false) Long dataSourceId) {
         int closedCount = sessionService.closeUserDatasourceSessions(userId, dataSourceId);
         return Responses.success(closedCount);
     }
