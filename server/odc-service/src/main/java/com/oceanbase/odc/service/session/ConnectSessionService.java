@@ -181,6 +181,9 @@ public class ConnectSessionService {
         this.connectionSessionManager.enableAsyncRefreshSessionManager();
         this.connectionSessionManager.addSessionValidator(
                 new SessionValidatorPredicate(sessionProperties.getTimeoutMins(), TimeUnit.MINUTES));
+        // Initialize connection count manager
+        com.oceanbase.odc.core.datasource.ConnectionCountManager.getInstance()
+                .setMaxConnectionCount(connectProperties.getDatasourceMaxConnectionCount());
         log.info("Initialization of the connection session module is complete");
     }
 

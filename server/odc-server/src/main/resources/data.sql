@@ -444,6 +444,8 @@ INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('o
 -- 连接管理
 INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('odc.connect.temp.expire-after-inactive-interval-seconds',
    '86400', '临时连接不活跃之后的保留周期，单位：秒，默认值 86400') ON DUPLICATE KEY UPDATE `id`=`id`;
+INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('odc.connect.datasource.max-connection-count',
+   '-1', '单个数据源（url+username）的最大连接数，默认 -1，表示不限制') ON DUPLICATE KEY UPDATE `id`=`id`;
 INSERT INTO config_system_configuration(`key`, `value`, `description`) VALUES('odc.connect.temp.expire-check-interval-millis',
    '600000', '临时连接配置清理检查周期，单位：毫秒，默认值 600000 表示 10 分钟') ON DUPLICATE KEY UPDATE `id`=`id`;
 update config_system_configuration set `value`='120000',`description`=
