@@ -27,10 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Connection count manager for tracking database connections by url+username
- *
- * @author yh263208
- * @date 2024-01-01
- * @since ODC_release_4.3.2
  */
 @Slf4j
 public class ConnectionCountManager {
