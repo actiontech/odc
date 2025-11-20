@@ -18,6 +18,8 @@ package com.oceanbase.odc.core.datasource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.oceanbase.odc.core.shared.exception.OverLimitException;
 
@@ -71,10 +73,11 @@ public class ConnectionCountManager {
 
     /**
      * Generate key from url and username
+     * Extracts host:port from JDBC URL and combines with username
      *
-     * @param url database url
+     * @param url database url (JDBC URL format)
      * @param username database username
-     * @return key string
+     * @return key string in format "host:port:username"
      */
     public static String generateKey(String url, String username) {
         if (url == null) {
@@ -83,7 +86,82 @@ public class ConnectionCountManager {
         if (username == null) {
             username = "";
         }
-        return url + ":" + username;
+        String hostPort = extractHostAndPort(url);
+        return hostPort + ":" + username;
+    }
+
+    /**
+     * Extract host:port from JDBC URL
+     * Supports formats:
+     * - jdbc:mysql://host:port/database?params
+     * - jdbc:oceanbase://host:port/database?params
+     * - jdbc:postgresql://host:port/database?params
+     * - jdbc:oracle:thin:@host:port:database
+     * - jdbc:oracle:thin:@//host:port/database
+     *
+     * @param jdbcUrl JDBC URL
+     * @return host:port string, or original url if parsing fails
+     */
+    private static String extractHostAndPort(String jdbcUrl) {
+        if (jdbcUrl == null || jdbcUrl.isEmpty()) {
+            return "";
+        }
+
+        // Pattern for MySQL/OceanBase/PostgreSQL: jdbc:type://host:port/...
+        Pattern mysqlPattern = Pattern.compile("jdbc:(mysql|oceanbase|postgresql)://([^/:]+)(?::([0-9]+))?");
+        Matcher mysqlMatcher = mysqlPattern.matcher(jdbcUrl);
+        if (mysqlMatcher.find()) {
+            String host = mysqlMatcher.group(2);
+            String port = mysqlMatcher.group(3);
+            if (port != null && !port.isEmpty()) {
+                return host + ":" + port;
+            } else {
+                // Use default port based on database type
+                String dbType = mysqlMatcher.group(1);
+                int defaultPort = getDefaultPort(dbType);
+                return host + ":" + defaultPort;
+            }
+        }
+
+        // Pattern for Oracle SID format: jdbc:oracle:thin:@host:port:database
+        Pattern oracleSidPattern = Pattern.compile("jdbc:oracle:thin:@([^:/]+):([0-9]+)");
+        Matcher oracleSidMatcher = oracleSidPattern.matcher(jdbcUrl);
+        if (oracleSidMatcher.find()) {
+            return oracleSidMatcher.group(1) + ":" + oracleSidMatcher.group(2);
+        }
+
+        // Pattern for Oracle Service Name format: jdbc:oracle:thin:@//host:port/database
+        Pattern oracleServicePattern = Pattern.compile("jdbc:oracle:thin:@//([^:/]+):([0-9]+)");
+        Matcher oracleServiceMatcher = oracleServicePattern.matcher(jdbcUrl);
+        if (oracleServiceMatcher.find()) {
+            return oracleServiceMatcher.group(1) + ":" + oracleServiceMatcher.group(2);
+        }
+
+        // If no pattern matches, log warning and return original URL
+        log.warn("Failed to extract host:port from JDBC URL: {}, using original URL as key", jdbcUrl);
+        return jdbcUrl;
+    }
+
+    /**
+     * Get default port for database type
+     *
+     * @param dbType database type (mysql, oceanbase, postgresql, etc.)
+     * @return default port number
+     */
+    private static int getDefaultPort(String dbType) {
+        if (dbType == null) {
+            return 3306; // Default to MySQL port
+        }
+        switch (dbType.toLowerCase()) {
+            case "mysql":
+                return 3306;
+            case "oceanbase":
+                return 2883;
+            case "postgresql":
+                return 5432;
+            default:
+                return 3306; // Default to MySQL port
+        }
     }
 
     /**
