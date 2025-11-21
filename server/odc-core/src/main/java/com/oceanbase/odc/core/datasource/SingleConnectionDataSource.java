@@ -82,6 +82,8 @@ public class SingleConnectionDataSource extends BaseClassBasedDataSource impleme
     private ScheduledExecutorService keepAliveScheduler;
     @Setter
     private long timeOutMillis = 10 * 1000;
+    private String connectionKey;
+    private static final ConnectionCountManager connectionCountManager = ConnectionCountManager.getInstance();
 
     public SingleConnectionDataSource() {
         this(false, false);
@@ -189,6 +191,16 @@ public class SingleConnectionDataSource extends BaseClassBasedDataSource impleme
                 log.error("Failed to close the connection", throwable);
             }
         }
+        // Decrement connection count when connection is closed
+        if (this.connectionKey != null) {
+            try {
+                connectionCountManager.decrementConnectionCount(this.connectionKey);
+                log.info("Decremented connection count, key={}", this.connectionKey);
+            } catch (Exception e) {
+                log.warn("Failed to decrement connection count", e);
+            }
+            this.connectionKey = null;
+        }
     }
 
     private boolean tryLock(Lock lock) {
@@ -262,13 +274,26 @@ public class SingleConnectionDataSource extends BaseClassBasedDataSource impleme
             throw new IllegalStateException("Connection is not null");
         }
         try {
+            log.info("Incremented connection count, key={}", this.connectionKey);
             Connection connection = newConnectionFromDriver(getUsername(), getPassword());
+            // Generate connection key and check/increment connection count
+            this.connectionKey = ConnectionCountManager.generateKey(getUrl(), getUsername());
+            connectionCountManager.incrementConnectionCount(this.connectionKey);
             prepareConnection(connection);
             this.connection = connection;
             this.lock = new ReentrantLock();
             log.info("Established shared JDBC Connection, lock={}", this.lock.hashCode());
             return getConnectionProxy(this.connection, this.lock);
         } catch (Throwable e) {
+            // If connection creation fails, decrement the count
+            if (this.connectionKey != null) {
+                try {
+                    connectionCountManager.decrementConnectionCount(this.connectionKey);
+                    log.info("Decremented connection count due to creation failure, key={}", this.connectionKey);
+                } catch (Exception ex) {
+                    log.warn("Failed to decrement connection count after creation failure", ex);
+                }
+            }
             publishEvent(new GetConnectionFailedEvent(Optional.ofNullable(connection)));
             throw new SQLException(e);
         }

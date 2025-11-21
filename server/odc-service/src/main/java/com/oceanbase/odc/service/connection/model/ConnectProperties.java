@@ -70,6 +70,12 @@ public class ConnectProperties {
     @Value("${odc.connect.persistent-connection-operations:create,delete,update,read}")
     private Set<String> persistentConnectionOperations = new HashSet<>();
 
+    /**
+     * 单个数据源（url+username）的最大连接数，默认 -1，表示不限制
+     */
+    @Value("${odc.connect.datasource.max-connection-count:-1}")
+    private long datasourceMaxConnectionCount = -1;
+
     public Set<String> getConnectionSupportedOperations(boolean temp, Set<String> permittedActions) {
         // temp connection can only be private connection, skip permittedActions heere
         if (temp) {

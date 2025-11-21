@@ -18,6 +18,7 @@ package com.oceanbase.odc.service.session;
 import com.oceanbase.odc.core.session.ConnectionSession;
 import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.core.session.DefaultSessionEventListener;
+import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 
 import lombok.NonNull;
 
@@ -36,6 +37,16 @@ public class SessionLimitListener extends DefaultSessionEventListener {
             return;
         }
         this.limitService.decrementSessionCount(userId + "");
+
+        // 减少用户对数据源的会话计数
+        Object connectionConfigObj = ConnectionSessionUtil.getConnectionConfig(session);
+        if (connectionConfigObj instanceof ConnectionConfig) {
+            ConnectionConfig connectionConfig = (ConnectionConfig) connectionConfigObj;
+            Long dataSourceId = connectionConfig.id();
+            if (dataSourceId != null) {
+                this.limitService.decrementUserDatasourceSessionCount(userId + "", dataSourceId);
+            }
+        }
     }
 
 }

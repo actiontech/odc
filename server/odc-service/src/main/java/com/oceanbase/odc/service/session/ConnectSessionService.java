@@ -181,6 +181,9 @@ public class ConnectSessionService {
         this.connectionSessionManager.enableAsyncRefreshSessionManager();
         this.connectionSessionManager.addSessionValidator(
                 new SessionValidatorPredicate(sessionProperties.getTimeoutMins(), TimeUnit.MINUTES));
+        // Initialize connection count manager
+        com.oceanbase.odc.core.datasource.ConnectionCountManager.getInstance()
+                .setMaxConnectionCount(connectProperties.getDatasourceMaxConnectionCount());
         log.info("Initialization of the connection session module is complete");
     }
 
@@ -283,7 +286,7 @@ public class ConnectSessionService {
             schemaName = null;
             dataSourceId = req.getDsId();
         }
-        preCheckSessionLimit();
+        preCheckSessionLimit(dataSourceId);
         ConnectionConfig connection = connectionService.getForConnectionSkipPermissionCheck(dataSourceId);
         cloudMetadataClient.checkPermission(OBTenant.of(connection.getClusterName(),
                 connection.getTenantName()), connection.getInstanceType(), false, CloudPermissionAction.READONLY);
@@ -416,6 +419,68 @@ public class ConnectSessionService {
     }
 
     /**
+     * 关闭并释放某个用户某个数据源下的所有数据库连接，当 dataSourceId 为空时关闭该用户的全部连接
+     * 
+     * @param userId 用户ID
+     * @param dataSourceId 数据源ID，可为空
+     * @return 关闭的会话数量
+     */
+    @SkipAuthorize("check permission internally")
+    public int closeUserDatasourceSessions(@NotNull Long userId, Long dataSourceId) {
+        PreConditions.notNull(userId, "userId");
+
+        Collection<ConnectionSession> allSessions = listAllSessions();
+        int closedCount = 0;
+        Set<Long> affectedDataSourceIds = new HashSet<>();
+
+        for (ConnectionSession session : allSessions) {
+            try {
+                Long sessionUserId = ConnectionSessionUtil.getUserId(session);
+                if (sessionUserId == null || !sessionUserId.equals(userId)) {
+                    continue;
+                }
+
+                Object connectionConfigObj = ConnectionSessionUtil.getConnectionConfig(session);
+                if (!(connectionConfigObj instanceof ConnectionConfig)) {
+                    continue;
+                }
+                ConnectionConfig connectionConfig = (ConnectionConfig) connectionConfigObj;
+                Long sessionDataSourceId = connectionConfig.id();
+                if (dataSourceId != null && !Objects.equals(sessionDataSourceId, dataSourceId)) {
+                    continue;
+                }
+
+                try {
+                    session.expire();
+                    closedCount++;
+                    log.info("Closed session for user {} and datasource {}, sessionId={}",
+                            userId, sessionDataSourceId, session.getId());
+                    if (sessionDataSourceId != null) {
+                        affectedDataSourceIds.add(sessionDataSourceId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to close session, sessionId={}, userId={}, dataSourceId={}",
+                            session.getId(), userId, sessionDataSourceId, e);
+                }
+            } catch (Exception e) {
+                log.warn("Error processing session, sessionId={}", session.getId(), e);
+            }
+        }
+
+        if (dataSourceId != null) {
+            limitService.clearUserDatasourceSessionCount(userId.toString(), dataSourceId);
+            log.info("Closed {} sessions and cleared session count limit for user {} and datasource {}",
+                    closedCount, userId, dataSourceId);
+        } else {
+            affectedDataSourceIds.forEach(id -> limitService.clearUserDatasourceSessionCount(userId.toString(), id));
+            log.info("Closed {} sessions for user {} across datasources {}", closedCount, userId,
+                    affectedDataSourceIds);
+        }
+
+        return closedCount;
+    }
+
+    /**
      * Common upload method
      *
      * @param sessionId session id for {@link ConnectionSession}
@@ -523,7 +588,7 @@ public class ConnectSessionService {
         return session;
     }
 
-    private void preCheckSessionLimit() {
+    private void preCheckSessionLimit(Long dataSourceId) {
         long maxCount = sessionProperties.getUserMaxCount();
         if (labProperties.isSessionLimitEnabled()) {
             if (!limitService.allowCreateSession(authenticationFacade.currentUserIdStr())) {
@@ -541,6 +606,20 @@ public class ConnectSessionService {
                         limitService.incrementSessionCount(authenticationFacade.currentUserIdStr()), sessMaxCount);
             } catch (OverLimitException ex) {
                 limitService.decrementSessionCount(authenticationFacade.currentUserIdStr());
+                throw ex;
+            }
+        }
+        // 检查用户对数据源的连接数限制
+        long userDatasourceMaxCount = sessionProperties.getUserDatasourceMaxCount();
+        if (userDatasourceMaxCount > 0 && dataSourceId != null) {
+            String userId = authenticationFacade.currentUserIdStr();
+            try {
+                int currentCount = limitService.incrementUserDatasourceSessionCount(userId, dataSourceId);
+                PreConditions.lessThanOrEqualTo("userDatasourceSessionCount",
+                        LimitMetric.USER_DATASOURCE_SESSION_COUNT,
+                        currentCount, userDatasourceMaxCount);
+            } catch (OverLimitException ex) {
+                limitService.decrementUserDatasourceSessionCount(userId, dataSourceId);
                 throw ex;
             }
         }
