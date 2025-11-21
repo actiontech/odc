@@ -183,18 +183,18 @@ public class DefaultConnectSessionFactory implements ConnectionSessionFactory {
             return;
         }
         log.info("Begin to set nls format.");
-        String nlsDateFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute(
+        String nlsDateFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute(
                 (ConnectionCallback<String>) con -> ConnectionPluginUtil
                         .getSessionExtension(session.getDialectType()).getVariable(con, "nls_date_format"));
         ConnectionSessionUtil.setNlsDateFormat(session, Objects.isNull(nlsDateFormat) ? "DD-MON-RR" : nlsDateFormat);
 
-        String nlsTimestampFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute(
+        String nlsTimestampFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute(
                 (ConnectionCallback<String>) con -> ConnectionPluginUtil
                         .getSessionExtension(session.getDialectType()).getVariable(con, "nls_timestamp_format"));
         ConnectionSessionUtil.setNlsTimestampFormat(session,
                 Objects.isNull(nlsTimestampFormat) ? "DD-MON-RR" : nlsTimestampFormat);
 
-        String nlsTimestampTZFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).execute(
+        String nlsTimestampTZFormat = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).execute(
                 (ConnectionCallback<String>) con -> ConnectionPluginUtil
                         .getSessionExtension(session.getDialectType()).getVariable(con, "nls_timestamp_tz_format"));
         ConnectionSessionUtil.setNlsTimestampTZFormat(session,

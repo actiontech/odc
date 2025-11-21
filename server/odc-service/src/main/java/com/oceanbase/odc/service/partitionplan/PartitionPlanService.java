@@ -512,7 +512,7 @@ public class PartitionPlanService {
     }
 
     private JdbcOperations getJdbcOpt(ConnectionSession connectionSession) {
-        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
     }
 
     private void checkPartitionKeyValue(

@@ -55,7 +55,7 @@ public class RollbackGeneratorFactory {
         ConnectType connectType = connectionSession.getConnectType();
         Validate.notNull(connectType, "ConnectType can not be null");
         SyncJdbcExecutor syncJdbcExecutor =
-                connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+                connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
 
         Statement statement;
         if (connectType.getDialectType().isMysql()) {

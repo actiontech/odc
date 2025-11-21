@@ -46,7 +46,7 @@ public class DBTypeService {
 
     public List<DBType> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBPLObjectIdentity>>) con -> getTypeExtensionPoint(connectionSession)
                         .list(con, dbName))
                 .stream()
@@ -61,7 +61,7 @@ public class DBTypeService {
 
     public DBType detail(ConnectionSession connectionSession, String schemaName, String typeName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBType>) con -> getTypeExtensionPoint(connectionSession).getDetail(con,
                         schemaName, typeName));
     }
@@ -69,7 +69,7 @@ public class DBTypeService {
     public ResourceSql generateCreateSql(@NonNull ConnectionSession session,
             @NonNull DBType unit) {
         return ResourceSql.ofSql(session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getTypeExtensionPoint(session)
                         .generateCreateTemplate(unit)));
     }

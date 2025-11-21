@@ -51,7 +51,7 @@ public class PLObjectErrMsgUtils {
             return objectName2Text;
         }
         String sql = generateOracleQuerySql(owner, objectType, objectName);
-        session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY).query(sql, resultSet -> {
+        session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY).query(sql, resultSet -> {
             String name = resultSet.getString(1);
             String text = resultSet.getString(2);
             String lineStr = resultSet.getString(3);

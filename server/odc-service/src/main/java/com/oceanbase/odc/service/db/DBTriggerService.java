@@ -50,7 +50,7 @@ public class DBTriggerService {
 
     public List<DBTrigger> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBPLObjectIdentity>>) con -> getTriggerExtensionPoint(
                         connectionSession).list(con, dbName))
                 .stream()
@@ -66,7 +66,7 @@ public class DBTriggerService {
 
     public DBTrigger detail(ConnectionSession connectionSession, String schemaName, String triggerName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBTrigger>) con -> getTriggerExtensionPoint(connectionSession)
                         .getDetail(con, schemaName, triggerName));
     }
@@ -74,7 +74,7 @@ public class DBTriggerService {
     public DBTrigger alter(@NonNull ConnectionSession session, @NonNull DBTriggerReq unit) {
         String schemaName = ConnectionSessionUtil.getCurrentSchema(session);
         session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY).execute((ConnectionCallback<Void>) con -> {
+                ConnectionSessionConstants.CONSOLE_DS_KEY).execute((ConnectionCallback<Void>) con -> {
                     getTriggerExtensionPoint(session).setEnable(con, schemaName, unit.getTriggerName(),
                             unit.isEnable());
                     return null;
@@ -85,7 +85,7 @@ public class DBTriggerService {
     public String generateCreateSql(@NonNull ConnectionSession session,
             @NonNull DBTriggerReq unit) {
         return session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getTriggerExtensionPoint(session)
                         .generateCreateTemplate(unit));
     }

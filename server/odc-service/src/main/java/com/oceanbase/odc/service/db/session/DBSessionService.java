@@ -62,7 +62,7 @@ public class DBSessionService {
     }
 
     public List<OdcDBSession> list(@NonNull ConnectionSession session) {
-        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY);
+        JdbcOperations jdbcOperations = session.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY);
         return jdbcOperations.query("SHOW FULL PROCESSLIST", new OdcDBSessionRowMapper());
     }
 }

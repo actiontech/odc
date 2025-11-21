@@ -103,7 +103,7 @@ public class DBTableService {
         }
         try {
             return connectionSession.getSyncJdbcExecutor(
-                    ConnectionSessionConstants.BACKEND_DS_KEY)
+                    ConnectionSessionConstants.CONSOLE_DS_KEY)
                     .execute((ConnectionCallback<DBTable>) con -> getTableExtensionPoint(connectionSession)
                             .getDetail(con, schemaName, tableName));
         } catch (Exception e) {

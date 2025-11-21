@@ -15,7 +15,7 @@
  */
 package com.oceanbase.odc.service.queryprofile;
 
-import static com.oceanbase.odc.core.session.ConnectionSessionConstants.BACKEND_DS_KEY;
+import static com.oceanbase.odc.core.session.ConnectionSessionConstants.CONSOLE_DS_KEY;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -69,7 +69,7 @@ public class OBQueryProfileManager {
                 return;
             }
             try {
-                SqlExplain profile = session.getSyncJdbcExecutor(BACKEND_DS_KEY).execute(
+                SqlExplain profile = session.getSyncJdbcExecutor(CONSOLE_DS_KEY).execute(
                         (ConnectionCallback<SqlExplain>) conn -> ConnectionPluginUtil
                                 .getDiagnoseExtension(session.getConnectType().getDialectType())
                                 .getQueryProfileByTraceIdAndSessIds(conn, traceId, sessionIds));
@@ -99,7 +99,7 @@ public class OBQueryProfileManager {
                 return JsonUtils.fromJson(StreamUtils.copyToString(stream, StandardCharsets.UTF_8), SqlExplain.class);
             }
             List<String> sessionIds = getSessionIds(session);
-            return session.getSyncJdbcExecutor(BACKEND_DS_KEY).execute(
+            return session.getSyncJdbcExecutor(CONSOLE_DS_KEY).execute(
                     (StatementCallback<SqlExplain>) stmt -> ConnectionPluginUtil
                             .getDiagnoseExtension(session.getConnectType().getDialectType())
                             .getQueryProfileByTraceIdAndSessIds(stmt.getConnection(), traceId, sessionIds));
@@ -115,7 +115,7 @@ public class OBQueryProfileManager {
         if (StringUtils.isEmpty(proxySessId)) {
             return Collections.singletonList(ConnectionSessionUtil.getConsoleConnectionId(session));
         }
-        return session.getSyncJdbcExecutor(BACKEND_DS_KEY).execute((StatementCallback<List<String>>) stmt -> OBUtils
+        return session.getSyncJdbcExecutor(CONSOLE_DS_KEY).execute((StatementCallback<List<String>>) stmt -> OBUtils
                 .querySessionIdsByProxySessId(stmt, proxySessId, session.getConnectType()));
     }
 

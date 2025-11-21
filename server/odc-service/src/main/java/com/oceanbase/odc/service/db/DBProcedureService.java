@@ -42,7 +42,7 @@ public class DBProcedureService {
 
     public List<DBProcedure> list(ConnectionSession connectionSession, String dbName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<List<DBPLObjectIdentity>>) con -> getProcedureExtensionPoint(
                         connectionSession).list(con, dbName))
                 .stream().map(
@@ -58,7 +58,7 @@ public class DBProcedureService {
 
     public DBProcedure detail(ConnectionSession connectionSession, String dbName, String proName) {
         return connectionSession.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<DBProcedure>) con -> getProcedureExtensionPoint(connectionSession)
                         .getDetail(con, dbName, proName));
     }
@@ -66,7 +66,7 @@ public class DBProcedureService {
     public ResourceSql getCreateSql(@NonNull ConnectionSession session,
             @NonNull DBProcedure resource) {
         return ResourceSql.ofSql(session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+                ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .execute((ConnectionCallback<String>) con -> getProcedureExtensionPoint(session)
                         .generateCreateTemplate(resource)));
     }

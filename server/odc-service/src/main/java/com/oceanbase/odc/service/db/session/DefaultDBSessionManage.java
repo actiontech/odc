@@ -229,7 +229,7 @@ public class DefaultDBSessionManage implements DBSessionManageFacade {
 
     private List<JdbcGeneralResult> executeSqls(ConnectionSession connectionSession, List<SqlTuple> sqlTuples) {
         List<JdbcGeneralResult> results =
-                connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+                connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                         .execute(new OdcStatementCallBack(sqlTuples, connectionSession, true, null, false));
         if (results == null) {
             log.warn("Execution of the kill session command failed with unknown error, sql={}", sqlTuples);
@@ -298,7 +298,7 @@ public class DefaultDBSessionManage implements DBSessionManageFacade {
                 ? "select PROXY_SESSID from oceanbase.gv$ob_processlist where ID =(select connection_id());"
                 : "select PROXY_SESSID from gv$ob_processlist where ID =(select sys_context('userenv','sid') from dual);";
         try {
-            List<String> proxySessids = connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+            List<String> proxySessids = connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                     .query(sql, (rs, rowNum) -> rs.getString("PROXY_SESSID"));
             if (proxySessids != null && proxySessids.size() == 1) {
                 return proxySessids.get(0) == null;
@@ -322,7 +322,7 @@ public class DefaultDBSessionManage implements DBSessionManageFacade {
         // Check whether the global session is open
         // If the global session is open, the "time" column will be displayed in the result set after
         // executing the sql statement of "show processlist"
-        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                 .query("show processlist", rs -> {
                     try {
                         int columnIndex = rs.findColumn("time");
@@ -387,7 +387,7 @@ public class DefaultDBSessionManage implements DBSessionManageFacade {
                 + "';\n"
                 + "END;";
         try {
-            connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+            connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
                     .execute(anonymousCodeBlock);
             return JdbcGeneralResult.successResult(sqlTuple);
 
