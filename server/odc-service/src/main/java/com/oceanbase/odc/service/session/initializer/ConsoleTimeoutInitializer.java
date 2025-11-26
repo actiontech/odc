@@ -38,7 +38,6 @@ public class ConsoleTimeoutInitializer implements ConnectionInitializer {
     private final static Set<String> TIMEOUT_VARIABLES_SET = new HashSet<>();
 
     static {
-        TIMEOUT_VARIABLES_SET.add("ob_query_timeout");
         TIMEOUT_VARIABLES_SET.add("ob_trx_timeout");
         TIMEOUT_VARIABLES_SET.add("ob_pl_block_timeout");
     }

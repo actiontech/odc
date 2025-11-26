@@ -196,8 +196,11 @@ CREATE TABLE IF NOT EXISTS `config_system_configuration`(
   `description` varchar(1024) DEFAULT NULL COMMENT 'description of the config',
   `creator_id` bigint(20) NOT NULL COMMENT 'user id of the creator',
   `last_modifier_id` bigint(20) DEFAULT NULL COMMENT 'user id of the last modifier',
+  `config_unique_hash` varbinary(16) GENERATED ALWAYS AS (
+    UNHEX(MD5(CONCAT_WS('#', `application`, `profile`, `label`, `key`)))
+    ) STORED COMMENT 'hash for composite unique constraint',
   CONSTRAINT `pk_system_configuration_id` PRIMARY KEY  (`id`),
-  UNIQUE KEY `uk_system_configuration_key_label` (`application`, `profile`, `label`, `key`)
+  UNIQUE KEY `uk_system_configuration_key_label` (`config_unique_hash`)
 ) COMMENT = 'ODC system configuration, for odc administrator';
 
 

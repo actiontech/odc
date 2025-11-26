@@ -69,7 +69,7 @@ public interface ResourceGroupConnectionRepository extends JpaRepository<Resourc
             @NotEmpty @Param("resourceGroupIds") Collection<Long> resourceGroupIds,
             @Param("resourceType") String resourceType, @Param("resourceId") Long resourceId);
 
-    @Query("select distinct(rgc.resourceId) from ResourceGroupConnectionEntity as rgc"
+    @Query("select distinct rgc.resourceId from ResourceGroupConnectionEntity as rgc"
             + " left join ResourceGroupEntity as rg on rg.id = rgc.resourceGroupId"
             + " where rg.organizationId=:organizationId and rgc.resourceType=:resourceType")
     List<Long> findResourceIdUnderAllResourceGroupOfOrg(@Param("organizationId") Long organizationId,

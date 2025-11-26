@@ -18,6 +18,7 @@ package com.oceanbase.odc.config;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +41,6 @@ public class WebDataSourceConfiguration {
     @ConfigurationProperties("spring.datasource.druid")
     public DataSource dataSource() {
         DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
-        dataSource.getConnectProperties().setProperty("sessionVariables", "ob_query_timeout=30000000");
         dataSource.setSocketTimeout((int) (sessionProperties.getBackendQueryTimeoutMicros() / 1000));
         return dataSource;
     }

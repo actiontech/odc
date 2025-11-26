@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS `connect_connection_attribute` (
     `name` varchar(1024) NOT NULL COMMENT 'Name for an attribute',
 		`connection_id` bigint(20) NOT NULL COMMENT 'Related connection id, reference connect_connection(id)',
     `content` mediumtext DEFAULT NULL COMMENT 'Content for key',
+    `connect_unique_hash` varbinary(16) GENERATED ALWAYS AS (
+      UNHEX(MD5(CONCAT_WS('#', `connection_id`, `name`)))
+      ) STORED COMMENT 'hash for composite unique constraint',
     CONSTRAINT `pk_connect_connection_attribute` PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_connect_connection_attribute` (`connection_id`, `name`)
+    UNIQUE KEY `uk_connect_connection_attribute` (`connect_unique_hash`)
 );

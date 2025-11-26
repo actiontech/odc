@@ -59,7 +59,7 @@ public interface ConnectionConfigRepository
 
 
     @Transactional
-    @Query(value = "select distinct(c_c.*) from `connect_connection` as c_c inner join `connect_database` as c_d "
+    @Query(value = "select distinct c_c.* from `connect_connection` as c_c inner join `connect_database` as c_d "
             + "on c_c.id = c_d.connection_id where c_d.project_id = :projectId",
             nativeQuery = true)
     List<ConnectionEntity> findByDatabaseProjectId(@Param("projectId") Long projectId);

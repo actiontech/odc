@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS `resource_resource` (
     `endpoint` varchar(128) NOT NULL COMMENT 'endpoint',
     `status` varchar(128) NOT NULL COMMENT 'status, candidate is CREATING,RUNNING,DESTROYING,DESTROYED,ERROR_STATE,UNKNOWN',
     `resource_properties` longtext COMMENT 'resource detailed properties',
+    `resource_unique_hash` varbinary(16) GENERATED ALWAYS AS (
+        UNHEX(MD5(CONCAT_WS('#', `resource_type`, `region`, `group_name`, `namespace`, `name`)))
+    ) STORED COMMENT 'hash for composite unique constraint',
     PRIMARY KEY (`id`),
-    CONSTRAINT `resource_unique` UNIQUE (`resource_type`, `region`, `group_name`, `namespace`, `name`)
+    UNIQUE KEY `resource_unique` (`resource_unique_hash`)
 );

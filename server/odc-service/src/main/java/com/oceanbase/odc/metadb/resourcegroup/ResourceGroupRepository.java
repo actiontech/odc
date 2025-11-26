@@ -40,7 +40,7 @@ public interface ResourceGroupRepository
     @Modifying
     int updateById(@Param("param") ResourceGroupEntity entity);
 
-    @Query(value = "select distinct(rg.*) from (select * from connect_connection where visible_scope='ORGANIZATION' "
+    @Query(value = "select distinct rg.* from (select * from connect_connection where visible_scope='ORGANIZATION' "
             + "and id=:connectionId) as c left join (select * from iam_resource_group_resource where "
             + "resource_type='ODC_CONNECTION') as rgr on rgr.resource_id=c.id left join iam_resource_group "
             + "as rg on rgr.resource_group_id=rg.id", nativeQuery = true)

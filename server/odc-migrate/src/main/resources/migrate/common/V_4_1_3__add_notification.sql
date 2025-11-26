@@ -56,8 +56,11 @@ CREATE TABLE IF NOT EXISTS `notification_policy`(
   `match_expression_json` varchar(2048) NOT NULL comment 'indicate if a event matches the expression, json string',
   `to_recipients` varchar(2048) NOT NULL default '' comment 'odc users who will receive this message',
   `cc_recipients` varchar(2048) NOT NULL default '' comment 'odc users who will receive this message by copy',
+  `notification_unique_hash` varbinary(16) GENERATED ALWAYS AS (
+    UNHEX(MD5(CONCAT_WS('#', `organization_id`,`match_expression_json`)))
+    ) STORED COMMENT 'hash for composite unique constraint',
   CONSTRAINT pk_notification_policy_id PRIMARY KEY (`id`),
-  CONSTRAINT uk_notification_policy_organization_id_match_expression UNIQUE KEY(`organization_id`,`match_expression_json`)
+  UNIQUE KEY `uk_notification_policy_organization_id_match_expression` (`notification_unique_hash`)
 ) comment = 'notification policy';
 
 CREATE TABLE IF NOT EXISTS `notification_policy_channel_relation`(

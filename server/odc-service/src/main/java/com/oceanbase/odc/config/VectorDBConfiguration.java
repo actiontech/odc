@@ -84,7 +84,6 @@ public class VectorDBConfiguration {
     @ConfigurationProperties("odc.datasource.vectordb")
     public DataSource vectordbDataSource() {
         DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
-        dataSource.getConnectProperties().setProperty("sessionVariables", "ob_query_timeout=30000000");
         dataSource.setSocketTimeout((int) (sessionProperties.getBackendQueryTimeoutMicros() / 1000));
         return dataSource;
     }

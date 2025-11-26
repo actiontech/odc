@@ -62,7 +62,6 @@ public class DBVariablesService {
         IMPORTANT_DB_VARIABLES.add("max_allowed_packet");
         IMPORTANT_DB_VARIABLES.add("ob_compatibility_mode");
         IMPORTANT_DB_VARIABLES.add("ob_max_parallel_degree");
-        IMPORTANT_DB_VARIABLES.add("ob_query_timeout");
         IMPORTANT_DB_VARIABLES.add("ob_read_consistency");
         IMPORTANT_DB_VARIABLES.add("ob_route_policy");
         IMPORTANT_DB_VARIABLES.add("ob_trx_timeout");
@@ -92,7 +91,6 @@ public class DBVariablesService {
 
         DB_VARIABLE_VALUE_UNIT.put("connect_timeout", "s");
         DB_VARIABLE_VALUE_UNIT.put("interactive_timeout", "s");
-        DB_VARIABLE_VALUE_UNIT.put("ob_query_timeout", "us");
         DB_VARIABLE_VALUE_UNIT.put("ob_trx_timeout", "us");
         DB_VARIABLE_VALUE_UNIT.put("net_read_timeout", "s");
         DB_VARIABLE_VALUE_UNIT.put("net_write_timeout", "s");

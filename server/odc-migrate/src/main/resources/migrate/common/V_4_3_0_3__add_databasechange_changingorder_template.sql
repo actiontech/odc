@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS `databasechange_changingorder_template`(
   `organization_id` bigint(20) NOT NULL COMMENT 'Reference iam_user_organization(id)',
   `database_sequences` varchar(1024) NOT NULL COMMENT 'Database Execution sequence',
   `is_enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `databasechange_unique_hash` varbinary(16) GENERATED ALWAYS AS (
+    UNHEX(MD5(CONCAT_WS('#', `project_id`,`name`)))
+    ) STORED COMMENT 'hash for composite unique constraint',
   CONSTRAINT `pk_databasechange_changingorder_template_id` PRIMARY KEY(`id`),
-  UNIQUE KEY `uk_databasechange_changingorder_template_project_id_name` (`project_id`,`name`)
+  UNIQUE KEY `uk_databasechange_changingorder_template_project_id_name` (`databasechange_unique_hash`)
 );

@@ -25,4 +25,4 @@ FROM odc_session_manager t1
   LEFT JOIN connect_connection t3 ON t1.id=t3.id
 WHERE t1.user_id IS NOT NULL AND t1.`host` IS NOT NULL AND t1.session_name IS NOT NULL AND t1.db_mode IS NOT NULL AND t1.db_user IS NOT NULL
  AND t3.id IS NULL
- ON DUPLICATE KEY UPDATE `id`=`id`;
+ ON DUPLICATE KEY UPDATE connect_connection.`id`=connect_connection.`id`;
