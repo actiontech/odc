@@ -44,13 +44,13 @@ public interface UserTaskInstanceRepository
 
     List<UserTaskInstanceEntity> findByStatus(FlowNodeStatus status);
 
-    @Query(value = "SELECT distinct(fai.*) FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
+    @Query(value = "SELECT distinct fai.* FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
             + "fai.id=faci.approval_instance_id WHERE faci.user_id=:userId or faci.role_id in (:roleIds)",
             nativeQuery = true)
     List<UserTaskInstanceEntity> findByCandidateUserIdOrRoleIds(@Param("userId") Long userId,
             @Param("roleIds") Collection<Long> roleIds);
 
-    @Query(value = "SELECT distinct(fai.*) FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
+    @Query(value = "SELECT distinct fai.* FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
             + "fai.id=faci.approval_instance_id WHERE fai.status not in (:statuses) and (faci.user_id=:userId or faci.resource_role_identifier in (:resourceRoleIdentifiers))",
             nativeQuery = true)
     List<UserTaskInstanceEntity> findByStatusNotInAndCandidateUserIdOrResourceRoleIdentifier(
@@ -58,14 +58,14 @@ public interface UserTaskInstanceRepository
             @Param("userId") Long userId,
             @Param("resourceRoleIdentifiers") Collection<String> resourceRoleIdentifiers);
 
-    @Query(value = "SELECT distinct(fai.*) FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
+    @Query(value = "SELECT distinct fai.* FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci ON "
             + "fai.id=faci.approval_instance_id WHERE fai.status not in (:statuses) and faci.resource_role_identifier in (:resourceRoleIdentifier)",
             nativeQuery = true)
     List<UserTaskInstanceEntity> findByStatusNotInAndResourceRoleIdentifierIn(
             @Param("statuses") Collection<String> statuses,
             @Param("resourceRoleIdentifier") Collection<String> resourceRoleIdentifier);
 
-    @Query(value = "SELECT distinct(fai.*) FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci "
+    @Query(value = "SELECT distinct fai.* FROM flow_instance_node_approval fai INNER JOIN flow_instance_node_approval_candidate faci "
             + "ON fai.id=faci.approval_instance_id WHERE faci.user_id=:userId", nativeQuery = true)
     List<UserTaskInstanceEntity> findByCandidateUserId(@Param("userId") Long userId);
 

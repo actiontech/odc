@@ -29,7 +29,7 @@ public interface ApprovalFlowConfigRepository extends JpaRepository<ApprovalFlow
 
     Optional<ApprovalFlowConfigEntity> findByOrganizationIdAndId(Long organizationId, Long id);
 
-    @Query(value = "select distinct(f_c.*) from regulation_approval_flow_config f_c inner join regulation_approval_flow_node_config"
+    @Query(value = "select distinct f_c.* from regulation_approval_flow_config f_c inner join regulation_approval_flow_node_config"
             + " f_n_c on f_c.id = f_n_c.approval_flow_config_id where f_n_c.external_approval_id = :integrationId",
             nativeQuery = true)
     List<ApprovalFlowConfigEntity> findByIntegrationId(@Param("integrationId") Long integrationId);

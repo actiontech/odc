@@ -112,6 +112,9 @@ public class DataRecordRepository {
             return null;
         }
         if (keyMap.size() == 1) {
+            if (keyMap.get("GENERATED_KEY") != null) {
+                return Long.valueOf(keyMap.get("GENERATED_KEY").toString());
+            }
             return keyHolder.getKeyAs(Long.class);
         }
         if (keyMap.get("id") != null) {
