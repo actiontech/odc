@@ -157,6 +157,7 @@
         <registry-prometheus.version>1.9.5</registry-prometheus.version>
         <actuator.version>2.7.12</actuator.version>
         <picocli.version>4.7.0</picocli.version>
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencyManagement>

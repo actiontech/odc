@@ -63,9 +63,6 @@ public class DebuggeeSession extends AbstractDebugSession {
     public DebuggeeSession(ConnectionSession connectionSession, ThreadPoolExecutor debugThreadPoolExecutor,
             StartPLDebugReq req, PLDebugProperties plDebugProperties) throws Exception {
         List<String> initSqls = Arrays.asList(
-                // Set the query timeout period, unit: microseconds, default value: 600*1000*1000us
-                String.format("set session ob_query_timeout = %s;",
-                        plDebugProperties.getObQueryTimeoutSeconds() * 1000 * 1000),
                 // Set the timeout of the debug worker thread, unit: seconds, default value:120s
                 String.format("select dbms_debug.set_timeout(%s) from dual;",
                         plDebugProperties.getDebugTimeoutSeconds()));
