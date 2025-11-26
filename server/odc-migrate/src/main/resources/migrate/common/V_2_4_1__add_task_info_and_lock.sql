@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `odc_task_info`(
 `parameters` VARCHAR(1024),
 `description` VARCHAR(2048),
 `status` VARCHAR(16),
-`progress_percentage` number(3,2),
+`progress_percentage` decimal(3,2),
 `result` MEDIUMTEXT,
 UNIQUE KEY(`user_id`, `task_type`,`task_name`)
 );

@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `notification_policy`(
   `organization_id` bigint(20) NOT NULL comment 'organization id, references iam_organization.id',
   `title_template` text NOT NULL comment 'notification message title template, which could contains variables',
   `content_template` text NOT NULL comment 'notification message content template, which could contains variables',
-  `match_expression_json` varchar(2048) NOT NULL comment 'indicate if a event matches the expression, json string',
+  `match_expression_json` varchar(512) NOT NULL comment 'indicate if a event matches the expression, json string',
   `to_recipients` varchar(2048) NOT NULL default '' comment 'odc users who will receive this message',
   `cc_recipients` varchar(2048) NOT NULL default '' comment 'odc users who will receive this message by copy',
   CONSTRAINT pk_notification_policy_id PRIMARY KEY (`id`),

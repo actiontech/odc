@@ -14,10 +14,86 @@
  * limitations under the License.
  */
 
-CREATE INDEX idx_iam_user_org_id_creator_id ON iam_user (organization_id, creator_id);
-CREATE INDEX idx_iam_role_org_id_creator_id ON iam_role (organization_id, creator_id);
-CREATE INDEX idx_connect_connection_org_id_creator_id ON connect_connection (organization_id, creator_id);
+SET @idx_table := 'iam_user';
+SET @idx_name := 'idx_iam_user_org_id_creator_id';
+SET @idx_cols := 'organization_id, creator_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
-create index if not exists idx_task_task_connection_id_organization_id on task_task(connection_id, organization_id);
-create index if not exists idx_schedule_schedule_connection_id_organization_id on schedule_schedule(connection_id, organization_id);
-create index if not exists idx_data_security_sensitive_rule_organization_id on data_security_sensitive_rule(organization_id);
+SET @idx_table := 'iam_role';
+SET @idx_name := 'idx_iam_role_org_id_creator_id';
+SET @idx_cols := 'organization_id, creator_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_table := 'connect_connection';
+SET @idx_name := 'idx_connect_connection_org_id_creator_id';
+SET @idx_cols := 'organization_id, creator_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_table := 'task_task';
+SET @idx_name := 'idx_task_task_connection_id_organization_id';
+SET @idx_cols := 'connection_id, organization_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_table := 'schedule_schedule';
+SET @idx_name := 'idx_schedule_schedule_connection_id_organization_id';
+SET @idx_cols := 'connection_id, organization_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @idx_table := 'data_security_sensitive_rule';
+SET @idx_name := 'idx_data_security_sensitive_rule_organization_id';
+SET @idx_cols := 'organization_id';
+SET @ddl := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+   WHERE table_schema = DATABASE()
+     AND table_name = @idx_table
+     AND index_name = @idx_name) = 0,
+  CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+  'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

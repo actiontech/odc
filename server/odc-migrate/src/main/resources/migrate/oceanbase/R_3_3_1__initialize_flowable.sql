@@ -51,9 +51,51 @@ create table if not exists ACT_HI_IDENTITYLINK (
     primary key (ID_)
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_HI_IDENT_LNK_USER on ACT_HI_IDENTITYLINK(USER_ID_);
-create index if not exists ACT_IDX_HI_IDENT_LNK_SCOPE on ACT_HI_IDENTITYLINK(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_HI_IDENT_LNK_SCOPE_DEF on ACT_HI_IDENTITYLINK(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_HI_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_HI_IDENT_LNK_USER';
+SET @idx_cols := 'USER_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_HI_IDENT_LNK_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_HI_IDENT_LNK_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 insert into ACT_GE_PROPERTY values ('task.schema.version', '6.3.1.0', 1) on duplicate key update `NAME_`=`NAME_`;
 
@@ -88,9 +130,51 @@ create table if not exists ACT_HI_TASKINST (
     primary key (ID_)
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_HI_TASK_SCOPE on ACT_HI_TASKINST(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_HI_TASK_SUB_SCOPE on ACT_HI_TASKINST(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_HI_TASK_SCOPE_DEF on ACT_HI_TASKINST(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_HI_TASKINST';
+SET @idx_name := 'ACT_IDX_HI_TASK_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_TASKINST';
+SET @idx_name := 'ACT_IDX_HI_TASK_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_TASKINST';
+SET @idx_name := 'ACT_IDX_HI_TASK_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 insert into ACT_GE_PROPERTY values ('variable.schema.version', '6.3.1.0', 1) on duplicate key update `NAME_`=`NAME_`;
 
@@ -115,9 +199,51 @@ create table if not exists ACT_HI_VARINST (
     primary key (ID_)
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_HI_PROCVAR_NAME_TYPE on ACT_HI_VARINST(NAME_, VAR_TYPE_);
-create index if not exists ACT_IDX_HI_VAR_SCOPE_ID_TYPE on ACT_HI_VARINST(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_HI_VAR_SUB_ID_TYPE on ACT_HI_VARINST(SUB_SCOPE_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_PROCVAR_NAME_TYPE';
+SET @idx_cols := 'NAME_, VAR_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_VAR_SCOPE_ID_TYPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_VAR_SUB_ID_TYPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_HISTORY_JOB (
     ID_ varchar(64) NOT NULL,
@@ -252,11 +378,81 @@ create table if not exists ACT_RU_DEADLETTER_JOB (
     CONSTRAINT `ACT_FK_DEADLETTER_JOB_EXCEPTION` FOREIGN KEY (`EXCEPTION_STACK_ID_`) REFERENCES `ACT_GE_BYTEARRAY`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_DEADLETTER_JOB_EXCEPTION_STACK_ID on ACT_RU_DEADLETTER_JOB(EXCEPTION_STACK_ID_);
-create index if not exists ACT_IDX_DEADLETTER_JOB_CUSTOM_VALUES_ID on ACT_RU_DEADLETTER_JOB(CUSTOM_VALUES_ID_);
-create index if not exists ACT_IDX_DJOB_SCOPE on ACT_RU_DEADLETTER_JOB(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_DJOB_SUB_SCOPE on ACT_RU_DEADLETTER_JOB(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_DJOB_SCOPE_DEF on ACT_RU_DEADLETTER_JOB(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_DEADLETTER_JOB';
+SET @idx_name := 'ACT_IDX_DEADLETTER_JOB_EXCEPTION_STACK_ID';
+SET @idx_cols := 'EXCEPTION_STACK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_DEADLETTER_JOB';
+SET @idx_name := 'ACT_IDX_DEADLETTER_JOB_CUSTOM_VALUES_ID';
+SET @idx_cols := 'CUSTOM_VALUES_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_DEADLETTER_JOB';
+SET @idx_name := 'ACT_IDX_DJOB_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_DEADLETTER_JOB';
+SET @idx_name := 'ACT_IDX_DJOB_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_DEADLETTER_JOB';
+SET @idx_name := 'ACT_IDX_DJOB_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_TIMER_JOB (
     ID_ varchar(64) NOT NULL,
@@ -290,11 +486,81 @@ create table if not exists ACT_RU_TIMER_JOB (
     CONSTRAINT `ACT_FK_TIMER_JOB_EXCEPTION` FOREIGN KEY (`EXCEPTION_STACK_ID_`) REFERENCES `ACT_GE_BYTEARRAY`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_TIMER_JOB_EXCEPTION_STACK_ID on ACT_RU_TIMER_JOB(EXCEPTION_STACK_ID_);
-create index if not exists ACT_IDX_TIMER_JOB_CUSTOM_VALUES_ID on ACT_RU_TIMER_JOB(CUSTOM_VALUES_ID_);
-create index if not exists ACT_IDX_TJOB_SCOPE on ACT_RU_TIMER_JOB(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_TJOB_SUB_SCOPE on ACT_RU_TIMER_JOB(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_TJOB_SCOPE_DEF on ACT_RU_TIMER_JOB(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_TIMER_JOB';
+SET @idx_name := 'ACT_IDX_TIMER_JOB_EXCEPTION_STACK_ID';
+SET @idx_cols := 'EXCEPTION_STACK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TIMER_JOB';
+SET @idx_name := 'ACT_IDX_TIMER_JOB_CUSTOM_VALUES_ID';
+SET @idx_cols := 'CUSTOM_VALUES_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TIMER_JOB';
+SET @idx_name := 'ACT_IDX_TJOB_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TIMER_JOB';
+SET @idx_name := 'ACT_IDX_TJOB_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TIMER_JOB';
+SET @idx_name := 'ACT_IDX_TJOB_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_SUSPENDED_JOB (
     ID_ varchar(64) NOT NULL,
@@ -326,11 +592,81 @@ create table if not exists ACT_RU_SUSPENDED_JOB (
     CONSTRAINT `ACT_FK_SUSPENDED_JOB_EXCEPTION` FOREIGN KEY (`EXCEPTION_STACK_ID_`) REFERENCES `ACT_GE_BYTEARRAY`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_SUSPENDED_JOB_EXCEPTION_STACK_ID on ACT_RU_SUSPENDED_JOB(EXCEPTION_STACK_ID_);
-create index if not exists ACT_IDX_SUSPENDED_JOB_CUSTOM_VALUES_ID on ACT_RU_SUSPENDED_JOB(CUSTOM_VALUES_ID_);
-create index if not exists ACT_IDX_SJOB_SCOPE on ACT_RU_SUSPENDED_JOB(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_SJOB_SUB_SCOPE on ACT_RU_SUSPENDED_JOB(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_SJOB_SCOPE_DEF on ACT_RU_SUSPENDED_JOB(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_SUSPENDED_JOB';
+SET @idx_name := 'ACT_IDX_SUSPENDED_JOB_EXCEPTION_STACK_ID';
+SET @idx_cols := 'EXCEPTION_STACK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_SUSPENDED_JOB';
+SET @idx_name := 'ACT_IDX_SUSPENDED_JOB_CUSTOM_VALUES_ID';
+SET @idx_cols := 'CUSTOM_VALUES_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_SUSPENDED_JOB';
+SET @idx_name := 'ACT_IDX_SJOB_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_SUSPENDED_JOB';
+SET @idx_name := 'ACT_IDX_SJOB_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_SUSPENDED_JOB';
+SET @idx_name := 'ACT_IDX_SJOB_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_JOB (
     ID_ varchar(64) NOT NULL,
@@ -364,11 +700,81 @@ create table if not exists ACT_RU_JOB (
     CONSTRAINT `ACT_FK_JOB_EXCEPTION` FOREIGN KEY (`EXCEPTION_STACK_ID_`) REFERENCES `ACT_GE_BYTEARRAY`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_JOB_EXCEPTION_STACK_ID on ACT_RU_JOB(EXCEPTION_STACK_ID_);
-create index if not exists ACT_IDX_JOB_CUSTOM_VALUES_ID on ACT_RU_JOB(CUSTOM_VALUES_ID_);
-create index if not exists ACT_IDX_JOB_SCOPE on ACT_RU_JOB(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_JOB_SUB_SCOPE on ACT_RU_JOB(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_JOB_SCOPE_DEF on ACT_RU_JOB(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_JOB';
+SET @idx_name := 'ACT_IDX_JOB_EXCEPTION_STACK_ID';
+SET @idx_cols := 'EXCEPTION_STACK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_JOB';
+SET @idx_name := 'ACT_IDX_JOB_CUSTOM_VALUES_ID';
+SET @idx_cols := 'CUSTOM_VALUES_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_JOB';
+SET @idx_name := 'ACT_IDX_JOB_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_JOB';
+SET @idx_name := 'ACT_IDX_JOB_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_JOB';
+SET @idx_name := 'ACT_IDX_JOB_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_TASK (
     ID_ varchar(64),
@@ -406,10 +812,66 @@ create table if not exists ACT_RU_TASK (
     CONSTRAINT `ACT_FK_TASK_EXE` FOREIGN KEY (`EXECUTION_ID_`) REFERENCES `ACT_RU_EXECUTION`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_TASK_CREATE on ACT_RU_TASK(CREATE_TIME_);
-create index if not exists ACT_IDX_TASK_SCOPE on ACT_RU_TASK(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_TASK_SUB_SCOPE on ACT_RU_TASK(SUB_SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_TASK_SCOPE_DEF on ACT_RU_TASK(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_TASK';
+SET @idx_name := 'ACT_IDX_TASK_CREATE';
+SET @idx_cols := 'CREATE_TIME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TASK';
+SET @idx_name := 'ACT_IDX_TASK_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TASK';
+SET @idx_name := 'ACT_IDX_TASK_SUB_SCOPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_TASK';
+SET @idx_name := 'ACT_IDX_TASK_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_IDENTITYLINK (
     ID_ varchar(64),
@@ -429,10 +891,66 @@ create table if not exists ACT_RU_IDENTITYLINK (
     CONSTRAINT `ACT_FK_TSKASS_TASK` FOREIGN KEY (`TASK_ID_`) REFERENCES `ACT_RU_TASK`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_IDENT_LNK_USER on ACT_RU_IDENTITYLINK(USER_ID_);
-create index if not exists ACT_IDX_IDENT_LNK_GROUP on ACT_RU_IDENTITYLINK(GROUP_ID_);
-create index if not exists ACT_IDX_IDENT_LNK_SCOPE on ACT_RU_IDENTITYLINK(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_IDENT_LNK_SCOPE_DEF on ACT_RU_IDENTITYLINK(SCOPE_DEFINITION_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_IDENT_LNK_USER';
+SET @idx_cols := 'USER_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_IDENT_LNK_GROUP';
+SET @idx_cols := 'GROUP_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_IDENT_LNK_SCOPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_IDENT_LNK_SCOPE_DEF';
+SET @idx_cols := 'SCOPE_DEFINITION_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_VARIABLE (
     ID_ varchar(64) not null,
@@ -456,8 +974,36 @@ create table if not exists ACT_RU_VARIABLE (
     CONSTRAINT `ACT_FK_VAR_BYTEARRAY` FOREIGN KEY (`BYTEARRAY_ID_`) REFERENCES `ACT_GE_BYTEARRAY`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_RU_VAR_SCOPE_ID_TYPE on ACT_RU_VARIABLE(SCOPE_ID_, SCOPE_TYPE_);
-create index if not exists ACT_IDX_RU_VAR_SUB_ID_TYPE on ACT_RU_VARIABLE(SUB_SCOPE_ID_, SCOPE_TYPE_);
+SET @idx_table := 'ACT_RU_VARIABLE';
+SET @idx_name := 'ACT_IDX_RU_VAR_SCOPE_ID_TYPE';
+SET @idx_cols := 'SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_VARIABLE';
+SET @idx_name := 'ACT_IDX_RU_VAR_SUB_ID_TYPE';
+SET @idx_cols := 'SUB_SCOPE_ID_, SCOPE_TYPE_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_RU_EVENT_SUBSCR (
     ID_ varchar(64) not null,
@@ -502,12 +1048,96 @@ create table if not exists ACT_PROCDEF_INFO (
     UNIQUE KEY `ACT_UNIQ_INFO_PROCDEF` (`PROC_DEF_ID_`)
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_EXEC_BUSKEY on ACT_RU_EXECUTION(BUSINESS_KEY_);
-create index if not exists ACT_IDC_EXEC_ROOT on ACT_RU_EXECUTION(ROOT_PROC_INST_ID_);
-create index if not exists ACT_IDX_EVENT_SUBSCR_CONFIG_ on ACT_RU_EVENT_SUBSCR(CONFIGURATION_);
-create index if not exists ACT_IDX_VARIABLE_TASK_ID on ACT_RU_VARIABLE(TASK_ID_);
-create index if not exists ACT_IDX_ATHRZ_PROCEDEF on ACT_RU_IDENTITYLINK(PROC_DEF_ID_);
-create index if not exists ACT_IDX_INFO_PROCDEF on ACT_PROCDEF_INFO(PROC_DEF_ID_);
+SET @idx_table := 'ACT_RU_EXECUTION';
+SET @idx_name := 'ACT_IDX_EXEC_BUSKEY';
+SET @idx_cols := 'BUSINESS_KEY_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_EXECUTION';
+SET @idx_name := 'ACT_IDC_EXEC_ROOT';
+SET @idx_cols := 'ROOT_PROC_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_EVENT_SUBSCR';
+SET @idx_name := 'ACT_IDX_EVENT_SUBSCR_CONFIG_';
+SET @idx_cols := 'CONFIGURATION_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_VARIABLE';
+SET @idx_name := 'ACT_IDX_VARIABLE_TASK_ID';
+SET @idx_cols := 'TASK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_RU_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_ATHRZ_PROCEDEF';
+SET @idx_cols := 'PROC_DEF_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_PROCDEF_INFO';
+SET @idx_name := 'ACT_IDX_INFO_PROCDEF';
+SET @idx_cols := 'PROC_DEF_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 insert into ACT_GE_PROPERTY values ('schema.version', '6.3.1.0', 1) on duplicate key update `NAME_`=`NAME_`;
 insert into ACT_GE_PROPERTY values ('schema.history', 'create(6.3.1.0)', 1) on duplicate key update `NAME_`=`NAME_`;
@@ -602,23 +1232,261 @@ create table if not exists ACT_HI_ATTACHMENT (
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
 
-create index if not exists ACT_IDX_HI_PRO_INST_END on ACT_HI_PROCINST(END_TIME_);
-create index if not exists ACT_IDX_HI_PRO_I_BUSKEY on ACT_HI_PROCINST(BUSINESS_KEY_);
-create index if not exists ACT_IDX_HI_ACT_INST_START on ACT_HI_ACTINST(START_TIME_);
-create index if not exists ACT_IDX_HI_ACT_INST_END on ACT_HI_ACTINST(END_TIME_);
-create index if not exists ACT_IDX_HI_DETAIL_PROC_INST on ACT_HI_DETAIL(PROC_INST_ID_);
-create index if not exists ACT_IDX_HI_DETAIL_ACT_INST on ACT_HI_DETAIL(ACT_INST_ID_);
-create index if not exists ACT_IDX_HI_DETAIL_TIME on ACT_HI_DETAIL(TIME_);
-create index if not exists ACT_IDX_HI_DETAIL_NAME on ACT_HI_DETAIL(NAME_);
-create index if not exists ACT_IDX_HI_DETAIL_TASK_ID on ACT_HI_DETAIL(TASK_ID_);
-create index if not exists ACT_IDX_HI_PROCVAR_PROC_INST on ACT_HI_VARINST(PROC_INST_ID_);
-create index if not exists ACT_IDX_HI_PROCVAR_TASK_ID on ACT_HI_VARINST(TASK_ID_);
-create index if not exists ACT_IDX_HI_PROCVAR_EXE on ACT_HI_VARINST(EXECUTION_ID_);
-create index if not exists ACT_IDX_HI_ACT_INST_PROCINST on ACT_HI_ACTINST(PROC_INST_ID_, ACT_ID_);
-create index if not exists ACT_IDX_HI_ACT_INST_EXEC on ACT_HI_ACTINST(EXECUTION_ID_, ACT_ID_);
-create index if not exists ACT_IDX_HI_IDENT_LNK_TASK on ACT_HI_IDENTITYLINK(TASK_ID_);
-create index if not exists ACT_IDX_HI_IDENT_LNK_PROCINST on ACT_HI_IDENTITYLINK(PROC_INST_ID_);
-create index if not exists ACT_IDX_HI_TASK_INST_PROCINST on ACT_HI_TASKINST(PROC_INST_ID_);
+SET @idx_table := 'ACT_HI_PROCINST';
+SET @idx_name := 'ACT_IDX_HI_PRO_INST_END';
+SET @idx_cols := 'END_TIME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_PROCINST';
+SET @idx_name := 'ACT_IDX_HI_PRO_I_BUSKEY';
+SET @idx_cols := 'BUSINESS_KEY_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_ACTINST';
+SET @idx_name := 'ACT_IDX_HI_ACT_INST_START';
+SET @idx_cols := 'START_TIME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_ACTINST';
+SET @idx_name := 'ACT_IDX_HI_ACT_INST_END';
+SET @idx_cols := 'END_TIME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_DETAIL';
+SET @idx_name := 'ACT_IDX_HI_DETAIL_PROC_INST';
+SET @idx_cols := 'PROC_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_DETAIL';
+SET @idx_name := 'ACT_IDX_HI_DETAIL_ACT_INST';
+SET @idx_cols := 'ACT_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_DETAIL';
+SET @idx_name := 'ACT_IDX_HI_DETAIL_TIME';
+SET @idx_cols := 'TIME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_DETAIL';
+SET @idx_name := 'ACT_IDX_HI_DETAIL_NAME';
+SET @idx_cols := 'NAME_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_DETAIL';
+SET @idx_name := 'ACT_IDX_HI_DETAIL_TASK_ID';
+SET @idx_cols := 'TASK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_PROCVAR_PROC_INST';
+SET @idx_cols := 'PROC_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_PROCVAR_TASK_ID';
+SET @idx_cols := 'TASK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_VARINST';
+SET @idx_name := 'ACT_IDX_HI_PROCVAR_EXE';
+SET @idx_cols := 'EXECUTION_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_ACTINST';
+SET @idx_name := 'ACT_IDX_HI_ACT_INST_PROCINST';
+SET @idx_cols := 'PROC_INST_ID_, ACT_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_ACTINST';
+SET @idx_name := 'ACT_IDX_HI_ACT_INST_EXEC';
+SET @idx_cols := 'EXECUTION_ID_, ACT_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_HI_IDENT_LNK_TASK';
+SET @idx_cols := 'TASK_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_IDENTITYLINK';
+SET @idx_name := 'ACT_IDX_HI_IDENT_LNK_PROCINST';
+SET @idx_cols := 'PROC_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_HI_TASKINST';
+SET @idx_name := 'ACT_IDX_HI_TASK_INST_PROCINST';
+SET @idx_cols := 'PROC_INST_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
 
 create table if not exists ACT_ID_PROPERTY (
     NAME_ varchar(64),
@@ -705,5 +1573,36 @@ create table if not exists ACT_ID_PRIV_MAPPING (
     CONSTRAINT `ACT_FK_PRIV_MAPPING` FOREIGN KEY (`PRIV_ID_`) REFERENCES `ACT_ID_PRIV`(`ID_`) ON UPDATE RESTRICT ON DELETE RESTRICT
 ) DEFAULT CHARSET=utf8 COLLATE utf8_bin;
 
-create index if not exists ACT_IDX_PRIV_USER on ACT_ID_PRIV_MAPPING(USER_ID_);
-create index if not exists ACT_IDX_PRIV_GROUP on ACT_ID_PRIV_MAPPING(GROUP_ID_);
+SET @idx_table := 'ACT_ID_PRIV_MAPPING';
+SET @idx_name := 'ACT_IDX_PRIV_USER';
+SET @idx_cols := 'USER_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+SET @idx_table := 'ACT_ID_PRIV_MAPPING';
+SET @idx_name := 'ACT_IDX_PRIV_GROUP';
+SET @idx_cols := 'GROUP_ID_';
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+     WHERE table_schema = DATABASE()
+       AND table_name = @idx_table
+       AND index_name = @idx_name) = 0,
+    CONCAT('CREATE INDEX ', @idx_name, ' ON ', @idx_table, '(', @idx_cols, ')'),
+    'SELECT 1');
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+
+
+-- 删除辅助存储过程
+DROP PROCEDURE IF EXISTS create_index_if_not_exists;
