@@ -154,7 +154,7 @@ public class JobUtils {
         JasyptEncryptorConfigProperties properties = new AccessEnvironmentJasyptEncryptorConfigProperties();
         config.setPassword(new DefaultJasyptEncryptor(properties)
                 .decrypt(System.getProperty(JobEnvKeyConstants.ODC_EXECUTOR_DATABASE_PASSWORD)));
-        config.setType(ConnectType.OB_MYSQL);
+        config.setType(ConnectType.MYSQL);
 
         log.info("get MetaDB configuration, config={}", config);
 
