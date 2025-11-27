@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.StatementCallback;
 
@@ -470,6 +471,9 @@ public class ConnectionSessionUtil {
             connectionSession.setAttribute(ConnectionSessionConstants.OB_ARCHITECTURE, arch);
             log.debug("Init architecture completed.");
         } catch (Exception e) {
+            if (e instanceof CannotGetJdbcConnectionException) {
+                throw e;
+            }
             log.warn("Query architecture failed, errMsg={}", e.getMessage());
         }
     }
