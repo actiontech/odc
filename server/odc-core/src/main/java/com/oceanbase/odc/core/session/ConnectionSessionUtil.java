@@ -470,10 +470,9 @@ public class ConnectionSessionUtil {
             Verify.notNull(arch, "Architecture");
             connectionSession.setAttribute(ConnectionSessionConstants.OB_ARCHITECTURE, arch);
             log.debug("Init architecture completed.");
+        } catch (CannotGetJdbcConnectionException e) {
+            throw e;
         } catch (Exception e) {
-            if (e instanceof CannotGetJdbcConnectionException) {
-                throw e;
-            }
             log.warn("Query architecture failed, errMsg={}", e.getMessage());
         }
     }
