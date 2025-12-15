@@ -479,7 +479,7 @@ public class ConnectionSessionUtil {
 
     public static String getNlsDateFormat(@NonNull ConnectionSession session) {
         Object value = session.getAttribute(ConnectionSessionConstants.NLS_DATE_FORMAT_NAME);
-        return value == null ? null : value.toString();
+        return value == null ? null : "YYYY-MM-DD HH24:MI:SS";
     }
 
     public static String queryNlsDateFormat(@NonNull ConnectionSession session) {
