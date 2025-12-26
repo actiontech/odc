@@ -297,6 +297,10 @@
             <artifactId>postgresql</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.oracle.database.nls</groupId>
             <artifactId>orai18n</artifactId>
         </dependency>
