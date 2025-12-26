@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.oceanbase.tools.dbbrowser;
+package com.oceanbase.odc.plugin.connect.sqlserver;
 
-public interface DBBrowserFactory<T> {
+import com.oceanbase.odc.core.shared.constant.DialectType;
+import com.oceanbase.odc.plugin.connect.api.BaseConnectionPlugin;
 
-    String MYSQL = "MYSQL";
-    String OB_MYSQL = "OB_MYSQL";
-    String OB_ORACLE = "OB_ORACLE";
-    String ORACLE = "ORACLE";
-    String DORIS = "DORIS";
-    String ODP_SHARDING_OB_MYSQL = "ODP_SHARDING_OB_MYSQL";
-    String POSTGRESQL = "POSTGRESQL";
-    String SQL_SERVER = "SQL_SERVER";
-
-    T create();
-
+/**
+ * @author yizhou.xw
+ * @date 2024/12
+ * @since ODC_release_4.3.4
+ */
+public class SqlServerConnectionPlugin extends BaseConnectionPlugin {
+    @Override
+    public DialectType getDialectType() {
+        return DialectType.SQL_SERVER;
+    }
 }

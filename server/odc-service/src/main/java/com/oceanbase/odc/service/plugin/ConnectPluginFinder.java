@@ -24,6 +24,9 @@ import org.pf4j.PluginWrapper;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.BaseConnectionPlugin;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 class ConnectPluginFinder implements PluginFinder<DialectType> {
 
     private volatile Map<DialectType, String> dialect2PluginId;
@@ -44,6 +47,7 @@ class ConnectPluginFinder implements PluginFinder<DialectType> {
         if (dialect2PluginId.isEmpty()) {
             throw new IllegalStateException("BaseConnectionPlugin is empty.");
         }
+        log.info("Loaded connection plugins: {}", dialect2PluginId);
     }
 
     @Override
@@ -55,7 +59,13 @@ class ConnectPluginFinder implements PluginFinder<DialectType> {
         if (pluginId != null) {
             return pluginId;
         }
-        throw new UnsupportedOperationException("Dialect type " + dialectType + " is not supported yet.");
+        // 提供更详细的错误信息，包括已加载的插件列表
+        String loadedDialects = dialect2PluginId.keySet().stream()
+                .map(DialectType::name)
+                .collect(java.util.stream.Collectors.joining(", "));
+        throw new UnsupportedOperationException(
+                "Dialect type " + dialectType + " is not supported yet. " +
+                        "Loaded dialects: [" + loadedDialects + "]");
     }
 
 }

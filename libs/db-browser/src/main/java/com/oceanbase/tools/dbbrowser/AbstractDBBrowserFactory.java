@@ -44,6 +44,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForOdpSharding();
             case POSTGRESQL:
                 return buildForPostgres();
+            case SQL_SERVER:
+                return buildForSqlServer();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -62,5 +64,7 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForOdpSharding();
 
     public abstract T buildForPostgres();
+
+    public abstract T buildForSqlServer();
 
 }
