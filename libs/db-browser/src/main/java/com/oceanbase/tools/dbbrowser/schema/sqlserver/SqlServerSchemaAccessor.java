@@ -1259,7 +1259,163 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public DBView getView(String schemaName, String viewName) {
-        return null;
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return null;
+        }
+
+        DBView view = new DBView();
+        view.setViewName(viewName);
+        view.setSchemaName(schemaName);
+
+        try {
+            // 查询视图基本信息
+            String infoSql = "SELECT "
+                    + "    TABLE_SCHEMA, "
+                    + "    CHECK_OPTION, "
+                    + "    IS_UPDATABLE "
+                    + "FROM information_schema.views "
+                    + "WHERE TABLE_CATALOG = ? "
+                    + "    AND TABLE_SCHEMA = ? "
+                    + "    AND TABLE_NAME = ?";
+
+            jdbcOperations.query(infoSql, new Object[] {databaseName, actualSchemaName, viewName}, rs -> {
+                view.setDefiner(rs.getString("TABLE_SCHEMA"));
+                String checkOption = rs.getString("CHECK_OPTION");
+                if (StringUtils.isNotBlank(checkOption)) {
+                    if ("CASCADE".equalsIgnoreCase(checkOption)) {
+                        // SQL Server 不支持 CASCADE，但可以设置为 NONE
+                        view.setCheckOption(DBViewCheckOption.NONE.name());
+                    } else {
+                        view.setCheckOption(DBViewCheckOption.NONE.name());
+                    }
+                } else {
+                    view.setCheckOption(DBViewCheckOption.NONE.name());
+                }
+                String isUpdatable = rs.getString("IS_UPDATABLE");
+                view.setUpdatable("YES".equalsIgnoreCase(isUpdatable));
+            });
+
+            // 获取视图的 DDL - 使用 OBJECT_DEFINITION 函数
+            // 由于已经切换到正确的数据库上下文，可以直接使用 schema.object 格式
+            // OBJECT_ID 函数需要字符串参数，格式为 'schema.object'，不需要方括号
+            String objectName = actualSchemaName + "." + viewName;
+            String ddlSql = "SELECT OBJECT_DEFINITION(OBJECT_ID('" + objectName + "')) AS view_definition";
+            AtomicReference<String> viewDefinition = new AtomicReference<>();
+            jdbcOperations.query(ddlSql, rs -> {
+                String definition = rs.getString("view_definition");
+                if (StringUtils.isNotBlank(definition)) {
+                    viewDefinition.set(definition);
+                }
+            });
+
+            // 如果 OBJECT_DEFINITION 返回空，尝试使用 sys.sql_modules
+            if (StringUtils.isBlank(viewDefinition.get())) {
+                String moduleSql = "SELECT m.definition "
+                        + "FROM sys.sql_modules m "
+                        + "INNER JOIN sys.views v ON m.object_id = v.object_id "
+                        + "INNER JOIN sys.schemas s ON v.schema_id = s.schema_id "
+                        + "WHERE DB_NAME() = ? "
+                        + "    AND v.name = ? "
+                        + "    AND s.name = ?";
+                jdbcOperations.query(moduleSql, new Object[] {databaseName, viewName, actualSchemaName}, rs -> {
+                    viewDefinition.set(rs.getString("definition"));
+                });
+            }
+
+            // 构建 DDL
+            if (StringUtils.isNotBlank(viewDefinition.get())) {
+                StringBuilder ddl = new StringBuilder();
+                ddl.append("CREATE VIEW ");
+                if (StringUtils.isNotEmpty(actualSchemaName)) {
+                    ddl.append("[").append(actualSchemaName).append("].");
+                }
+                ddl.append("[").append(viewName).append("]");
+                if (view.getCheckOption() != null && view.getCheckOption() != DBViewCheckOption.NONE) {
+                    ddl.append(" WITH ").append(view.getCheckOption().name());
+                }
+                ddl.append(" AS ").append(viewDefinition.get());
+                view.setDdl(ddl.toString());
+            }
+
+            // 获取视图的列信息
+            String columnSql = "SELECT "
+                    + "    c.column_id AS ordinal_position, "
+                    + "    c.name AS column_name, "
+                    + "    t.name AS data_type, "
+                    + "    CASE "
+                    + "        WHEN t.name IN ('varchar', 'nvarchar', 'char', 'nchar', 'binary', 'varbinary') "
+                    + "        THEN t.name + '(' + CASE WHEN c.max_length = -1 THEN 'MAX' ELSE CAST(c.max_length AS VARCHAR) END + ')' "
+                    + "        WHEN t.name IN ('decimal', 'numeric') "
+                    + "        THEN t.name + '(' + CAST(c.precision AS VARCHAR) + ',' + CAST(c.scale AS VARCHAR) + ')' "
+                    + "        WHEN t.name IN ('float', 'real') "
+                    + "        THEN t.name + '(' + CAST(c.precision AS VARCHAR) + ')' "
+                    + "        WHEN t.name IN ('datetime2', 'time', 'datetimeoffset') "
+                    + "        THEN t.name + '(' + CAST(c.scale AS VARCHAR) + ')' "
+                    + "        ELSE t.name "
+                    + "    END AS full_type_name, "
+                    + "    c.is_nullable, "
+                    + "    ISNULL(ep.value, '') AS column_comment "
+                    + "FROM sys.columns c "
+                    + "INNER JOIN sys.types t ON c.user_type_id = t.user_type_id "
+                    + "INNER JOIN sys.views v ON c.object_id = v.object_id "
+                    + "INNER JOIN sys.schemas s ON v.schema_id = s.schema_id "
+                    + "LEFT JOIN sys.extended_properties ep ON ep.major_id = c.object_id "
+                    + "    AND ep.minor_id = c.column_id "
+                    + "    AND ep.name = 'MS_Description' "
+                    + "WHERE DB_NAME() = ? "
+                    + "    AND v.name = ? "
+                    + "    AND s.name = ? "
+                    + "ORDER BY c.column_id";
+
+            List<DBTableColumn> columns = jdbcOperations.query(columnSql,
+                    new Object[] {databaseName, viewName, actualSchemaName}, (rs, rowNum) -> {
+                        DBTableColumn column = new DBTableColumn();
+                        column.setOrdinalPosition(rs.getInt("ordinal_position"));
+                        column.setName(rs.getString("column_name"));
+                        column.setTypeName(rs.getString("data_type"));
+                        column.setFullTypeName(rs.getString("full_type_name"));
+                        column.setNullable(rs.getBoolean("is_nullable"));
+                        column.setComment(rs.getString("column_comment"));
+                        column.setSchemaName(schemaName);
+                        column.setTableName(viewName);
+                        return column;
+                    });
+            view.setColumns(columns);
+
+            return view;
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Invalid object name") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "Invalid schema")) {
+                log.warn("View not found: " + schemaName + "." + viewName);
+                return null;
+            }
+            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to get view: " + schemaName + "." + viewName, e);
+            return null;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
+        }
     }
 
     @Override
