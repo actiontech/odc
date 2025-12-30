@@ -1420,7 +1420,162 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public DBFunction getFunction(String schemaName, String functionName) {
-        return null;
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return null;
+        }
+
+        DBFunction function = new DBFunction();
+        function.setFunName(functionName);
+        // function.setSchemaName(schemaName);
+
+        try {
+            // 查询函数基本信息
+            String infoSql = "SELECT "
+                    + "    ROUTINE_SCHEMA, "
+                    + "    CREATED, "
+                    + "    LAST_ALTERED, "
+                    + "    ROUTINE_DEFINITION "
+                    + "FROM information_schema.routines "
+                    + "WHERE ROUTINE_CATALOG = ? "
+                    + "    AND ROUTINE_SCHEMA = ? "
+                    + "    AND ROUTINE_NAME = ?";
+
+            AtomicReference<String> routineDefinition = new AtomicReference<>();
+            jdbcOperations.query(infoSql, new Object[] {databaseName, actualSchemaName, functionName}, rs -> {
+                function.setDefiner(rs.getString("ROUTINE_SCHEMA"));
+                Timestamp created = rs.getTimestamp("CREATED");
+                if (created != null) {
+                    function.setCreateTime(created);
+                }
+                Timestamp lastAltered = rs.getTimestamp("LAST_ALTERED");
+                if (lastAltered != null) {
+                    function.setModifyTime(lastAltered);
+                }
+                routineDefinition.set(rs.getString("ROUTINE_DEFINITION"));
+            });
+
+            // 查询函数参数和返回类型
+            String paramSql = "SELECT "
+                    + "    PARAMETER_MODE, "
+                    + "    PARAMETER_NAME, "
+                    + "    DATA_TYPE, "
+                    + "    CHARACTER_MAXIMUM_LENGTH, "
+                    + "    NUMERIC_PRECISION, "
+                    + "    NUMERIC_SCALE, "
+                    + "    ORDINAL_POSITION "
+                    + "FROM information_schema.parameters "
+                    + "WHERE SPECIFIC_CATALOG = ? "
+                    + "    AND SPECIFIC_SCHEMA = ? "
+                    + "    AND SPECIFIC_NAME = ? "
+                    + "ORDER BY ORDINAL_POSITION";
+
+            List<DBPLParam> params = new ArrayList<>();
+            AtomicReference<String> returnType = new AtomicReference<>();
+
+            jdbcOperations.query(paramSql, new Object[] {databaseName, actualSchemaName, functionName}, rs -> {
+                String paramMode = rs.getString("PARAMETER_MODE");
+                String paramName = rs.getString("PARAMETER_NAME");
+                String dataType = rs.getString("DATA_TYPE");
+                Integer maxLength = rs.getObject("CHARACTER_MAXIMUM_LENGTH", Integer.class);
+                Integer precision = rs.getObject("NUMERIC_PRECISION", Integer.class);
+                Integer scale = rs.getObject("NUMERIC_SCALE", Integer.class);
+                int ordinalPosition = rs.getInt("ORDINAL_POSITION");
+
+                // 构建完整的数据类型字符串
+                StringBuilder fullDataType = new StringBuilder(dataType);
+                if (maxLength != null && maxLength > 0) {
+                    if (maxLength == -1) {
+                        fullDataType.append("(MAX)");
+                    } else {
+                        fullDataType.append("(").append(maxLength).append(")");
+                    }
+                } else if (precision != null && scale != null) {
+                    fullDataType.append("(").append(precision).append(",").append(scale).append(")");
+                } else if (precision != null) {
+                    fullDataType.append("(").append(precision).append(")");
+                }
+
+                // 如果 PARAMETER_MODE 为 NULL，表示这是返回类型
+                if (paramMode == null || "NULL".equalsIgnoreCase(paramMode)) {
+                    returnType.set(fullDataType.toString());
+                } else {
+                    // 这是输入参数
+                    DBPLParam param = new DBPLParam();
+                    param.setParamName(paramName);
+                    param.setSeqNum(ordinalPosition);
+                    param.setDataType(fullDataType.toString());
+                    // SQL Server 函数参数通常是 IN 类型
+                    param.setParamMode(DBPLParamMode.IN);
+                    params.add(param);
+                }
+            });
+
+            function.setReturnType(returnType.get());
+            function.setParams(params);
+
+            // 构建 DDL
+            StringBuilder ddl = new StringBuilder();
+            ddl.append("CREATE FUNCTION ");
+            if (StringUtils.isNotEmpty(actualSchemaName)) {
+                ddl.append("[").append(actualSchemaName).append("].");
+            }
+            ddl.append("[").append(functionName).append("]");
+            ddl.append("(");
+
+            // 添加参数列表
+            if (!params.isEmpty()) {
+                for (int i = 0; i < params.size(); i++) {
+                    DBPLParam param = params.get(i);
+                    if (i > 0) {
+                        ddl.append(", ");
+                    }
+                    ddl.append("@").append(param.getParamName()).append(" ").append(param.getDataType());
+                }
+            }
+            ddl.append(")");
+            ddl.append(" RETURNS ").append(returnType.get());
+            ddl.append(" AS BEGIN ");
+            if (StringUtils.isNotBlank(routineDefinition.get())) {
+                ddl.append(routineDefinition.get());
+            }
+            ddl.append(" END");
+
+            function.setDdl(ddl.toString());
+
+            return function;
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Invalid object name") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "Invalid schema")) {
+                log.warn("Function not found: " + schemaName + "." + functionName);
+                return null;
+            }
+            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to get function: " + schemaName + "." + functionName, e);
+            return null;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
+        }
     }
 
     @Override
