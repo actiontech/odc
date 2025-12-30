@@ -110,6 +110,7 @@ import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
+import com.oceanbase.tools.dbbrowser.util.SqlServerSqlBuilder;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -164,17 +165,41 @@ public class ConnectConsoleService {
             sqlBuilder = new OracleSqlBuilder();
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
+        } else if (dialectType.isSqlServer()) {
+            sqlBuilder = new SqlServerSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
+        Integer queryLimit = checkQueryLimit(req.getQueryLimit());
         sqlBuilder.append("SELECT ");
+        if (DialectType.SQL_SERVER == connectionSession.getDialectType()) {
+            // SQL Server uses TOP clause
+            sqlBuilder.append("TOP ").append(queryLimit.toString()).append(" ");
+        }
         if (req.isAddROWID() && connectionSession.getDialectType().isOracle()) {
             sqlBuilder.append(" t.ROWID, ");
         }
-        sqlBuilder.append(" t.* ").append(" FROM ")
-                .schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
+        // For SQL Server, req.getSchemaName() is actually the database name, and 'dbo' is the default schema
+        String schemaName = req.getSchemaName();
+        String databaseName = null;
+        if (DialectType.SQL_SERVER == connectionSession.getDialectType()) {
+            // In SQL Server, req.getSchemaName() represents the database name
+            databaseName = req.getSchemaName();
+            schemaName = "dbo"; // Default schema for each database
+        }
+        
+        sqlBuilder.append(" t.* ").append(" FROM ");
+        
+        // For SQL Server, use three-part naming: database.schema.table
+        if (DialectType.SQL_SERVER == connectionSession.getDialectType() && StringUtils.isNotBlank(databaseName)) {
+            sqlBuilder.identifier(databaseName).append(".")
+                    .identifier(schemaName).append(".")
+                    .identifier(req.getTableOrViewName()).append(" t");
+        } else {
+            // For other databases, use schema.table format
+            sqlBuilder.schemaPrefixIfNotBlank(schemaName).identifier(req.getTableOrViewName()).append(" t");
+        }
 
-        Integer queryLimit = checkQueryLimit(req.getQueryLimit());
         if (DialectType.OB_ORACLE == connectionSession.getDialectType()) {
             String version = ConnectionSessionUtil.getVersion(connectionSession);
             if (VersionUtils.isGreaterThanOrEqualsTo(version, "2.2.50")) {
@@ -184,7 +209,8 @@ public class ConnectConsoleService {
             }
         } else if (DialectType.ORACLE == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
-        } else {
+        } else if (DialectType.SQL_SERVER != connectionSession.getDialectType()) {
+            // SQL Server already uses TOP clause, skip LIMIT
             sqlBuilder.append(" LIMIT ").append(queryLimit.toString());
         }
 
