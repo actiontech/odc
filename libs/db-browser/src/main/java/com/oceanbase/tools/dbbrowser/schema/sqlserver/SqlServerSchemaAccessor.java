@@ -272,10 +272,27 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBObjectIdentity> listViews(String schemaName) {
-        String sql = "SELECT table_name FROM information_schema.views "
-                + "WHERE table_schema = ?";
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
         try {
-            return jdbcOperations.query(sql, new Object[]{schemaName}, (rs, rowNum) -> {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT table_name FROM information_schema.views "
+                + "WHERE table_catalog = ? AND table_schema = ?";
+        try {
+            return jdbcOperations.query(sql, new Object[] {databaseName, actualSchemaName}, (rs, rowNum) -> {
                 DBObjectIdentity identity = new DBObjectIdentity();
                 identity.setSchemaName(schemaName);
                 identity.setName(rs.getString("table_name"));
@@ -287,6 +304,15 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 return Collections.emptyList();
             }
             throw e;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
