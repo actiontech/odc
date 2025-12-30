@@ -414,7 +414,52 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBPLObjectIdentity> listFunctions(String schemaName) {
-        return Collections.emptyList();
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT ROUTINE_NAME as name, ROUTINE_SCHEMA as schema_name, ROUTINE_TYPE as type "
+                + "FROM information_schema.routines "
+                + "WHERE ROUTINE_CATALOG = ? AND ROUTINE_SCHEMA = ? "
+                + "AND ROUTINE_TYPE = 'FUNCTION' "
+                + "ORDER BY ROUTINE_NAME ASC";
+        try {
+            return jdbcOperations.query(sql, new Object[] {databaseName, actualSchemaName}, (rs, rowNum) -> {
+                DBPLObjectIdentity identity = new DBPLObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("name"));
+                identity.setType(DBObjectType.valueOf(rs.getString("type")));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Invalid object name") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "Invalid schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
+        }
     }
 
     @Override
