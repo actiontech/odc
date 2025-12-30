@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.oceanbase.tools.dbbrowser.schema.sqlserver;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -26,14 +28,19 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcOperations;
 
 import com.oceanbase.tools.dbbrowser.model.DBColumnGroupElement;
+import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
+import com.oceanbase.tools.dbbrowser.model.DBIndexType;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshParameter;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecord;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecordParam;
 import com.oceanbase.tools.dbbrowser.model.DBMaterializedView;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
+import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBPLObjectIdentity;
+import com.oceanbase.tools.dbbrowser.model.DBPLParam;
+import com.oceanbase.tools.dbbrowser.model.DBPLParamMode;
 import com.oceanbase.tools.dbbrowser.model.DBPackage;
 import com.oceanbase.tools.dbbrowser.model.DBProcedure;
 import com.oceanbase.tools.dbbrowser.model.DBSequence;
@@ -44,8 +51,6 @@ import com.oceanbase.tools.dbbrowser.model.DBTable.DBTableOptions;
 import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 import com.oceanbase.tools.dbbrowser.model.DBTableConstraint;
 import com.oceanbase.tools.dbbrowser.model.DBTableIndex;
-import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
-import com.oceanbase.tools.dbbrowser.model.DBIndexType;
 import com.oceanbase.tools.dbbrowser.model.DBTablePartition;
 import com.oceanbase.tools.dbbrowser.model.DBTablePartitionDefinition;
 import com.oceanbase.tools.dbbrowser.model.DBTablePartitionOption;
@@ -54,6 +59,7 @@ import com.oceanbase.tools.dbbrowser.model.DBTrigger;
 import com.oceanbase.tools.dbbrowser.model.DBType;
 import com.oceanbase.tools.dbbrowser.model.DBVariable;
 import com.oceanbase.tools.dbbrowser.model.DBView;
+import com.oceanbase.tools.dbbrowser.model.DBViewCheckOption;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.StringUtils;
 
@@ -94,7 +100,7 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "WHERE name = ?";
         AtomicReference<String> collation = new AtomicReference<>();
         try {
-            jdbcOperations.query(sql, new Object[]{schemaName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {schemaName}, rs -> {
                 if (rs.next()) {
                     collation.set(rs.getString(1));
                 }
@@ -147,6 +153,27 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
         return Collections.emptyList();
     }
 
+    /**
+     * 解析 schemaName 参数，支持两种格式： 1. "database" - 只有数据库名，默认使用 dbo schema 2. "database.schema" - 数据库名和
+     * schema 名
+     *
+     * @param schemaName 可能是数据库名或 database.schema 格式
+     * @return [databaseName, schemaName]
+     */
+    private String[] parseDatabaseAndSchema(String schemaName) {
+        if (schemaName == null) {
+            return new String[] {"", "dbo"};
+        }
+
+        if (schemaName.contains(".")) {
+            String[] parts = schemaName.split("\\.", 2);
+            return new String[] {parts[0], parts[1]};
+        } else {
+            // 兼容旧代码：只有数据库名，默认使用 dbo
+            return new String[] {schemaName, "dbo"};
+        }
+    }
+
     @Override
     public List<String> showTables(String schemaName) {
         return showTablesLike(schemaName, null);
@@ -154,27 +181,60 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<String> showTablesLike(String schemaName, String tableNameLike) {
-        // 注意：在 SQL Server 中，schemaName 参数实际表示数据库名（database name）
         // SQL Server 的层次结构：databases -> schemas -> tables
-        // information_schema.tables 中：
-        // - table_catalog 是数据库名
-        // - table_schema 是 schema 名（如 dbo）
+        // schemaName 参数支持两种格式：
+        // 1. "database" - 只有数据库名，默认使用 dbo schema
+        // 2. "database.schema" - 数据库名和 schema 名
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT table_name FROM information_schema.tables ");
-        sb.append("WHERE table_catalog = '").append(schemaName.replace("'", "''")).append("' ");
+        sb.append("WHERE table_catalog = ? ");
+        sb.append("AND table_schema = ? ");
         sb.append("AND table_type = 'BASE TABLE'");
+
+        List<Object> params = new java.util.ArrayList<>();
+        params.add(databaseName);
+        params.add(actualSchemaName);
+
         if (StringUtils.isNotBlank(tableNameLike)) {
-            sb.append(" AND table_name LIKE '").append(tableNameLike.replace("'", "''")).append("'");
+            sb.append(" AND table_name LIKE ?");
+            params.add(tableNameLike);
         }
+
         List<String> tableNames;
         try {
-            tableNames = jdbcOperations.query(sb.toString(), (rs, rowNum) -> rs.getString(1));
+            tableNames = jdbcOperations.query(sb.toString(), params.toArray(),
+                    (rs, rowNum) -> rs.getString(1));
         } catch (BadSqlGrammarException e) {
             if (StringUtils.containsIgnoreCase(e.getMessage(), "Invalid object name") ||
                     StringUtils.containsIgnoreCase(e.getMessage(), "Invalid schema")) {
                 return Collections.emptyList();
             }
             throw e;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
         return tableNames;
     }
@@ -373,12 +433,23 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableColumn> listTableColumns(String schemaName, String tableName) {
-        // 注意：在 SQL Server 中，schemaName 参数实际表示数据库名（database name）
-        // 需要查询指定数据库和表的所有列信息
-        // SQL Server 的层次结构：databases -> schemas -> tables
-        // 这里假设 schemaName 是数据库名，tableName 是表名
-        // 需要先切换到对应的数据库，或者使用三部分名称 [database].[schema].[table]
-        // 为了简化，我们假设当前连接已经在正确的数据库中，或者使用默认 schema (dbo)
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
         String sql = "SELECT "
                 + "    c.column_id AS ordinal_position, "
                 + "    c.name AS column_name, "
@@ -410,13 +481,11 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "    AND ep.name = 'MS_Description' "
                 + "WHERE DB_NAME() = ? "
                 + "    AND tb.name = ? "
-                + "    AND s.name = 'dbo' "  // 默认使用 dbo schema，可以根据需要调整
+                + "    AND s.name = ? " // 使用参数而不是硬编码 'dbo'
                 + "ORDER BY c.column_id";
-        
+
         try {
-            // 注意：schemaName 是数据库名，需要确保当前连接在正确的数据库中
-            // 如果不在，应该先调用 switchDatabase(schemaName)
-            return jdbcOperations.query(sql, new Object[]{schemaName, tableName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {databaseName, tableName, actualSchemaName}, (rs, rowNum) -> {
                 DBTableColumn column = new DBTableColumn();
                 column.setSchemaName(schemaName);
                 column.setTableName(tableName);
@@ -424,17 +493,17 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 column.setName(rs.getString("column_name"));
                 column.setTypeName(rs.getString("data_type"));
                 column.setFullTypeName(rs.getString("full_type_name"));
-                
+
                 Object precisionObj = rs.getObject("precision");
                 if (precisionObj != null) {
                     column.setPrecision(rs.getLong("precision"));
                 }
-                
+
                 Object scaleObj = rs.getObject("scale");
                 if (scaleObj != null) {
                     column.setScale(rs.getInt("scale"));
                 }
-                
+
                 Object maxLengthObj = rs.getObject("character_maximum_length");
                 if (maxLengthObj != null) {
                     int maxLength = rs.getInt("character_maximum_length");
@@ -442,9 +511,9 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                         column.setMaxLength((long) maxLength);
                     }
                 }
-                
+
                 column.setNullable(rs.getBoolean("is_nullable"));
-                
+
                 String defaultValue = rs.getString("column_default");
                 if (StringUtils.isNotBlank(defaultValue)) {
                     // SQL Server 默认值可能包含括号，需要清理
@@ -454,17 +523,26 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                     }
                     column.fillDefaultValue(defaultValue);
                 }
-                
+
                 String comment = rs.getString("column_comment");
                 if (StringUtils.isNotBlank(comment)) {
                     column.setComment(comment);
                 }
-                
+
                 return column;
             });
         } catch (Exception e) {
             log.warn("Failed to list table columns for table: " + schemaName + "." + tableName, e);
             return Collections.emptyList();
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
@@ -573,6 +651,23 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableConstraint> listTableConstraints(String schemaName, String tableName) {
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
         // 查询主键和唯一约束
         String pkAndUniqueSql = "SELECT "
                 + "    kc.name AS constraint_name, "
@@ -586,9 +681,9 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo' "
+                + "    AND s.name = ? " // 使用参数
                 + "ORDER BY kc.name, ic.key_ordinal";
-        
+
         // 查询外键约束
         String fkSql = "SELECT "
                 + "    fk.name AS constraint_name, "
@@ -604,9 +699,9 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "INNER JOIN sys.columns rc ON fkc.referenced_object_id = rc.object_id AND fkc.referenced_column_id = rc.column_id "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo' "
+                + "    AND s.name = ? " // 使用参数
                 + "ORDER BY fk.name, fkc.constraint_column_id";
-        
+
         // 查询检查约束
         String checkSql = "SELECT "
                 + "    cc.name AS constraint_name, "
@@ -616,47 +711,48 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "INNER JOIN sys.schemas s ON t.schema_id = s.schema_id "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo'";
-        
+                + "    AND s.name = ?"; // 使用参数
+
         try {
             Map<String, DBTableConstraint> constraintMap = new java.util.LinkedHashMap<>();
-            
+
             // 处理主键和唯一约束
-            jdbcOperations.query(pkAndUniqueSql, new Object[]{schemaName, tableName}, (rs, rowNum) -> {
-                String constraintName = rs.getString("constraint_name");
-                String constraintType = rs.getString("constraint_type");
-                String columnName = rs.getString("column_name");
-                
-                DBTableConstraint constraint = constraintMap.get(constraintName);
-                if (constraint == null) {
-                    constraint = new DBTableConstraint();
-                    constraint.setName(constraintName);
-                    constraint.setSchemaName(schemaName);
-                    constraint.setTableName(tableName);
-                    constraint.setOwner(schemaName);
-                    
-                    if ("PRIMARY_KEY_CONSTRAINT".equalsIgnoreCase(constraintType)) {
-                        constraint.setType(DBConstraintType.PRIMARY_KEY);
-                    } else if ("UNIQUE_CONSTRAINT".equalsIgnoreCase(constraintType)) {
-                        constraint.setType(DBConstraintType.UNIQUE);
-                    }
-                    
-                    constraint.setColumnNames(new java.util.ArrayList<>());
-                    constraintMap.put(constraintName, constraint);
-                }
-                
-                constraint.getColumnNames().add(columnName);
-                return null;
-            });
-            
+            jdbcOperations.query(pkAndUniqueSql, new Object[] {databaseName, tableName, actualSchemaName},
+                    (rs, rowNum) -> {
+                        String constraintName = rs.getString("constraint_name");
+                        String constraintType = rs.getString("constraint_type");
+                        String columnName = rs.getString("column_name");
+
+                        DBTableConstraint constraint = constraintMap.get(constraintName);
+                        if (constraint == null) {
+                            constraint = new DBTableConstraint();
+                            constraint.setName(constraintName);
+                            constraint.setSchemaName(schemaName);
+                            constraint.setTableName(tableName);
+                            constraint.setOwner(schemaName);
+
+                            if ("PRIMARY_KEY_CONSTRAINT".equalsIgnoreCase(constraintType)) {
+                                constraint.setType(DBConstraintType.PRIMARY_KEY);
+                            } else if ("UNIQUE_CONSTRAINT".equalsIgnoreCase(constraintType)) {
+                                constraint.setType(DBConstraintType.UNIQUE);
+                            }
+
+                            constraint.setColumnNames(new java.util.ArrayList<>());
+                            constraintMap.put(constraintName, constraint);
+                        }
+
+                        constraint.getColumnNames().add(columnName);
+                        return null;
+                    });
+
             // 处理外键约束
-            jdbcOperations.query(fkSql, new Object[]{schemaName, tableName}, (rs, rowNum) -> {
+            jdbcOperations.query(fkSql, new Object[] {databaseName, tableName, actualSchemaName}, (rs, rowNum) -> {
                 String constraintName = rs.getString("constraint_name");
                 String columnName = rs.getString("column_name");
                 String referencedSchemaName = rs.getString("referenced_schema_name");
                 String referencedTableName = rs.getString("referenced_table_name");
                 String referencedColumnName = rs.getString("referenced_column_name");
-                
+
                 DBTableConstraint constraint = constraintMap.get(constraintName);
                 if (constraint == null) {
                     constraint = new DBTableConstraint();
@@ -671,17 +767,17 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                     constraint.setReferenceColumnNames(new java.util.ArrayList<>());
                     constraintMap.put(constraintName, constraint);
                 }
-                
+
                 constraint.getColumnNames().add(columnName);
                 constraint.getReferenceColumnNames().add(referencedColumnName);
                 return null;
             });
-            
+
             // 处理检查约束
-            jdbcOperations.query(checkSql, new Object[]{schemaName, tableName}, (rs, rowNum) -> {
+            jdbcOperations.query(checkSql, new Object[] {databaseName, tableName, actualSchemaName}, (rs, rowNum) -> {
                 String constraintName = rs.getString("constraint_name");
                 String checkDefinition = rs.getString("check_definition");
-                
+
                 DBTableConstraint constraint = new DBTableConstraint();
                 constraint.setName(constraintName);
                 constraint.setSchemaName(schemaName);
@@ -693,16 +789,42 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 constraintMap.put(constraintName, constraint);
                 return null;
             });
-            
+
             return new java.util.ArrayList<>(constraintMap.values());
         } catch (Exception e) {
             log.warn("Failed to list table constraints for table: " + schemaName + "." + tableName, e);
             return Collections.emptyList();
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
     @Override
     public DBTablePartition getPartition(String schemaName, String tableName) {
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return null;
+        }
+
         // SQL Server 支持表分区，查询分区信息
         String sql = "SELECT "
                 + "    ps.name AS partition_scheme_name, "
@@ -718,54 +840,80 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "LEFT JOIN sys.partitions p ON t.object_id = p.object_id AND i.index_id = p.index_id "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo' "
+                + "    AND s.name = ? " // 使用参数
                 + "ORDER BY p.partition_number";
-        
+
         try {
             DBTablePartition partition = new DBTablePartition();
             AtomicReference<String> partitionSchemeName = new AtomicReference<>();
             AtomicReference<String> partitionFunctionName = new AtomicReference<>();
             AtomicReference<String> partitionFunctionType = new AtomicReference<>();
             java.util.List<DBTablePartitionDefinition> definitions = new java.util.ArrayList<>();
-            
-            jdbcOperations.query(sql, new Object[]{schemaName, tableName}, rs -> {
+
+            jdbcOperations.query(sql, new Object[] {databaseName, tableName, actualSchemaName}, rs -> {
                 if (partitionSchemeName.get() == null) {
                     partitionSchemeName.set(rs.getString("partition_scheme_name"));
                     partitionFunctionName.set(rs.getString("partition_function_name"));
                     partitionFunctionType.set(rs.getString("partition_function_type"));
-                    
+
                     if (partitionSchemeName.get() != null) {
                         DBTablePartitionOption option = new DBTablePartitionOption();
-                        option.setMethod(partitionFunctionType.get());
+                        // option.setMethod(partitionFunctionType.get());
                         option.setExpression(partitionFunctionName.get());
                         partition.setPartitionOption(option);
                     }
                 }
-                
+
                 if (partitionSchemeName.get() != null) {
                     DBTablePartitionDefinition definition = new DBTablePartitionDefinition();
                     definition.setName("Partition_" + rs.getInt("partition_number"));
                     definition.setOrdinalPosition(rs.getInt("partition_number"));
-                    definition.setRowCount(rs.getLong("partition_rows"));
+                    // definition.setRowCount(rs.getLong("partition_rows"));
                     definitions.add(definition);
                 }
             });
-            
+
             if (!definitions.isEmpty()) {
                 partition.setPartitionDefinitions(definitions);
             } else {
-                return null;  // 表未分区
+                return null; // 表未分区
             }
-            
+
             return partition;
         } catch (Exception e) {
             log.warn("Failed to get partition for table: " + schemaName + "." + tableName, e);
             return null;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
     @Override
     public List<DBTableIndex> listTableIndexes(String schemaName, String tableName) {
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return Collections.emptyList();
+        }
+
         String sql = "SELECT "
                 + "    i.name AS index_name, "
                 + "    i.type_desc AS index_type, "
@@ -783,16 +931,16 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo' "  // 默认使用 dbo schema
-                + "    AND i.type > 0 "  // 排除堆（heap）
+                + "    AND s.name = ? " // 使用参数而不是硬编码 'dbo'
+                + "    AND i.type > 0 " // 排除堆（heap）
                 + "ORDER BY i.name, ic.key_ordinal";
-        
+
         try {
             Map<String, DBTableIndex> indexMap = new java.util.LinkedHashMap<>();
-            jdbcOperations.query(sql, new Object[]{schemaName, tableName}, (rs, rowNum) -> {
+            jdbcOperations.query(sql, new Object[] {databaseName, tableName, actualSchemaName}, (rs, rowNum) -> {
                 String indexName = rs.getString("index_name");
                 DBTableIndex index = indexMap.get(indexName);
-                
+
                 if (index == null) {
                     index = new DBTableIndex();
                     index.setSchemaName(schemaName);
@@ -802,7 +950,7 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                     index.setPrimary(rs.getBoolean("is_primary_key"));
                     index.setNonUnique(!rs.getBoolean("is_unique"));
                     // index.setDisabled(rs.getBoolean("is_disabled"));
-                    
+
                     String indexType = rs.getString("index_type");
                     if ("CLUSTERED".equalsIgnoreCase(indexType)) {
                         index.setType(DBIndexType.CLUSTERED);
@@ -815,50 +963,64 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                     } else {
                         index.setType(DBIndexType.NORMAL);
                     }
-                    
+
                     String filterDefinition = rs.getString("filter_definition");
                     if (StringUtils.isNotBlank(filterDefinition)) {
                         index.setAdditionalInfo("Filter: " + filterDefinition);
                     }
-                    
+
                     index.setColumnNames(new java.util.ArrayList<>());
                     indexMap.put(indexName, index);
                 }
-                
+
                 String columnName = rs.getString("column_name");
                 boolean isDescending = rs.getBoolean("is_descending_key");
                 if (isDescending) {
                     columnName = columnName + " DESC";
                 }
                 index.getColumnNames().add(columnName);
-                
+
                 return null;
             });
-            
+
             return new java.util.ArrayList<>(indexMap.values());
         } catch (Exception e) {
             log.warn("Failed to list table indexes for table: " + schemaName + "." + tableName, e);
             return Collections.emptyList();
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
     @Override
     public String getTableDDL(String schemaName, String tableName) {
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
         // SQL Server 可以使用 OBJECT_DEFINITION 或者查询系统视图来生成 DDL
         // 但更准确的方法是使用系统存储过程 sp_helptext 或者查询 sys.sql_modules
         // 对于表，我们需要手动构建 DDL，因为 SQL Server 没有直接提供表的 DDL 函数
         // 这里我们使用一个简化的方法，通过查询系统视图来生成基本的 CREATE TABLE 语句
-        
+
         try {
-            // 获取列信息
+            // 获取列信息（listTableColumns 内部会处理数据库切换）
             List<DBTableColumn> columns = listTableColumns(schemaName, tableName);
             if (columns.isEmpty()) {
                 return "";
             }
-            
+
             StringBuilder ddl = new StringBuilder();
             ddl.append("CREATE TABLE [").append(tableName).append("] (\n");
-            
+
             // 添加列定义
             for (int i = 0; i < columns.size(); i++) {
                 DBTableColumn column = columns.get(i);
@@ -867,16 +1029,16 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 }
                 ddl.append("    [").append(column.getName()).append("] ");
                 ddl.append(column.getFullTypeName());
-                
+
                 if (!column.getNullable()) {
                     ddl.append(" NOT NULL");
                 }
-                
+
                 if (column.getDefaultValue() != null && StringUtils.isNotBlank(column.getDefaultValue().toString())) {
                     ddl.append(" DEFAULT ").append(column.getDefaultValue());
                 }
             }
-            
+
             // 添加主键约束
             List<DBTableConstraint> constraints = listTableConstraints(schemaName, tableName);
             for (DBTableConstraint constraint : constraints) {
@@ -891,9 +1053,9 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                     ddl.append(")");
                 }
             }
-            
+
             ddl.append("\n);");
-            
+
             return ddl.toString();
         } catch (Exception e) {
             log.warn("Failed to get table DDL for table: " + schemaName + "." + tableName, e);
@@ -903,6 +1065,23 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public DBTableOptions getTableOptions(String schemaName, String tableName) {
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return new DBTableOptions();
+        }
+
         String sql = "SELECT "
                 + "    t.create_date AS create_time, "
                 + "    t.modify_date AS update_time, "
@@ -915,22 +1094,22 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
                 + "    AND ep.name = 'MS_Description' "
                 + "WHERE DB_NAME() = ? "
                 + "    AND t.name = ? "
-                + "    AND s.name = 'dbo'";
-        
+                + "    AND s.name = ?"; // 使用参数
+
         try {
             DBTableOptions options = new DBTableOptions();
-            jdbcOperations.query(sql, new Object[]{schemaName, tableName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {databaseName, tableName, actualSchemaName}, rs -> {
                 if (rs.next()) {
                     java.sql.Timestamp createTime = rs.getTimestamp("create_time");
                     if (createTime != null) {
                         options.setCreateTime(createTime);
                     }
-                    
+
                     java.sql.Timestamp updateTime = rs.getTimestamp("update_time");
                     if (updateTime != null) {
                         options.setUpdateTime(updateTime);
                     }
-                    
+
                     String comment = rs.getString("table_comment");
                     if (StringUtils.isNotBlank(comment)) {
                         options.setComment(comment);
@@ -941,6 +1120,15 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
         } catch (Exception e) {
             log.warn("Failed to get table options for table: " + schemaName + "." + tableName, e);
             return new DBTableOptions();
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
         }
     }
 
