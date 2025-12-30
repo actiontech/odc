@@ -32,7 +32,7 @@
     <properties>
         <root-project.basedir>${project.parent.parent.basedir}</root-project.basedir>
         <plugin.class>com.oceanbase.odc.plugin.schema.sqlserver.SqlServerSchemaPlugin</plugin.class>
-        <plugin.dependencies>schema-plugin-ob-mysql</plugin.dependencies>
+        <plugin.dependencies>schema-plugin-ob-mysql,connect-plugin-sqlserver</plugin.dependencies>
     </properties>
 
     <dependencies>

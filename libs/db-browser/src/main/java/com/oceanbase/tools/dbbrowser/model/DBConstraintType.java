@@ -25,6 +25,7 @@ public enum DBConstraintType {
     INDEX("INDEX"),
     CHECK("CHECK", "C"),
     NOT_NULL("NOT NULL", "NOT_NULL"),
+    UNIQUE("UNIQUE"),
     UNKNOWN("UNKNOWN"),
     ;
 
