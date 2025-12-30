@@ -70,6 +70,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBMViewEditor buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

@@ -69,6 +69,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBObjectOperator buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

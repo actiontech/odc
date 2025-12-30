@@ -20,6 +20,7 @@ import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLNoLessThan5700IndexEditor
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OBOracleIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleIndexEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerIndexEditor;
 
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -60,6 +61,11 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
 
     @Override
     public DBTableIndexEditor buildForPostgres() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBTableIndexEditor buildForSqlServer() {
         throw new UnsupportedOperationException("Not supported yet");
     }
 

@@ -57,4 +57,9 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBView> buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
 }

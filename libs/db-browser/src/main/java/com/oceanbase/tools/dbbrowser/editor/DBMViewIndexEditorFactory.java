@@ -60,4 +60,9 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     public DBTableIndexEditor buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
     }
+
+    @Override
+    public DBTableIndexEditor buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
 }

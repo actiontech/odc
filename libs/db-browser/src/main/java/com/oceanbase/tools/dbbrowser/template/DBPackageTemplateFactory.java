@@ -69,6 +69,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBPackage> buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

@@ -111,6 +111,11 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBStatsAccessor buildForSqlServer() {
+        return null;
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

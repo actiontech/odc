@@ -81,4 +81,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBTablePartitionEditor buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
 }
