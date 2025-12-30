@@ -1580,7 +1580,174 @@ public class SqlServerSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public DBProcedure getProcedure(String schemaName, String procedureName) {
-        return null;
+        // 解析 database.schema 格式
+        String[] dbAndSchema = parseDatabaseAndSchema(schemaName);
+        String databaseName = dbAndSchema[0];
+        String actualSchemaName = dbAndSchema[1];
+
+        // 确保在正确的数据库中查询
+        String currentDb = null;
+        try {
+            currentDb = jdbcOperations.queryForObject("SELECT DB_NAME()", String.class);
+            if (!databaseName.equals(currentDb)) {
+                switchDatabase(databaseName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to switch to database: " + databaseName, e);
+            return null;
+        }
+
+        DBProcedure procedure = new DBProcedure();
+        procedure.setProName(procedureName);
+
+        try {
+            // 查询存储过程基本信息
+            String infoSql = "SELECT "
+                    + "    ROUTINE_SCHEMA, "
+                    + "    CREATED, "
+                    + "    LAST_ALTERED, "
+                    + "    ROUTINE_DEFINITION "
+                    + "FROM information_schema.routines "
+                    + "WHERE ROUTINE_CATALOG = ? "
+                    + "    AND ROUTINE_SCHEMA = ? "
+                    + "    AND ROUTINE_TYPE = 'PROCEDURE' "
+                    + "    AND ROUTINE_NAME = ?";
+
+            AtomicReference<String> routineDefinition = new AtomicReference<>();
+            jdbcOperations.query(infoSql, new Object[] {databaseName, actualSchemaName, procedureName}, rs -> {
+                procedure.setDefiner(rs.getString("ROUTINE_SCHEMA"));
+                Timestamp created = rs.getTimestamp("CREATED");
+                if (created != null) {
+                    procedure.setCreateTime(created);
+                }
+                Timestamp lastAltered = rs.getTimestamp("LAST_ALTERED");
+                if (lastAltered != null) {
+                    procedure.setModifyTime(lastAltered);
+                }
+                routineDefinition.set(rs.getString("ROUTINE_DEFINITION"));
+            });
+
+            // 查询存储过程参数
+            String paramSql = "SELECT "
+                    + "    PARAMETER_MODE, "
+                    + "    PARAMETER_NAME, "
+                    + "    DATA_TYPE, "
+                    + "    CHARACTER_MAXIMUM_LENGTH, "
+                    + "    NUMERIC_PRECISION, "
+                    + "    NUMERIC_SCALE, "
+                    + "    ORDINAL_POSITION "
+                    + "FROM information_schema.parameters "
+                    + "WHERE SPECIFIC_CATALOG = ? "
+                    + "    AND SPECIFIC_SCHEMA = ? "
+                    + "    AND SPECIFIC_NAME = ? "
+                    + "ORDER BY ORDINAL_POSITION";
+
+            List<DBPLParam> params = new ArrayList<>();
+
+            jdbcOperations.query(paramSql, new Object[] {databaseName, actualSchemaName, procedureName}, rs -> {
+                String paramMode = rs.getString("PARAMETER_MODE");
+                String paramName = rs.getString("PARAMETER_NAME");
+                String dataType = rs.getString("DATA_TYPE");
+                Integer maxLength = rs.getObject("CHARACTER_MAXIMUM_LENGTH", Integer.class);
+                Integer precision = rs.getObject("NUMERIC_PRECISION", Integer.class);
+                Integer scale = rs.getObject("NUMERIC_SCALE", Integer.class);
+                int ordinalPosition = rs.getInt("ORDINAL_POSITION");
+
+                // 构建完整的数据类型字符串
+                StringBuilder fullDataType = new StringBuilder(dataType);
+                if (maxLength != null && maxLength > 0) {
+                    if (maxLength == -1) {
+                        fullDataType.append("(MAX)");
+                    } else {
+                        fullDataType.append("(").append(maxLength).append(")");
+                    }
+                } else if (precision != null && scale != null) {
+                    fullDataType.append("(").append(precision).append(",").append(scale).append(")");
+                } else if (precision != null) {
+                    fullDataType.append("(").append(precision).append(")");
+                }
+
+                // 存储过程参数处理
+                DBPLParam param = new DBPLParam();
+                param.setParamName(paramName);
+                param.setSeqNum(ordinalPosition);
+                param.setDataType(fullDataType.toString());
+
+                // SQL Server 存储过程参数模式映射
+                // IN - 输入参数（默认）
+                // OUT - 输出参数（SQL Server 使用 OUTPUT 关键字）
+                // INOUT - 输入输出参数
+                if (paramMode == null || StringUtils.isBlank(paramMode)) {
+                    // 默认为输入参数
+                    param.setParamMode(DBPLParamMode.IN);
+                } else if ("IN".equalsIgnoreCase(paramMode)) {
+                    param.setParamMode(DBPLParamMode.IN);
+                } else if ("OUT".equalsIgnoreCase(paramMode)) {
+                    param.setParamMode(DBPLParamMode.OUT);
+                } else if ("INOUT".equalsIgnoreCase(paramMode)) {
+                    param.setParamMode(DBPLParamMode.INOUT);
+                } else {
+                    param.setParamMode(DBPLParamMode.UNKNOWN);
+                }
+
+                params.add(param);
+            });
+
+            procedure.setParams(params);
+
+            // 构建 DDL
+            StringBuilder ddl = new StringBuilder();
+            ddl.append("CREATE PROCEDURE ");
+            if (StringUtils.isNotEmpty(actualSchemaName)) {
+                ddl.append("[").append(actualSchemaName).append("].");
+            }
+            ddl.append("[").append(procedureName).append("]");
+            ddl.append("(");
+
+            // 添加参数列表
+            if (!params.isEmpty()) {
+                for (int i = 0; i < params.size(); i++) {
+                    DBPLParam param = params.get(i);
+                    if (i > 0) {
+                        ddl.append(", ");
+                    }
+                    ddl.append("@").append(param.getParamName()).append(" ").append(param.getDataType());
+                    // SQL Server 存储过程输出参数使用 OUTPUT 关键字
+                    if (param.getParamMode() == DBPLParamMode.OUT || param.getParamMode() == DBPLParamMode.INOUT) {
+                        ddl.append(" OUTPUT");
+                    }
+                }
+            }
+            ddl.append(")");
+            ddl.append(" AS BEGIN ");
+            if (StringUtils.isNotBlank(routineDefinition.get())) {
+                ddl.append(routineDefinition.get());
+            }
+            ddl.append(" END");
+
+            procedure.setDdl(ddl.toString());
+
+            return procedure;
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Invalid object name") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "Invalid schema")) {
+                log.warn("Procedure not found: " + schemaName + "." + procedureName);
+                return null;
+            }
+            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to get procedure: " + schemaName + "." + procedureName, e);
+            return null;
+        } finally {
+            // 恢复原数据库上下文
+            if (currentDb != null && !currentDb.equals(databaseName)) {
+                try {
+                    switchDatabase(currentDb);
+                } catch (Exception e) {
+                    log.warn("Failed to restore database context", e);
+                }
+            }
+        }
     }
 
     @Override
