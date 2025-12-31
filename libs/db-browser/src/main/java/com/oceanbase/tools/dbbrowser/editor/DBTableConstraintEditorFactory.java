@@ -22,7 +22,6 @@ import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400ConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OBOracleLessThan400ConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleConstraintEditor;
-import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerConstraintEditor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
 import lombok.Setter;
@@ -79,7 +78,7 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
 
     @Override
     public DBTableConstraintEditor buildForSqlServer() {
-        return new SqlServerConstraintEditor();
+        throw new UnsupportedOperationException("Not supported yet");
     }
 
 }

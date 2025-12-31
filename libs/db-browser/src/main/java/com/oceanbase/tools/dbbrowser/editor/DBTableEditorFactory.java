@@ -83,6 +83,11 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBTableEditor buildForSqlServer() {
+        throw new UnsupportedOperationException("Not supported yet");
+    }
+
     private DBTableIndexEditor getTableIndexEditor() {
         DBTableIndexEditorFactory indexFactory = new DBTableIndexEditorFactory();
         indexFactory.setType(this.type);
