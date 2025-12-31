@@ -49,12 +49,12 @@ public class SqlServerConnectionExtension extends OBMySQLConnectionExtension {
         Integer port = properties.getPort();
         Validate.notNull(port, "port can not be null");
         String catalogName = properties.getCatalogName();
-        Validate.notEmpty(catalogName, "catalog name can not be null");
         String schema = properties.getDefaultSchema();
-
         StringBuilder jdbcUrl = new StringBuilder();
         jdbcUrl.append("jdbc:sqlserver://").append(host).append(":").append(port);
-        jdbcUrl.append(";databaseName=").append(catalogName);
+        if (StringUtils.isNotBlank(catalogName)) {
+            jdbcUrl.append(";databaseName=").append(catalogName);
+        }
         if (StringUtils.isNotBlank(schema)) {
             jdbcUrl.append(";currentSchema=").append(schema);
         }
