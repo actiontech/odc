@@ -33,6 +33,7 @@ import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleLessThan2270StatsAcces
 import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleNoLessThan2270StatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleNoLessThan400StatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.oracle.OracleStatsAccessor;
+import com.oceanbase.tools.dbbrowser.stats.sqlserver.SqlServerStatsAccessor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
 import lombok.Setter;
@@ -113,7 +114,7 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
 
     @Override
     public DBStatsAccessor buildForSqlServer() {
-        return null;
+        return new SqlServerStatsAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {
