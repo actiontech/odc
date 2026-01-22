@@ -217,6 +217,8 @@
                     </excludeProperties>
                     <!-- set useNativeGit=true for around failed in Windows OS issue -->
                     <useNativeGit>${plugin.useNativeGit}</useNativeGit>
+                    <!-- 禁用远程连接，避免认证失败 -->
+                    <offline>true</offline>
                 </configuration>
             </plugin>
 
