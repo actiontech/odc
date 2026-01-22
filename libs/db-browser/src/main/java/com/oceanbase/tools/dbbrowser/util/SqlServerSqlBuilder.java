@@ -23,7 +23,24 @@ public class SqlServerSqlBuilder extends SqlBuilder {
 
     @Override
     public SqlBuilder identifier(String identifier) {
+        if (StringUtils.isBlank(identifier)) {
+            return this;
+        }
         return append(StringUtils.quoteSqlServerIdentifier(identifier));
+    }
+
+    @Override
+    public SqlBuilder schemaPrefixIfNotBlank(String schemaName) {
+        if (StringUtils.isBlank(schemaName)) {
+            return this;
+        }
+        if (schemaName.contains(".")) {
+            String[] parts = schemaName.split("\\.", 2);
+            if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])) {
+                return this.identifier(parts[0]).append(".").identifier(parts[1]).append(".");
+            }
+        }
+        return this.identifier(schemaName).append(".");
     }
 
     @Override

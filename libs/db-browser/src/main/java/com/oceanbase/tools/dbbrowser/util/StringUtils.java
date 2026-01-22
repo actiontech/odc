@@ -46,8 +46,7 @@ public abstract class StringUtils extends org.apache.commons.lang3.StringUtils {
     }
 
     /**
-     * Quote SQL Server identifier using square brackets [identifier]
-     * Escape ] as ]]
+     * Quote SQL Server identifier using square brackets [identifier] Escape ] as ]]
      */
     public static String quoteSqlServerIdentifier(final String str) {
         if (null == str) {
@@ -95,8 +94,7 @@ public abstract class StringUtils extends org.apache.commons.lang3.StringUtils {
     }
 
     /**
-     * Quote SQL Server value using single quotes
-     * Escape ' as '' (similar to Oracle)
+     * Quote SQL Server value using single quotes Escape ' as '' (similar to Oracle)
      */
     public static String quoteSqlServerValue(final String str) {
         return quoteSqlValue(str, '\'');
