@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLSpecialDropIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OBOracleIndexEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerIndexEditor;
 
 /**
  * @description:
@@ -63,6 +64,6 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
 
     @Override
     public DBTableIndexEditor buildForSqlServer() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new SqlServerIndexEditor();
     }
 }

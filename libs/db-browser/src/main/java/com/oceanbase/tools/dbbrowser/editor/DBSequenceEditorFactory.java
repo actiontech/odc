@@ -17,6 +17,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleSequenceEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerSequenceEditor;
 import com.oceanbase.tools.dbbrowser.model.DBSequence;
 
 public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEditor<DBSequence>> {
@@ -58,7 +59,7 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
 
     @Override
     public DBObjectEditor<DBSequence> buildForSqlServer() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new SqlServerSequenceEditor();
     }
 
 }

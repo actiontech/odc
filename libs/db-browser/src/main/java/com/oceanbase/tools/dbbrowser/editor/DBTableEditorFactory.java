@@ -22,6 +22,7 @@ import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleTableEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerTableEditor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
 import lombok.Setter;
@@ -85,7 +86,10 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
 
     @Override
     public DBTableEditor buildForSqlServer() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new SqlServerTableEditor(getTableIndexEditor(),
+                getTableColumnEditor(),
+                getTableConstraintEditor(),
+                getTablePartitionEditor());
     }
 
     private DBTableIndexEditor getTableIndexEditor() {

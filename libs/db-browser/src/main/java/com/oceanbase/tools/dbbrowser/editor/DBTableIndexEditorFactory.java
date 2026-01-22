@@ -66,7 +66,7 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
 
     @Override
     public DBTableIndexEditor buildForSqlServer() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new SqlServerIndexEditor();
     }
 
 }

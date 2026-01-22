@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLMViewEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OBOracleMViewEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerMViewEditor;
 
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -72,7 +73,7 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
 
     @Override
     public DBMViewEditor buildForSqlServer() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new SqlServerMViewEditor(getMViewIndexEditor());
     }
 
     private DBTableIndexEditor getMViewIndexEditor() {
