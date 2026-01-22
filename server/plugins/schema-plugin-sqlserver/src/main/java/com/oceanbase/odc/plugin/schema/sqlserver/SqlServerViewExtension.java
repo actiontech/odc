@@ -19,9 +19,15 @@ import java.sql.Connection;
 
 import org.pf4j.Extension;
 
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLViewExtension;
 import com.oceanbase.odc.plugin.schema.sqlserver.utils.DBAccessorUtil;
+import com.oceanbase.tools.dbbrowser.DBBrowser;
+import com.oceanbase.tools.dbbrowser.model.DBView;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.template.DBObjectTemplate;
+
+import lombok.NonNull;
 
 /**
  * @author yizhou.xw
@@ -34,6 +40,18 @@ public class SqlServerViewExtension extends OBMySQLViewExtension {
     @Override
     protected DBSchemaAccessor getSchemaAccessor(Connection connection) {
         return DBAccessorUtil.getSchemaAccessor(connection);
+    }
+
+    @Override
+    public String generateCreateTemplate(@NonNull DBView view) {
+        // 直接使用模板生成 CREATE VIEW 语句
+        return getTemplate().generateCreateObjectTemplate(view);
+    }
+
+    @Override
+    protected DBObjectTemplate<DBView> getTemplate() {
+        return DBBrowser.objectTemplate().viewTemplate()
+                .setType(DialectType.SQL_SERVER.getDBBrowserDialectTypeName()).create();
     }
 
 }

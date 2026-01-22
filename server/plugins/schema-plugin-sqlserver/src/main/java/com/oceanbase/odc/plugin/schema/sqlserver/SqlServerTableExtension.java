@@ -20,8 +20,10 @@ import java.sql.Connection;
 import org.pf4j.Extension;
 
 import com.oceanbase.odc.common.unit.BinarySizeUnit;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLTableExtension;
 import com.oceanbase.odc.plugin.schema.sqlserver.utils.DBAccessorUtil;
+import com.oceanbase.tools.dbbrowser.DBBrowser;
 import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBTable;
@@ -95,5 +97,45 @@ public class SqlServerTableExtension extends OBMySQLTableExtension {
     @Override
     public boolean syncExternalTableFiles(Connection connection, String schemaName, String tableName) {
         throw new UnsupportedOperationException("not implemented yet");
+    }
+
+    @Override
+    public String generateCreateDDL(@NonNull Connection connection, @NonNull DBTable table) {
+        return getTableEditor(connection).generateCreateObjectDDL(table);
+    }
+
+    @Override
+    public String generateUpdateDDL(@NonNull Connection connection, @NonNull DBTable oldTable,
+            @NonNull DBTable newTable) {
+        return getTableEditor(connection).generateUpdateObjectDDL(oldTable, newTable);
+    }
+
+    /**
+     * 生成表创建DDL（不需要Connection，适用于逻辑会话） 参考 OBOracleSequenceExtension 的实现模式
+     *
+     * @param table 表对象
+     * @return 生成的DDL语句
+     */
+    public String generateCreateDDL(@NonNull DBTable table) {
+        return DBBrowser.objectEditor().tableEditor()
+                .setDbVersion("4.0.0")
+                .setType(DialectType.SQL_SERVER.getDBBrowserDialectTypeName())
+                .create()
+                .generateCreateObjectDDL(table);
+    }
+
+    /**
+     * 生成表更新DDL（不需要Connection，适用于逻辑会话） 参考 OBOracleSequenceExtension 的实现模式
+     *
+     * @param oldTable 修改前的表对象
+     * @param newTable 修改后的表对象
+     * @return 生成的DDL语句
+     */
+    public String generateUpdateDDL(@NonNull DBTable oldTable, @NonNull DBTable newTable) {
+        return DBBrowser.objectEditor().tableEditor()
+                .setDbVersion("4.0.0")
+                .setType(DialectType.SQL_SERVER.getDBBrowserDialectTypeName())
+                .create()
+                .generateUpdateObjectDDL(oldTable, newTable);
     }
 }

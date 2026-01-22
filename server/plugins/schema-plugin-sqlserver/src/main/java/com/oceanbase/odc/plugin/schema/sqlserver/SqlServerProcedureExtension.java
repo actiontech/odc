@@ -19,9 +19,15 @@ import java.sql.Connection;
 
 import org.pf4j.Extension;
 
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLProcedureExtension;
 import com.oceanbase.odc.plugin.schema.sqlserver.utils.DBAccessorUtil;
+import com.oceanbase.tools.dbbrowser.DBBrowser;
+import com.oceanbase.tools.dbbrowser.model.DBProcedure;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.template.DBObjectTemplate;
+
+import lombok.NonNull;
 
 /**
  * @author yizhou.xw
@@ -34,6 +40,17 @@ public class SqlServerProcedureExtension extends OBMySQLProcedureExtension {
     @Override
     protected DBSchemaAccessor getSchemaAccessor(Connection connection) {
         return DBAccessorUtil.getSchemaAccessor(connection);
+    }
+
+    @Override
+    public String generateCreateTemplate(@NonNull DBProcedure procedure) {
+        return getTemplate().generateCreateObjectTemplate(procedure);
+    }
+
+    @Override
+    protected DBObjectTemplate<DBProcedure> getTemplate() {
+        return DBBrowser.objectTemplate().procedureTemplate()
+                .setType(DialectType.SQL_SERVER.getDBBrowserDialectTypeName()).create();
     }
 
 }
