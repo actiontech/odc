@@ -179,26 +179,8 @@ public class ConnectConsoleService {
         if (req.isAddROWID() && connectionSession.getDialectType().isOracle()) {
             sqlBuilder.append(" t.ROWID, ");
         }
-        // For SQL Server, req.getSchemaName() is actually the database name, and 'dbo' is the default schema
-        String schemaName = req.getSchemaName();
-        String databaseName = null;
-        if (DialectType.SQL_SERVER == connectionSession.getDialectType()) {
-            // In SQL Server, req.getSchemaName() represents the database name
-            databaseName = req.getSchemaName();
-            schemaName = "dbo"; // Default schema for each database
-        }
-        
         sqlBuilder.append(" t.* ").append(" FROM ");
-        
-        // For SQL Server, use three-part naming: database.schema.table
-        if (DialectType.SQL_SERVER == connectionSession.getDialectType() && StringUtils.isNotBlank(databaseName)) {
-            sqlBuilder.identifier(databaseName).append(".")
-                    .identifier(schemaName).append(".")
-                    .identifier(req.getTableOrViewName()).append(" t");
-        } else {
-            // For other databases, use schema.table format
-            sqlBuilder.schemaPrefixIfNotBlank(schemaName).identifier(req.getTableOrViewName()).append(" t");
-        }
+        sqlBuilder.schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
 
         if (DialectType.OB_ORACLE == connectionSession.getDialectType()) {
             String version = ConnectionSessionUtil.getVersion(connectionSession);
@@ -279,7 +261,8 @@ public class ConnectConsoleService {
                     StringUtils.length(request.getSql()), maxSqlLength);
         }
 
-        List<OffsetString> sqls = request.ifSplitSqls()
+        // SQL Server 需要应该通过按行的 GO 进行分割 临时代码放在公共层，后续应当移动到SQLServer适配层
+        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer())
                 ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
                         sessionProperties.isOracleRemoveCommentPrefix())
                 : Collections.singletonList(new OffsetString(0, request.getSql()));

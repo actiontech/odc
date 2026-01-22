@@ -30,6 +30,7 @@ import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.sql.split.OffsetString;
 import com.oceanbase.odc.core.sql.split.SqlCommentProcessor;
+import com.oceanbase.odc.core.sql.split.SqlServerSqlSplitter;
 import com.oceanbase.odc.core.sql.split.SqlSplitter;
 import com.oceanbase.odc.core.sql.split.SqlStatementIterator;
 import com.oceanbase.tools.sqlparser.oracle.PlSqlLexer;
@@ -120,6 +121,13 @@ public class SqlUtils {
     private static List<OffsetString> split(DialectType dialectType, SqlCommentProcessor processor, String sql,
             boolean removeCommentPrefix) {
         PreConditions.notBlank(processor.getDelimiter(), "delimiter", "Empty or blank delimiter is not allowed");
+        if (dialectType.isSqlServer()) {
+            // SQL Server needs batch-aware splitting:
+            // - do not split by ';' inside BEGIN...END / CASE...END
+            // - split by line-based GO
+            SqlServerSqlSplitter splitter = new SqlServerSqlSplitter(processor.getDelimiter());
+            return splitter.split(sql);
+        }
         if (dialectType.isOracle()
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             SqlSplitter sqlSplitter = new SqlSplitter(PlSqlLexer.class, processor.getDelimiter(), false);
@@ -165,6 +173,9 @@ public class SqlUtils {
     private static SqlStatementIterator iterator(InputStream input, Charset charset, DialectType dialectType,
             SqlCommentProcessor processor) {
         PreConditions.notBlank(processor.getDelimiter(), "delimiter", "Empty or blank delimiter is not allowed");
+        if (Objects.nonNull(dialectType) && dialectType.isSqlServer()) {
+            return SqlServerSqlSplitter.iterator(input, charset, processor.getDelimiter());
+        }
         if (Objects.nonNull(dialectType) && dialectType.isOracle()
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             return SqlSplitter.iterator(input, charset, processor.getDelimiter(), false);
