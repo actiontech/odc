@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "name": "update constraint name only",
+    "description": "只更新约束名称",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_constraint",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_constraint",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "EXEC sp_rename 'dbo.old_constraint', 'new_constraint', 'OBJECT';"
+  },
+  {
+    "id": 2,
+    "name": "update constraint columns",
+    "description": "更新约束列（需要删除旧约束并创建新约束）",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id", "col1"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK_test_table]; ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id], [col1]);"
+  },
+  {
+    "id": 3,
+    "name": "update constraint type",
+    "description": "更新约束类型（需要删除旧约束并创建新约束）",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "constraint_name",
+        "type": "UNIQUE_KEY",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "constraint_name",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [constraint_name]; ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [constraint_name] PRIMARY KEY ([col1]);"
+  }
+]

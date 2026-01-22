@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "name": "rename index only",
+    "description": "只重命名索引，不改变结构",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_idx",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_idx",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "EXEC sp_rename 'testdb.dbo.test_table.old_idx', 'new_idx', 'INDEX';"
+  },
+  {
+    "id": 2,
+    "name": "update index type from normal to clustered",
+    "description": "更新索引类型，从普通索引改为聚集索引",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "CLUSTERED",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; CREATE CLUSTERED INDEX [idx_col1] ON [dbo].[test_table] ([col1]);"
+  },
+  {
+    "id": 3,
+    "name": "update index columns",
+    "description": "更新索引列",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1", "col2"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; CREATE INDEX [idx_col1] ON [dbo].[test_table] ([col1], [col2]);"
+  },
+  {
+    "id": 4,
+    "name": "update index from normal to unique",
+    "description": "更新索引，从普通索引改为唯一索引",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"],
+        "unique": false,
+        "nonUnique": true
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "UNIQUE",
+        "columnNames": ["col1"],
+        "unique": true,
+        "nonUnique": false
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; CREATE UNIQUE INDEX [idx_col1] ON [dbo].[test_table] ([col1]);"
+  },
+  {
+    "id": 5,
+    "name": "update index primary key attribute",
+    "description": "更新索引的主键属性",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "CLUSTERED",
+        "columnNames": ["id"],
+        "primary": false
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "CLUSTERED",
+        "columnNames": ["id"],
+        "primary": true
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [PK_test_table] ON [dbo].[test_table]; CREATE CLUSTERED INDEX [PK_test_table] ON [dbo].[test_table] ([id]);"
+  },
+  {
+    "id": 6,
+    "name": "rename and update columns",
+    "description": "重命名索引并更新列",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_idx",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_idx",
+        "type": "NORMAL",
+        "columnNames": ["col1", "col2"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [old_idx] ON [dbo].[test_table]; CREATE INDEX [new_idx] ON [dbo].[test_table] ([col1], [col2]);"
+  },
+  {
+    "id": 7,
+    "name": "no changes",
+    "description": "索引没有变化",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": ""
+  }
+]

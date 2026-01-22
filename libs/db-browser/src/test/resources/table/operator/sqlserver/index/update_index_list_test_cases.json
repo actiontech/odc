@@ -1,0 +1,217 @@
+[
+  {
+    "id": 1,
+    "name": "add new index and drop old index",
+    "description": "添加一个新索引，并删除一个旧索引",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col2",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        }
+      ]
+    },
+    "output": "USE [testdb];\nCREATE INDEX [idx_col2] ON [dbo].[test_table] ([col2]); USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table];"
+  },
+  {
+    "id": 2,
+    "name": "old indexes empty, add new indexes",
+    "description": "旧索引为空，新增两个索引",
+    "input": {
+      "previous": [],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col2",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        }
+      ]
+    },
+    "output": "USE [testdb];\nCREATE INDEX [idx_col1] ON [dbo].[test_table] ([col1]); USE [testdb];\nCREATE INDEX [idx_col2] ON [dbo].[test_table] ([col2]);"
+  },
+  {
+    "id": 3,
+    "name": "drop all indexes",
+    "description": "删除所有索引",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col2",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        }
+      ],
+      "current": []
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; USE [testdb];\nDROP INDEX [idx_col2] ON [dbo].[test_table];"
+  },
+  {
+    "id": 4,
+    "name": "update existing index",
+    "description": "更新现有索引",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1", "col2"]
+        }
+      ]
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; CREATE INDEX [idx_col1] ON [dbo].[test_table] ([col1], [col2]);"
+  },
+  {
+    "id": 5,
+    "name": "rename existing index",
+    "description": "重命名现有索引",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "old_idx",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "new_idx",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        }
+      ]
+    },
+    "output": "EXEC sp_rename 'testdb.dbo.test_table.old_idx', 'new_idx', 'INDEX';"
+  },
+  {
+    "id": 6,
+    "name": "mixed scenario: add, update, and drop indexes",
+    "description": "混合场景：添加、更新和删除索引",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col2",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col3",
+          "type": "NORMAL",
+          "columnNames": ["col3"]
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "UNIQUE",
+          "columnNames": ["col1"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col2",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col4",
+          "type": "NORMAL",
+          "columnNames": ["col4"]
+        }
+      ]
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table]; CREATE UNIQUE INDEX [idx_col1] ON [dbo].[test_table] ([col1]); USE [testdb];\nCREATE INDEX [idx_col4] ON [dbo].[test_table] ([col4]); USE [testdb];\nDROP INDEX [idx_col3] ON [dbo].[test_table];"
+  },
+  {
+    "id": 7,
+    "name": "add index with empty name",
+    "description": "添加索引，索引名为空（视为新索引）",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "idx_col1",
+          "type": "NORMAL",
+          "columnNames": ["col1"]
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "",
+          "type": "NORMAL",
+          "columnNames": ["col2"]
+        }
+      ]
+    },
+    "output": "USE [testdb];\nCREATE INDEX [idx_col2] ON [dbo].[test_table] ([col2]);"
+  }
+]

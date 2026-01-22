@@ -1,0 +1,132 @@
+[
+  {
+    "id": 1,
+    "name": "add new constraint to empty list",
+    "description": "向空列表添加新约束",
+    "input": {
+      "previous": [],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id]);"
+  },
+  {
+    "id": 2,
+    "name": "drop all constraints",
+    "description": "删除所有约束",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": 1
+        }
+      ],
+      "current": []
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK_test_table];"
+  },
+  {
+    "id": 3,
+    "name": "add multiple new constraints",
+    "description": "添加多个新约束",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": 1
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "UQ_test_col1",
+          "type": "UNIQUE_KEY",
+          "columnNames": ["col1"],
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [UQ_test_col1] UNIQUE ([col1]);"
+  },
+  {
+    "id": 4,
+    "name": "update existing constraint",
+    "description": "更新现有约束",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "PK_test_table",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id", "col1"],
+          "ordinalPosition": 1
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK_test_table]; ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id], [col1]);"
+  },
+  {
+    "id": 5,
+    "name": "drop and add constraints",
+    "description": "删除旧约束并添加新约束",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "old_constraint",
+          "type": "UNIQUE_KEY",
+          "columnNames": ["col1"],
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "new_constraint",
+          "type": "PRIMARY_KEY",
+          "columnNames": ["id"],
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [new_constraint] PRIMARY KEY ([id]); ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [old_constraint];"
+  }
+]

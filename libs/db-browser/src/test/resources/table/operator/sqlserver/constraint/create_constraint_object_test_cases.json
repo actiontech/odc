@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "name": "create primary key constraint single column",
+    "description": "创建主键约束，单列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id]);"
+  },
+  {
+    "id": 2,
+    "name": "create primary key constraint multiple columns",
+    "description": "创建主键约束，多列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id", "col1"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id], [col1]);"
+  },
+  {
+    "id": 3,
+    "name": "create unique constraint single column",
+    "description": "创建唯一约束，单列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "UQ_test_col1",
+        "type": "UNIQUE_KEY",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [UQ_test_col1] UNIQUE ([col1]);"
+  },
+  {
+    "id": 4,
+    "name": "create unique constraint multiple columns",
+    "description": "创建唯一约束，多列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "UQ_test_col1_col2",
+        "type": "UNIQUE_KEY",
+        "columnNames": ["col1", "col2"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [UQ_test_col1_col2] UNIQUE ([col1], [col2]);"
+  },
+  {
+    "id": 5,
+    "name": "create constraint with database only",
+    "description": "创建约束，只有 database，默认使用 dbo schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([id]);"
+  },
+  {
+    "id": 6,
+    "name": "create constraint with custom schema",
+    "description": "创建约束，自定义 schema 名称",
+    "input": {
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "PK_users",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[custom_schema].[users] ADD CONSTRAINT [PK_users] PRIMARY KEY ([id]);"
+  },
+  {
+    "id": 7,
+    "name": "create constraint with special characters in column names",
+    "description": "创建约束，列名包含特殊字符",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["col-name", "col_name"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT [PK_test_table] PRIMARY KEY ([col-name], [col_name]);"
+  }
+]

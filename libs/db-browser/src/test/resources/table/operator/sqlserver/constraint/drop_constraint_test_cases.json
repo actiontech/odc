@@ -1,0 +1,77 @@
+[
+  {
+    "id": 1,
+    "name": "drop primary key constraint with database.schema.table",
+    "description": "删除主键约束，使用 database.schema.table 格式",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK_test_table];"
+  },
+  {
+    "id": 2,
+    "name": "drop unique constraint",
+    "description": "删除唯一约束",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "UQ_test_col1",
+        "type": "UNIQUE_KEY",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [UQ_test_col1];"
+  },
+  {
+    "id": 3,
+    "name": "drop constraint with database only",
+    "description": "删除约束，只有 database，默认使用 dbo schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK_test_table];"
+  },
+  {
+    "id": 4,
+    "name": "drop constraint with custom schema",
+    "description": "删除约束，自定义 schema 名称",
+    "input": {
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "PK_users",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[custom_schema].[users] DROP CONSTRAINT [PK_users];"
+  },
+  {
+    "id": 5,
+    "name": "drop constraint with special characters in name",
+    "description": "删除约束，约束名包含特殊字符，需要使用方括号",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK-test-table",
+        "type": "PRIMARY_KEY",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP CONSTRAINT [PK-test-table];"
+  }
+]

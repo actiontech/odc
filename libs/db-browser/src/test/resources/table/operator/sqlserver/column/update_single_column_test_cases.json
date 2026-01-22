@@ -1,0 +1,322 @@
+[
+  {
+    "id": 1,
+    "name": "case1",
+    "description": "只修改列名",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_col",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_col",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      }
+    },
+    "output": "EXEC sp_rename @objname = '[dbo].[test_table].[old_col]', @newname = 'new_col', @objtype = 'COLUMN';\n"
+  },
+  {
+    "id": 2,
+    "name": "case2",
+    "description": "只修改数据类型 - int 改为 varchar，注意 int 不输出精度",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "col1",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "col1",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [col1] varchar(100) NOT NULL;\n"
+  },
+  {
+    "id": 3,
+    "name": "case3",
+    "description": "只修改精度 - decimal 类型",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "price",
+        "typeName": "decimal",
+        "scale": 2,
+        "precision": 10,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 2
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "price",
+        "typeName": "decimal",
+        "scale": 4,
+        "precision": 18,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 2
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [price] decimal(18,4) NULL;\n"
+  },
+  {
+    "id": 4,
+    "name": "case4",
+    "description": "只修改是否可空 - NULL 改为 NOT NULL",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "name",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 3
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "name",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 3
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [name] varchar(100) NOT NULL;\n"
+  },
+  {
+    "id": 5,
+    "name": "case5",
+    "description": "只修改注释",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "description",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 500,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": "Old comment",
+        "ordinalPosition": 4
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "description",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 500,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": "New comment",
+        "ordinalPosition": 4
+      }
+    },
+    "output": "IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'description' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'New comment', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'description';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'New comment', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'description';\n"
+  },
+  {
+    "id": 6,
+    "name": "case6",
+    "description": "只修改默认值 - 会生成注释形式的模板",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": "0",
+        "comment": null,
+        "ordinalPosition": 5
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": "1",
+        "comment": null,
+        "ordinalPosition": 5
+      }
+    },
+    "output": "-- ALTER TABLE [testdb].[dbo].[test_table] ADD CONSTRAINT DF_test_table_status DEFAULT 1 FOR [status];\n"
+  },
+  {
+    "id": 7,
+    "name": "case7",
+    "description": "组合修改 - 列名、类型、精度、是否可空",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_name",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 6
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_name",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 200,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 6
+      }
+    },
+    "output": "EXEC sp_rename @objname = '[dbo].[test_table].[old_name]', @newname = 'new_name', @objtype = 'COLUMN';\nALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [new_name] varchar(200) NOT NULL;\n"
+  },
+  {
+    "id": 8,
+    "name": "case8",
+    "description": "修改 datetime2 类型的小数位数",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "created_at",
+        "typeName": "datetime2",
+        "scale": 3,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 7
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "created_at",
+        "typeName": "datetime2",
+        "scale": 7,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 7
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [created_at] datetime2(7) NOT NULL;\n"
+  },
+  {
+    "id": 9,
+    "name": "case9",
+    "description": "int 类型即使有 precision 也不输出 - 验证精度处理逻辑",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "id",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 8
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "id",
+        "typeName": "int",
+        "scale": null,
+        "precision": 11,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 8
+      }
+    },
+    "output": ""
+  },
+  {
+    "id": 10,
+    "name": "case10",
+    "description": "移除默认值 - 默认值从有到无",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": "1",
+        "comment": null,
+        "ordinalPosition": 9
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 9
+      }
+    },
+    "output": ""
+  }
+]

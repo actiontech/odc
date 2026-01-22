@@ -1,0 +1,360 @@
+[
+  {
+    "id": 1,
+    "name": "add new column and drop old column",
+    "description": "添加一个新列，并删除一个旧列",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "decimal",
+          "scale": 2,
+          "precision": 10,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 2
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "decimal",
+          "scale": 2,
+          "precision": 10,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 2
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col3",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 100,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [col3] varchar(100) NULL;\nALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col1];\n"
+  },
+  {
+    "id": 2,
+    "name": "old columns empty, add new columns",
+    "description": "旧列为空，新增两个列",
+    "input": {
+      "previous": [],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": null
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 200,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [col1] int NOT NULL;\nALTER TABLE [testdb].[dbo].[test_table] ADD [col2] varchar(200) NULL;\n"
+  },
+  {
+    "id": 3,
+    "name": "drop all columns",
+    "description": "删除所有列",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 100,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 2
+        }
+      ],
+      "current": []
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col1];\nALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col2];\n"
+  },
+  {
+    "id": 4,
+    "name": "update existing column type and comment",
+    "description": "更新现有列的类型和注释",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": "旧注释",
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "bigint",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": "新注释",
+          "ordinalPosition": 1
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [col1] bigint NOT NULL;\nIF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'col1' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'新注释', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col1';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'新注释', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col1';\n"
+  },
+  {
+    "id": 5,
+    "name": "rename column and update definition",
+    "description": "重命名列并更新列定义",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "old_col",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "new_col",
+          "typeName": "bigint",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ]
+    },
+    "output": "EXEC sp_rename @objname = '[dbo].[test_table].[old_col]', @newname = 'new_col', @objtype = 'COLUMN';\nALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [new_col] bigint NOT NULL;\n"
+  },
+  {
+    "id": 6,
+    "name": "mixed scenario: add, update, and drop columns",
+    "description": "混合场景：添加、更新和删除列",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "int",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 50,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": "col2注释",
+          "ordinalPosition": 2
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col3",
+          "typeName": "decimal",
+          "scale": 2,
+          "precision": 10,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 3
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col1",
+          "typeName": "bigint",
+          "scale": null,
+          "precision": null,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": "更新后的col1",
+          "ordinalPosition": 1
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col2",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 100,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": "更新后的col2注释",
+          "ordinalPosition": 2
+        },
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "col4",
+          "typeName": "datetime2",
+          "scale": null,
+          "precision": null,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": null
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [col1] bigint NOT NULL;\nIF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'col1' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'更新后的col1', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col1';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'更新后的col1', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col1';\nALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [col2] varchar(100) NULL;\nIF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'col2' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'更新后的col2注释', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col2';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'更新后的col2注释', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'col2';\nALTER TABLE [testdb].[dbo].[test_table] ADD [col4] datetime2 NULL;\nALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col3];\n"
+  },
+  {
+    "id": 7,
+    "name": "update column precision and scale",
+    "description": "更新列的精度和小数位数",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "price",
+          "typeName": "decimal",
+          "scale": 2,
+          "precision": 10,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "price",
+          "typeName": "decimal",
+          "scale": 4,
+          "precision": 18,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [price] decimal(18,4) NULL;\n"
+  },
+  {
+    "id": 8,
+    "name": "update column nullability",
+    "description": "更新列的可空性",
+    "input": {
+      "previous": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "name",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 100,
+          "nullable": true,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ],
+      "current": [
+        {
+          "schemaName": "testdb.dbo",
+          "tableName": "test_table",
+          "name": "name",
+          "typeName": "varchar",
+          "scale": null,
+          "precision": 100,
+          "nullable": false,
+          "defaultValue": null,
+          "comment": null,
+          "ordinalPosition": 1
+        }
+      ]
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ALTER COLUMN [name] varchar(100) NOT NULL;\n"
+  }
+]

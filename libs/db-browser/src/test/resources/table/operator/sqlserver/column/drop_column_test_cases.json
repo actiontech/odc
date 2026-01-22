@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "name": "case1",
+    "description": "删除列 - 基本场景，使用 database.schema.table 格式",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "col1",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col1];\n"
+  },
+  {
+    "id": 2,
+    "name": "case2",
+    "description": "删除列 - 只有 database，默认使用 dbo schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "col2",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 2
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col2];\n"
+  },
+  {
+    "id": 3,
+    "name": "case3",
+    "description": "删除列 - 自定义 schema 名称",
+    "input": {
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "email",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 255,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 3
+      }
+    },
+    "output": "ALTER TABLE [testdb].[custom_schema].[users] DROP COLUMN [email];\n"
+  },
+  {
+    "id": 4,
+    "name": "case4",
+    "description": "删除列 - 列名包含特殊字符，需要使用方括号",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "col-name",
+        "typeName": "decimal",
+        "scale": 2,
+        "precision": 10,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 4
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] DROP COLUMN [col-name];\n"
+  }
+]
