@@ -68,8 +68,7 @@ public class ConnectionCountManager {
     }
 
     /**
-     * Generate key from url and username
-     * Extracts host:port from JDBC URL and combines with username
+     * Generate key from url and username Extracts host:port from JDBC URL and combines with username
      *
      * @param url database url (JDBC URL format)
      * @param username database username
@@ -87,13 +86,10 @@ public class ConnectionCountManager {
     }
 
     /**
-     * Extract host:port from JDBC URL
-     * Supports formats:
-     * - jdbc:mysql://host:port/database?params
-     * - jdbc:oceanbase://host:port/database?params
-     * - jdbc:postgresql://host:port/database?params
-     * - jdbc:oracle:thin:@host:port:database
-     * - jdbc:oracle:thin:@//host:port/database
+     * Extract host:port from JDBC URL Supports formats: - jdbc:mysql://host:port/database?params -
+     * jdbc:oceanbase://host:port/database?params - jdbc:postgresql://host:port/database?params -
+     * jdbc:sqlserver://host:port;params or jdbc:sqlserver://host;params -
+     * jdbc:oracle:thin:@host:port:database - jdbc:oracle:thin:@//host:port/database
      *
      * @param jdbcUrl JDBC URL
      * @return host:port string, or original url if parsing fails
@@ -115,6 +111,24 @@ public class ConnectionCountManager {
                 // Use default port based on database type
                 String dbType = mysqlMatcher.group(1);
                 int defaultPort = getDefaultPort(dbType);
+                return host + ":" + defaultPort;
+            }
+        }
+
+        // Pattern for SQL Server: jdbc:sqlserver://host:port;params or jdbc:sqlserver://host;params
+        // SQL Server uses semicolon (;) as parameter separator instead of slash (/)
+        // Also supports named instance: jdbc:sqlserver://host\instance;params
+        // Reference: https://learn.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url
+        Pattern sqlServerPattern = Pattern.compile("jdbc:sqlserver://([^:;\\\\]+)(?:\\\\[^;]+)?(?::([0-9]+))?");
+        Matcher sqlServerMatcher = sqlServerPattern.matcher(jdbcUrl);
+        if (sqlServerMatcher.find()) {
+            String host = sqlServerMatcher.group(1);
+            String port = sqlServerMatcher.group(2);
+            if (port != null && !port.isEmpty()) {
+                return host + ":" + port;
+            } else {
+                // Use default port for SQL Server (1433)
+                int defaultPort = getDefaultPort("sqlserver");
                 return host + ":" + defaultPort;
             }
         }
@@ -141,7 +155,7 @@ public class ConnectionCountManager {
     /**
      * Get default port for database type
      *
-     * @param dbType database type (mysql, oceanbase, postgresql, etc.)
+     * @param dbType database type (mysql, oceanbase, postgresql, sqlserver, etc.)
      * @return default port number
      */
     private static int getDefaultPort(String dbType) {
@@ -155,6 +169,8 @@ public class ConnectionCountManager {
                 return 2883;
             case "postgresql":
                 return 5432;
+            case "sqlserver":
+                return 1433;
             default:
                 return 3306; // Default to MySQL port
         }
