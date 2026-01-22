@@ -78,7 +78,9 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
     private void init(DruidDataSource dataSource) {
         String validationQuery =
                 getConnectType().getDialectType().isMysql() || getConnectType().getDialectType().isDoris()
-                        || getConnectType().getDialectType().isPostgreSql() ? "select 1"
+                        || getConnectType().getDialectType().isPostgreSql()
+                        || getConnectType().getDialectType().isSqlServer()
+                                ? "select 1"
                                 : "select 1 from dual";
         dataSource.setValidationQuery(validationQuery);
         dataSource.setTestWhileIdle(true);
