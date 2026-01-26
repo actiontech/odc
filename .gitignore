@@ -57,3 +57,4 @@ venv/
 **/integration-test.properties
 **/oss_temp_dir/
 .vscode/
+.pnpm-store/
