@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "name": "normal index single column definition",
+    "description": "普通索引定义，单列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "INDEX [idx_col1] ([col1])"
+  },
+  {
+    "id": 2,
+    "name": "normal index multiple columns definition",
+    "description": "普通索引定义，多列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1_col2",
+        "type": "NORMAL",
+        "columnNames": ["col1", "col2"]
+      }
+    },
+    "output": "INDEX [idx_col1_col2] ([col1], [col2])"
+  },
+  {
+    "id": 3,
+    "name": "unique index definition",
+    "description": "唯一索引定义",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_unique_col1",
+        "type": "UNIQUE",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "UNIQUE INDEX [idx_unique_col1] ([col1])"
+  },
+  {
+    "id": 4,
+    "name": "unique index multiple columns definition",
+    "description": "唯一索引定义，多列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_unique_col1_col2",
+        "type": "UNIQUE",
+        "columnNames": ["col1", "col2"]
+      }
+    },
+    "output": "UNIQUE INDEX [idx_unique_col1_col2] ([col1], [col2])"
+  },
+  {
+    "id": 5,
+    "name": "clustered index definition",
+    "description": "聚集索引定义（注意：SQL Server 不支持在 CREATE TABLE 中内联定义聚集索引，但为了测试完整性）",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "CLUSTERED",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "INDEX [PK_test_table] ([id])"
+  },
+  {
+    "id": 6,
+    "name": "index definition with special characters",
+    "description": "索引定义，列名包含特殊字符",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col-name",
+        "type": "NORMAL",
+        "columnNames": ["col-name", "col_name"]
+      }
+    },
+    "output": "INDEX [idx_col-name] ([col-name], [col_name])"
+  }
+]

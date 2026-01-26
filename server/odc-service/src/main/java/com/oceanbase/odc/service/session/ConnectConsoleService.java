@@ -110,6 +110,7 @@ import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
+import com.oceanbase.tools.dbbrowser.util.SqlServerSqlBuilder;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -164,17 +165,23 @@ public class ConnectConsoleService {
             sqlBuilder = new OracleSqlBuilder();
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
+        } else if (dialectType.isSqlServer()) {
+            sqlBuilder = new SqlServerSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
+        Integer queryLimit = checkQueryLimit(req.getQueryLimit());
         sqlBuilder.append("SELECT ");
+        if (DialectType.SQL_SERVER == connectionSession.getDialectType()) {
+            // SQL Server uses TOP clause
+            sqlBuilder.append("TOP ").append(queryLimit.toString()).append(" ");
+        }
         if (req.isAddROWID() && connectionSession.getDialectType().isOracle()) {
             sqlBuilder.append(" t.ROWID, ");
         }
-        sqlBuilder.append(" t.* ").append(" FROM ")
-                .schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
+        sqlBuilder.append(" t.* ").append(" FROM ");
+        sqlBuilder.schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
 
-        Integer queryLimit = checkQueryLimit(req.getQueryLimit());
         if (DialectType.OB_ORACLE == connectionSession.getDialectType()) {
             String version = ConnectionSessionUtil.getVersion(connectionSession);
             if (VersionUtils.isGreaterThanOrEqualsTo(version, "2.2.50")) {
@@ -184,7 +191,8 @@ public class ConnectConsoleService {
             }
         } else if (DialectType.ORACLE == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
-        } else {
+        } else if (DialectType.SQL_SERVER != connectionSession.getDialectType()) {
+            // SQL Server already uses TOP clause, skip LIMIT
             sqlBuilder.append(" LIMIT ").append(queryLimit.toString());
         }
 
@@ -253,7 +261,8 @@ public class ConnectConsoleService {
                     StringUtils.length(request.getSql()), maxSqlLength);
         }
 
-        List<OffsetString> sqls = request.ifSplitSqls()
+        // SQL Server 需要应该通过按行的 GO 进行分割 临时代码放在公共层，后续应当移动到SQLServer适配层
+        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer())
                 ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
                         sessionProperties.isOracleRemoveCommentPrefix())
                 : Collections.singletonList(new OffsetString(0, request.getSql()));

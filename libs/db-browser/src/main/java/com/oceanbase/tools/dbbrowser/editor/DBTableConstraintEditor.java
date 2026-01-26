@@ -132,8 +132,19 @@ public abstract class DBTableConstraintEditor implements DBObjectEditor<DBTableC
         SqlBuilder sqlBuilder = sqlBuilder();
         if (!Objects.equals(oldConstraint, newConstraint)) {
             String drop = generateDropObjectDDL(oldConstraint);
-            sqlBuilder.append(drop)
-                    .append(generateCreateObjectDDL(newConstraint));
+            String create = generateCreateObjectDDL(newConstraint);
+            // Ensure proper separation between SQL statements
+            String dropTrimmed = drop.trim();
+            String createTrimmed = create.trim();
+            sqlBuilder.append(dropTrimmed);
+            // Add separator if drop statement doesn't end with semicolon
+            if (!dropTrimmed.endsWith(";")) {
+                sqlBuilder.append("; ");
+            } else if (!dropTrimmed.endsWith("; ")) {
+                // If ends with ";" but not "; ", add a space
+                sqlBuilder.append(" ");
+            }
+            sqlBuilder.append(createTrimmed);
             return sqlBuilder.toString();
         }
         if (!Objects.equals(oldConstraint.getEnabled(), newConstraint.getEnabled())) {

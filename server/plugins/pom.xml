@@ -20,6 +20,7 @@
         <module>connect-plugin-doris</module>
         <module>connect-plugin-oracle</module>
         <module>connect-plugin-postgres</module>
+        <module>connect-plugin-sqlserver</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
         <module>schema-plugin-ob-oracle</module>
@@ -27,6 +28,7 @@
         <module>schema-plugin-doris</module>
         <module>schema-plugin-oracle</module>
         <module>schema-plugin-postgres</module>
+        <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
         <module>task-plugin-api</module>
         <module>task-plugin-mysql</module>
@@ -97,6 +99,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-sqlserver</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>task-plugin-ob-mysql</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -146,6 +154,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-postgres</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-sqlserver</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

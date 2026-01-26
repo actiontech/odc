@@ -28,6 +28,7 @@ public enum DBIndexType {
     FUNCTION_BASED_BITMAP("FUNCTION-BASED BITMAP"),
     DOMAIN("DOMAIN"),
     SPATIAL("SPATIAL"),
+    CLUSTERED("CLUSTERED"),
     UNKNOWN("UNKNOWN");
 
     private String value;

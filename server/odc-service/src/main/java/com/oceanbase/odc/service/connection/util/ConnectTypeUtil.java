@@ -101,6 +101,8 @@ public class ConnectTypeUtil {
                 return ConnectType.MYSQL;
             case ORACLE:
                 return ConnectType.ORACLE;
+            case SQL_SERVER:
+                return ConnectType.SQL_SERVER;
         }
         return null;
     }

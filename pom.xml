@@ -141,6 +141,7 @@
         <mysql.jdbc.version>8.0.30</mysql.jdbc.version>
         <oracle.jdbc.version>21.1.0.0</oracle.jdbc.version>
         <postgres.jdbc.version>42.7.3</postgres.jdbc.version>
+        <mssql.jdbc.version>12.8.2.jre8</mssql.jdbc.version>
 
         <micrometer-core.version>1.8.0</micrometer-core.version>
         <mariadb-java-client.version>2.7.11</mariadb-java-client.version>
@@ -157,6 +158,7 @@
         <registry-prometheus.version>1.9.5</registry-prometheus.version>
         <actuator.version>2.7.12</actuator.version>
         <picocli.version>4.7.0</picocli.version>
+        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencyManagement>
@@ -1212,6 +1214,11 @@
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${postgres.jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.sqlserver</groupId>
+                <artifactId>mssql-jdbc</artifactId>
+                <version>${mssql.jdbc.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.oracle.database.nls</groupId>

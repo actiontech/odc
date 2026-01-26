@@ -17,6 +17,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleSynonymEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerSynonymEditor;
 import com.oceanbase.tools.dbbrowser.model.DBSynonym;
 
 public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEditor<DBSynonym>> {
@@ -54,6 +55,11 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
     @Override
     public DBObjectEditor<DBSynonym> buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBObjectEditor<DBSynonym> buildForSqlServer() {
+        return new SqlServerSynonymEditor();
     }
 
 }

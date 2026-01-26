@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "name": "rename constraint with database.schema.table",
+    "description": "重命名约束，使用 database.schema.table 格式",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "old_constraint"
+      },
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "new_constraint"
+      }
+    },
+    "output": "EXEC sp_rename 'dbo.old_constraint', 'new_constraint', 'OBJECT';"
+  },
+  {
+    "id": 2,
+    "name": "rename constraint with database only",
+    "description": "重命名约束，只有 database，默认使用 dbo schema",
+    "input": {
+      "previous": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "old_constraint"
+      },
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "new_constraint"
+      }
+    },
+    "output": "EXEC sp_rename 'dbo.old_constraint', 'new_constraint', 'OBJECT';"
+  },
+  {
+    "id": 3,
+    "name": "rename constraint with custom schema",
+    "description": "重命名约束，自定义 schema 名称",
+    "input": {
+      "previous": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "old_constraint"
+      },
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "new_constraint"
+      }
+    },
+    "output": "EXEC sp_rename 'custom_schema.old_constraint', 'new_constraint', 'OBJECT'"
+  },
+  {
+    "id": 4,
+    "name": "rename constraint without schema",
+    "description": "重命名约束，没有 schema 名称",
+    "input": {
+      "previous": {
+        "schemaName": null,
+        "tableName": "test_table",
+        "name": "old_constraint"
+      },
+      "current": {
+        "schemaName": null,
+        "tableName": "test_table",
+        "name": "new_constraint"
+      }
+    },
+    "output": "EXEC sp_rename 'old_constraint', 'new_constraint', 'OBJECT'"
+  }
+]

@@ -24,6 +24,7 @@ import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan2277PartitionEd
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400DBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OBOracleLessThan400DBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleDBTablePartitionEditor;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerPartitionEditor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
 import lombok.Setter;
@@ -79,6 +80,11 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
     @Override
     public DBTablePartitionEditor buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBTablePartitionEditor buildForSqlServer() {
+        return new SqlServerPartitionEditor();
     }
 
 }

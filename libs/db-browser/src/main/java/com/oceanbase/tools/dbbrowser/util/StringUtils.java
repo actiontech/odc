@@ -29,6 +29,8 @@ public abstract class StringUtils extends org.apache.commons.lang3.StringUtils {
 
     private static final char MYSQL_IDENTIFIER_WRAP_CHAR = '`';
     private static final char ORACLE_IDENTIFIER_WRAP_CHAR = '"';
+    private static final char SQLSERVER_IDENTIFIER_LEFT_CHAR = '[';
+    private static final char SQLSERVER_IDENTIFIER_RIGHT_CHAR = ']';
     private static final String DEFAULT_VARIABLE_SUFFIX = "}";
     private static final String DEFAULT_VARIABLE_PREFIX = "${";
 
@@ -41,6 +43,19 @@ public abstract class StringUtils extends org.apache.commons.lang3.StringUtils {
 
     public static String quoteOracleIdentifier(final String str) {
         return quoteSqlIdentifier(str, ORACLE_IDENTIFIER_WRAP_CHAR);
+    }
+
+    /**
+     * Quote SQL Server identifier using square brackets [identifier] Escape ] as ]]
+     */
+    public static String quoteSqlServerIdentifier(final String str) {
+        if (null == str) {
+            return null;
+        }
+        // SQL Server uses [] for identifiers, escape ] as ]]
+        String escaped = replace(str, String.valueOf(SQLSERVER_IDENTIFIER_RIGHT_CHAR),
+                String.valueOf(SQLSERVER_IDENTIFIER_RIGHT_CHAR) + SQLSERVER_IDENTIFIER_RIGHT_CHAR);
+        return SQLSERVER_IDENTIFIER_LEFT_CHAR + escaped + SQLSERVER_IDENTIFIER_RIGHT_CHAR;
     }
 
     static String quoteSqlIdentifier(final String str, final char wrapChar) {
@@ -76,6 +91,13 @@ public abstract class StringUtils extends org.apache.commons.lang3.StringUtils {
 
     public static String quoteMysqlValue(final String str) {
         return quoteSqlValue(str, '\'', new char[] {'\'', '\\'});
+    }
+
+    /**
+     * Quote SQL Server value using single quotes Escape ' as '' (similar to Oracle)
+     */
+    public static String quoteSqlServerValue(final String str) {
+        return quoteSqlValue(str, '\'');
     }
 
     /**

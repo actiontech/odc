@@ -269,3 +269,10 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 -- supports ob materialized view
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_materialized_view', 'OB_MYSQL', 'true', '4.3.5.2', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_materialized_view', 'OB_ORACLE', 'true', '4.3.5.2', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- support sql server datasource
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('column_data_type', 'SQL_SERVER',
+'bit:NUMERIC, tinyint:NUMERIC, smallint:NUMERIC, int:NUMERIC, bigint:NUMERIC, decimal:NUMERIC, numeric:NUMERIC, float:NUMERIC, real:NUMERIC, money:NUMERIC, smallmoney:NUMERIC, char:TEXT, varchar:TEXT, nchar:TEXT, nvarchar:TEXT, text:OBJECT, ntext:OBJECT, binary:TEXT, varbinary:TEXT, image:OBJECT, date:DATE, time:TIME, datetime:DATETIME, datetime2:DATETIME, smalldatetime:DATETIME, datetimeoffset:TIMESTAMP, timestamp:OBJECT, uniqueidentifier:OBJECT, xml:OBJECT, sql_variant:OBJECT, hierarchyid:OBJECT, geography:OBJECT, geometry:OBJECT', '0', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_procedure','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_function','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;

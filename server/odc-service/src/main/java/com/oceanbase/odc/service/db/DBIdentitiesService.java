@@ -54,8 +54,13 @@ public class DBIdentitiesService {
         DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(session);
         Map<String, SchemaIdentities> all = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         List<String> existedDatabases = schemaAccessor.showDatabases();
+        boolean isSqlServer = session.getDialectType().isSqlServer();
         if (StringUtils.isNotBlank(schemaName) && !existedDatabases.contains(schemaName)) {
-            existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
+            // 对于 SQLServer，不预先创建 SchemaIdentities，因为不知道具体的 schema
+            // 对于其他数据库，保持原有逻辑
+            if (!isSqlServer) {
+                existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
+            }
             return new ArrayList<>(all.values());
         }
         if (types.contains(DBObjectType.VIEW)) {
@@ -70,47 +75,82 @@ public class DBIdentitiesService {
         if (types.contains(DBObjectType.MATERIALIZED_VIEW)) {
             listMViews(schemaAccessor, schemaName, identityNameLike, all);
         }
-        existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
+        // 对于 SQLServer，不预先为所有数据库创建空的 SchemaIdentities
+        // 因为 SQLServer 使用 database.schema 格式，我们不知道每个数据库有哪些 schema
+        // 只返回实际有对象的 schema
+        if (!isSqlServer) {
+            existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
+        }
         return new ArrayList<>(all.values());
     }
 
     void listTables(DBSchemaAccessor schemaAccessor, String schemaName, String tableNameLike,
             Map<String, SchemaIdentities> all) {
         schemaAccessor.listTables(schemaName, tableNameLike)
-                .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                .forEach(i -> {
+                    String key = getSchemaNameKey(i.getSchemaName());
+                    all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                });
     }
 
     void listViews(DBSchemaAccessor schemaAccessor, String schemaName, String viewNameLike,
             Map<String, SchemaIdentities> all) {
         if (StringUtils.isNotBlank(schemaName) && StringUtils.isBlank(viewNameLike)) {
             schemaAccessor.listViews(schemaName)
-                    .forEach(s -> all.computeIfAbsent(s.getSchemaName(), SchemaIdentities::of).add(s));
+                    .forEach(s -> {
+                        String key = getSchemaNameKey(s.getSchemaName());
+                        all.computeIfAbsent(key, SchemaIdentities::of).add(s);
+                    });
         } else {
             schemaAccessor.listAllUserViews(viewNameLike)
                     .stream().filter(i -> StringUtils.isBlank(schemaName) || schemaName.equals(i.getSchemaName()))
-                    .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                    .forEach(i -> {
+                        String key = getSchemaNameKey(i.getSchemaName());
+                        all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                    });
             schemaAccessor.listAllSystemViews(viewNameLike)
                     .stream().filter(i -> StringUtils.isBlank(schemaName) || schemaName.equals(i.getSchemaName()))
-                    .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                    .forEach(i -> {
+                        String key = getSchemaNameKey(i.getSchemaName());
+                        all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                    });
         }
     }
 
     void listExternalTables(DBSchemaAccessor schemaAccessor, String schemaName, String tableNameLike,
             Map<String, SchemaIdentities> all) {
         schemaAccessor.listExternalTables(schemaName, tableNameLike)
-                .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                .forEach(i -> {
+                    String key = getSchemaNameKey(i.getSchemaName());
+                    all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                });
     }
 
     void listMViews(DBSchemaAccessor schemaAccessor, String schemaName, String MViewNameLike,
             Map<String, SchemaIdentities> all) {
         if (StringUtils.isNotBlank(schemaName) && StringUtils.isBlank(MViewNameLike)) {
             schemaAccessor.listMViews(schemaName)
-                    .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                    .forEach(i -> {
+                        String key = getSchemaNameKey(i.getSchemaName());
+                        all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                    });
         } else {
             List<DBObjectIdentity> identities = schemaAccessor.listAllMViewsLike(
                     ObjectUtil.defaultIfNull(MViewNameLike, StringUtils.EMPTY));
             identities.stream().filter(i -> StringUtils.isBlank(schemaName) || schemaName.equals(i.getSchemaName()))
-                    .forEach(i -> all.computeIfAbsent(i.getSchemaName(), SchemaIdentities::of).add(i));
+                    .forEach(i -> {
+                        String key = getSchemaNameKey(i.getSchemaName());
+                        all.computeIfAbsent(key, SchemaIdentities::of).add(i);
+                    });
         }
     }
+
+    /**
+     * 获取安全的 schemaName key，如果为 null 则返回空字符串 防止 TreeMap 使用 String.CASE_INSENSITIVE_ORDER 比较器时出现
+     * NullPointerException
+     */
+    private String getSchemaNameKey(String schemaName) {
+        return schemaName == null ? "" : schemaName;
+    }
+
 }

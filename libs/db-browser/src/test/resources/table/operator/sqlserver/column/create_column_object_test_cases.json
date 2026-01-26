@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "name": "case1",
+    "description": "添加 int 类型列 - 基本场景，无注释",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "id",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [id] int NOT NULL;\n"
+  },
+  {
+    "id": 2,
+    "name": "case2",
+    "description": "添加 decimal 类型列 - 带精度和小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "price",
+        "typeName": "decimal",
+        "scale": 2,
+        "precision": 10,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 2
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [price] decimal(10,2) NULL;\n"
+  },
+  {
+    "id": 3,
+    "name": "case3",
+    "description": "添加 varchar 类型列 - 带默认值",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "name",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": false,
+        "defaultValue": "'default'",
+        "comment": null,
+        "ordinalPosition": 3
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [name] varchar(100) NOT NULL DEFAULT 'default';\n"
+  },
+  {
+    "id": 4,
+    "name": "case4",
+    "description": "添加列 - 带注释，使用 sp_addextendedproperty",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "description",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 500,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": "This is a description column",
+        "ordinalPosition": 4
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [description] nvarchar(500) NULL;\nIF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'description' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'This is a description column', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'description';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'This is a description column', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'description';\n"
+  },
+  {
+    "id": 5,
+    "name": "case5",
+    "description": "添加 datetime2 类型列 - 只输出小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "created_at",
+        "typeName": "datetime2",
+        "scale": 7,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 5
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [created_at] datetime2(7) NOT NULL;\n"
+  },
+  {
+    "id": 6,
+    "name": "case6",
+    "description": "添加列 - 只有 database，默认使用 dbo schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "users",
+        "name": "email",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 255,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 6
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[users] ADD [email] varchar(255) NOT NULL;\n"
+  },
+  {
+    "id": 7,
+    "name": "case7",
+    "description": "添加列 - 自定义 schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "products",
+        "name": "product_name",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 200,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 7
+      }
+    },
+    "output": "ALTER TABLE [testdb].[custom_schema].[products] ADD [product_name] nvarchar(200) NULL;\n"
+  },
+  {
+    "id": 8,
+    "name": "case8",
+    "description": "添加列 - 带注释和默认值",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": "1",
+        "comment": "Status of the record",
+        "ordinalPosition": 8
+      }
+    },
+    "output": "ALTER TABLE [testdb].[dbo].[test_table] ADD [status] int NOT NULL DEFAULT 1;\nIF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.test_table') AND minor_id = (SELECT column_id FROM sys.columns WHERE name = N'status' AND object_id = OBJECT_ID(N'dbo.test_table')))\n  EXEC sp_updateextendedproperty @name=N'MS_Description', @value=N'Status of the record', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'status';\nELSE\n  EXEC sp_addextendedproperty @name=N'MS_Description', @value=N'Status of the record', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'TABLE', @level1name=N'test_table', @level2type=N'COLUMN', @level2name=N'status';\n"
+  }
+]

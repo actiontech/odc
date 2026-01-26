@@ -19,6 +19,7 @@ import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleFunctionTemplate;
+import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerFunctionTemplate;
 
 public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBFunction>> {
 
@@ -55,6 +56,11 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
     @Override
     public DBObjectTemplate<DBFunction> buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBObjectTemplate<DBFunction> buildForSqlServer() {
+        return new SqlServerFunctionTemplate();
     }
 
 }

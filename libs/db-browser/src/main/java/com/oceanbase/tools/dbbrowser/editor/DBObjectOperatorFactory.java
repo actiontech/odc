@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleObjectOperator;
+import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerObjectOperator;
 
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -67,6 +68,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
     @Override
     public DBObjectOperator buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBObjectOperator buildForSqlServer() {
+        return new SqlServerObjectOperator(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

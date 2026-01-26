@@ -29,6 +29,7 @@ public enum DialectType {
     ODP_SHARDING_OB_MYSQL,
     DORIS,
     POSTGRESQL,
+    SQL_SERVER,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -66,6 +67,10 @@ public enum DialectType {
 
     public boolean isPostgreSql() {
         return POSTGRESQL == this;
+    }
+
+    public boolean isSqlServer() {
+        return SQL_SERVER == this;
     }
 
 }

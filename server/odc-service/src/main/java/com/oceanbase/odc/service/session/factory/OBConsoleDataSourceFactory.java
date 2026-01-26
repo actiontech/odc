@@ -214,6 +214,13 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         dataSource.setUsername(username);
         dataSource.setPassword(password);
 
+        // Set keep-alive SQL based on dialect type
+        DialectType dialectType = connectionConfig.getDialectType();
+        if (dialectType != null) {
+            String keepAliveSql = getKeepAliveSql(dialectType);
+            dataSource.setKeepAliveSql(keepAliveSql);
+        }
+
         Properties properties = new Properties();
         if (Objects.nonNull(this.userRole)) {
             properties.put(ConnectionPropertiesBuilder.USER_ROLE, this.userRole.name());
@@ -239,6 +246,16 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         dataSource.addInitializer(new DataSourceInitScriptInitializer(connectionConfig));
         log.info("Create datasource success, jdbcUrl: {}, username: {}", jdbcUrl, username);
         return dataSource;
+    }
+
+    private String getKeepAliveSql(DialectType dialectType) {
+        if (dialectType.isOracle()) {
+            // Oracle and OceanBase Oracle support DUAL table
+            return "SELECT 1 FROM DUAL";
+        } else {
+            // MySQL, OceanBase MySQL, SQL Server, PostgreSQL, Doris, etc. use SELECT 1
+            return "SELECT 1";
+        }
     }
 
     @Override
@@ -314,6 +331,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case DORIS:
             case ODP_SHARDING_OB_MYSQL:
             case POSTGRESQL:
+            case SQL_SERVER:
                 return schema;
             default:
                 return null;
@@ -342,6 +360,11 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(OdcConstants.POSTGRESQL_DEFAULT_SCHEMA, connectionConfig.getDialectType());
+            case SQL_SERVER:
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return getSchema(defaultSchema, connectionConfig.getDialectType());
+                }
+                return getSchema(defaultSchema, connectionConfig.getDialectType());
             default:
                 return null;
         }

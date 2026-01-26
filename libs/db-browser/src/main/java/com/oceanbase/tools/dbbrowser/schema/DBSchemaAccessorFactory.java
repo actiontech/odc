@@ -43,6 +43,7 @@ import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleLessThan400SchemaAcce
 import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.oracle.OracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.postgre.PostgresSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.schema.sqlserver.SqlServerSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.ALLDataDictTableNames;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
@@ -159,6 +160,11 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     @Override
     public DBSchemaAccessor buildForPostgres() {
         return new PostgresSchemaAccessor(getJdbcOperations());
+    }
+
+    @Override
+    public DBSchemaAccessor buildForSqlServer() {
+        return new SqlServerSchemaAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

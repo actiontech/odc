@@ -1,0 +1,77 @@
+[
+  {
+    "id": 1,
+    "name": "drop normal index with database.schema.table",
+    "description": "删除普通索引，使用 database.schema.table 格式",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx_col1",
+        "type": "NORMAL",
+        "columnNames": ["col1"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col1] ON [dbo].[test_table];"
+  },
+  {
+    "id": 2,
+    "name": "drop index with database only",
+    "description": "删除索引，只有 database，默认使用 dbo schema",
+    "input": {
+      "current": {
+        "schemaName": "testdb",
+        "tableName": "test_table",
+        "name": "idx_col2",
+        "type": "NORMAL",
+        "columnNames": ["col2"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_col2] ON [dbo].[test_table];"
+  },
+  {
+    "id": 3,
+    "name": "drop index with custom schema",
+    "description": "删除索引，自定义 schema 名称",
+    "input": {
+      "current": {
+        "schemaName": "testdb.custom_schema",
+        "tableName": "users",
+        "name": "idx_email",
+        "type": "NORMAL",
+        "columnNames": ["email"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx_email] ON [custom_schema].[users];"
+  },
+  {
+    "id": 4,
+    "name": "drop clustered index",
+    "description": "删除聚集索引",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "PK_test_table",
+        "type": "CLUSTERED",
+        "columnNames": ["id"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [PK_test_table] ON [dbo].[test_table];"
+  },
+  {
+    "id": 5,
+    "name": "drop index with special characters in name",
+    "description": "删除索引，索引名包含特殊字符，需要使用方括号",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "idx-col-name",
+        "type": "NORMAL",
+        "columnNames": ["col_name"]
+      }
+    },
+    "output": "USE [testdb];\nDROP INDEX [idx-col-name] ON [dbo].[test_table];"
+  }
+]

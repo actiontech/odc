@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.template;
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBTrigger;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleTriggerTemplate;
+import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerTriggerTemplate;
 
 public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBTrigger>> {
 
@@ -54,6 +55,11 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     @Override
     public DBObjectTemplate<DBTrigger> buildForPostgres() {
         throw new UnsupportedOperationException("Not supported yet");
+    }
+
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForSqlServer() {
+        return new SqlServerTriggerTemplate();
     }
 
 }

@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "name": "case1",
+    "description": "int 类型 - 不输出精度和小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "id",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 1
+      }
+    },
+    "output": "[id] int NOT NULL"
+  },
+  {
+    "id": 2,
+    "name": "case2",
+    "description": "bigint 类型 - 不输出精度和小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "big_id",
+        "typeName": "bigint",
+        "scale": null,
+        "precision": null,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 2
+      }
+    },
+    "output": "[big_id] bigint NULL"
+  },
+  {
+    "id": 3,
+    "name": "case3",
+    "description": "decimal 类型 - 输出精度和小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "price",
+        "typeName": "decimal",
+        "scale": 2,
+        "precision": 10,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 3
+      }
+    },
+    "output": "[price] decimal(10,2) NOT NULL"
+  },
+  {
+    "id": 4,
+    "name": "case4",
+    "description": "varchar 类型 - 只输出精度（长度）",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "name",
+        "typeName": "varchar",
+        "scale": null,
+        "precision": 100,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 4
+      }
+    },
+    "output": "[name] varchar(100) NULL"
+  },
+  {
+    "id": 5,
+    "name": "case5",
+    "description": "datetime2 类型 - 只输出小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "created_at",
+        "typeName": "datetime2",
+        "scale": 7,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 5
+      }
+    },
+    "output": "[created_at] datetime2(7) NOT NULL"
+  },
+  {
+    "id": 6,
+    "name": "case6",
+    "description": "带默认值的列",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "status",
+        "typeName": "int",
+        "scale": null,
+        "precision": null,
+        "nullable": false,
+        "defaultValue": "0",
+        "comment": null,
+        "ordinalPosition": 6
+      }
+    },
+    "output": "[status] int NOT NULL DEFAULT 0"
+  },
+  {
+    "id": 7,
+    "name": "case7",
+    "description": "nvarchar 类型 - 只输出精度",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "description",
+        "typeName": "nvarchar",
+        "scale": null,
+        "precision": 500,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 7
+      }
+    },
+    "output": "[description] nvarchar(500) NULL"
+  },
+  {
+    "id": 8,
+    "name": "case8",
+    "description": "time 类型 - 只输出小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "time_value",
+        "typeName": "time",
+        "scale": 3,
+        "precision": null,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 8
+      }
+    },
+    "output": "[time_value] time(3) NULL"
+  },
+  {
+    "id": 9,
+    "name": "case9",
+    "description": "numeric 类型 - 输出精度和小数位数",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "amount",
+        "typeName": "numeric",
+        "scale": 4,
+        "precision": 18,
+        "nullable": false,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 9
+      }
+    },
+    "output": "[amount] numeric(18,4) NOT NULL"
+  },
+  {
+    "id": 10,
+    "name": "case10",
+    "description": "smallint 类型 - 不输出精度",
+    "input": {
+      "current": {
+        "schemaName": "testdb.dbo",
+        "tableName": "test_table",
+        "name": "age",
+        "typeName": "smallint",
+        "scale": null,
+        "precision": null,
+        "nullable": true,
+        "defaultValue": null,
+        "comment": null,
+        "ordinalPosition": 10
+      }
+    },
+    "output": "[age] smallint NULL"
+  }
+]

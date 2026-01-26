@@ -24,6 +24,7 @@ public interface DBBrowserFactory<T> {
     String DORIS = "DORIS";
     String ODP_SHARDING_OB_MYSQL = "ODP_SHARDING_OB_MYSQL";
     String POSTGRESQL = "POSTGRESQL";
+    String SQL_SERVER = "SQL_SERVER";
 
     T create();
 

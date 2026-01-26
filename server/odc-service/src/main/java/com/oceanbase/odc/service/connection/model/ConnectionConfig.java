@@ -384,6 +384,8 @@ public class ConnectionConfig
                 return OdcConstants.MYSQL_DEFAULT_SCHEMA;
             case POSTGRESQL:
                 return OdcConstants.POSTGRESQL_DEFAULT_SCHEMA;
+            case SQL_SERVER:
+                return OdcConstants.SQL_SERVER_DEFAULT_SCHEMA;
             default:
                 return null;
         }
