@@ -68,7 +68,6 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTables_Success() throws Exception {
-        // Mock data for list tables query
         List<Map<String, Object>> mockData = new ArrayList<>();
         Map<String, Object> table1 = new HashMap<>();
         table1.put("table_name", "users");
@@ -191,18 +190,15 @@ public class PostgresSchemaAccessorTest {
         Assert.assertNotNull(columns);
         Assert.assertEquals(3, columns.size());
 
-        // Check first column
         Assert.assertEquals("id", columns.get(0).getName());
         Assert.assertEquals("int4", columns.get(0).getTypeName());
         Assert.assertFalse(columns.get(0).getNullable());
         Assert.assertEquals("Primary key", columns.get(0).getComment());
 
-        // Check second column
         Assert.assertEquals("name", columns.get(1).getName());
         Assert.assertTrue(columns.get(1).getNullable());
         Assert.assertEquals(Long.valueOf(100), columns.get(1).getMaxLength());
 
-        // Check third column
         Assert.assertEquals("price", columns.get(2).getName());
         Assert.assertEquals(Long.valueOf(10), columns.get(2).getPrecision());
         Assert.assertEquals(Integer.valueOf(2), columns.get(2).getScale());
@@ -301,7 +297,6 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTableIndexes_Success() throws Exception {
-        // Mock index data with multiple rows for same index (multiple columns)
         List<Map<String, Object>> mockData = new ArrayList<>();
 
         Map<String, Object> idx1Col1 = new HashMap<>();
@@ -343,7 +338,6 @@ public class PostgresSchemaAccessorTest {
         Assert.assertNotNull(indexes);
         Assert.assertEquals(2, indexes.size());
 
-        // Check primary key index
         DBTableIndex pkIndex = indexes.stream()
                 .filter(i -> "users_pkey".equals(i.getName()))
                 .findFirst().orElse(null);
@@ -352,7 +346,6 @@ public class PostgresSchemaAccessorTest {
         Assert.assertTrue(pkIndex.getUnique());
         Assert.assertEquals(DBIndexType.UNIQUE, pkIndex.getType());
 
-        // Check normal index
         DBTableIndex normalIndex = indexes.stream()
                 .filter(i -> "users_name_idx".equals(i.getName()))
                 .findFirst().orElse(null);
@@ -365,22 +358,24 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTableConstraints_PrimaryKey_Success() throws Exception {
-        List<Map<String, Object>> mockData = new ArrayList<>();
-
+        List<Map<String, Object>> pkData = new ArrayList<>();
         Map<String, Object> pkCol = new HashMap<>();
         pkCol.put("constraint_name", "users_pkey");
         pkCol.put("constraint_type", "p");
         pkCol.put("column_name", "id");
-        mockData.add(pkCol);
+        pkData.add(pkCol);
 
-        ResultSet mockResultSet = createMockResultSet(mockData);
+        ResultSet pkResultSet = createMockResultSet(pkData);
+        ResultSet emptyResultSet = createMockResultSet(new ArrayList<>());
 
         when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
                 .thenAnswer(invocation -> {
+                    String sql = invocation.getArgument(0);
                     RowMapper<Void> mapper = invocation.getArgument(2);
+                    ResultSet rs = sql.contains("contype IN") ? pkResultSet : emptyResultSet;
                     int rowNum = 0;
-                    while (mockResultSet.next()) {
-                        mapper.mapRow(mockResultSet, rowNum++);
+                    while (rs.next()) {
+                        mapper.mapRow(rs, rowNum++);
                     }
                     return null;
                 });
@@ -399,26 +394,28 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTableConstraints_ForeignKey_Success() throws Exception {
-        List<Map<String, Object>> mockData = new ArrayList<>();
-
+        List<Map<String, Object>> fkData = new ArrayList<>();
         Map<String, Object> fkCol = new HashMap<>();
         fkCol.put("constraint_name", "orders_user_id_fkey");
         fkCol.put("column_name", "user_id");
         fkCol.put("referenced_schema_name", "public");
         fkCol.put("referenced_table_name", "users");
         fkCol.put("referenced_column_name", "id");
-        fkCol.put("update_action", "a"); // NO ACTION
-        fkCol.put("delete_action", "c"); // CASCADE
-        mockData.add(fkCol);
+        fkCol.put("update_action", "a");
+        fkCol.put("delete_action", "c");
+        fkData.add(fkCol);
 
-        ResultSet mockResultSet = createMockResultSet(mockData);
+        ResultSet fkResultSet = createMockResultSet(fkData);
+        ResultSet emptyResultSet = createMockResultSet(new ArrayList<>());
 
         when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
                 .thenAnswer(invocation -> {
+                    String sql = invocation.getArgument(0);
                     RowMapper<Void> mapper = invocation.getArgument(2);
+                    ResultSet rs = sql.contains("contype = 'f'") ? fkResultSet : emptyResultSet;
                     int rowNum = 0;
-                    while (mockResultSet.next()) {
-                        mapper.mapRow(mockResultSet, rowNum++);
+                    while (rs.next()) {
+                        mapper.mapRow(rs, rowNum++);
                     }
                     return null;
                 });
@@ -436,21 +433,23 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTableConstraints_Check_Success() throws Exception {
-        List<Map<String, Object>> mockData = new ArrayList<>();
-
+        List<Map<String, Object>> checkData = new ArrayList<>();
         Map<String, Object> checkConstraint = new HashMap<>();
         checkConstraint.put("constraint_name", "users_age_check");
         checkConstraint.put("constraint_definition", "CHECK ((age >= 0))");
-        mockData.add(checkConstraint);
+        checkData.add(checkConstraint);
 
-        ResultSet mockResultSet = createMockResultSet(mockData);
+        ResultSet checkResultSet = createMockResultSet(checkData);
+        ResultSet emptyResultSet = createMockResultSet(new ArrayList<>());
 
         when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
                 .thenAnswer(invocation -> {
+                    String sql = invocation.getArgument(0);
                     RowMapper<Void> mapper = invocation.getArgument(2);
+                    ResultSet rs = sql.contains("contype = 'c'") ? checkResultSet : emptyResultSet;
                     int rowNum = 0;
-                    while (mockResultSet.next()) {
-                        mapper.mapRow(mockResultSet, rowNum++);
+                    while (rs.next()) {
+                        mapper.mapRow(rs, rowNum++);
                     }
                     return null;
                 });
@@ -470,28 +469,26 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void getPartition_RangePartition_Success() throws Exception {
-        // Mock partition check query
+        AtomicInteger queryCount = new AtomicInteger(0);
+
         doAnswer(invocation -> {
+            int count = queryCount.getAndIncrement();
             ResultSet mockResultSet = mock(ResultSet.class);
-            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
-            when(mockResultSet.getString("relkind")).thenReturn("p"); // partitioned table
-            when(mockResultSet.getString("partstrat")).thenReturn("r"); // RANGE
+            if (count == 0) {
+                // First query: partition check
+                when(mockResultSet.next()).thenReturn(true).thenReturn(false);
+                when(mockResultSet.getString("relkind")).thenReturn("p");
+                when(mockResultSet.getString("partstrat")).thenReturn("r");
+            } else {
+                // Subsequent queries: partition key and definitions
+                when(mockResultSet.next()).thenReturn(false);
+            }
             RowCallbackHandler handler = invocation.getArgument(2);
             handler.processRow(mockResultSet);
             return null;
         }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
 
-        // Mock partition key query
-        doAnswer(invocation -> {
-            ResultSet mockResultSet = mock(ResultSet.class);
-            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
-            when(mockResultSet.getString("attname")).thenReturn("created_at");
-            RowCallbackHandler handler = invocation.getArgument(2);
-            handler.processRow(mockResultSet);
-            return null;
-        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
-
-        // Mock partition definitions query - return empty for simplicity
+        // Mock partition definitions query with RowMapper
         when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
                 .thenReturn(null);
 
@@ -506,7 +503,7 @@ public class PostgresSchemaAccessorTest {
         doAnswer(invocation -> {
             ResultSet mockResultSet = mock(ResultSet.class);
             when(mockResultSet.next()).thenReturn(true).thenReturn(false);
-            when(mockResultSet.getString("relkind")).thenReturn("r"); // regular table
+            when(mockResultSet.getString("relkind")).thenReturn("r");
             when(mockResultSet.getString("partstrat")).thenReturn(null);
             RowCallbackHandler handler = invocation.getArgument(2);
             handler.processRow(mockResultSet);
@@ -522,7 +519,6 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void getTableDDL_Success() throws Exception {
-        // Mock listTableColumns
         List<Map<String, Object>> columnsData = new ArrayList<>();
         Map<String, Object> col1 = new HashMap<>();
         col1.put("ordinal_position", 1);
@@ -543,18 +539,17 @@ public class PostgresSchemaAccessorTest {
                 .thenAnswer(invocation -> {
                     String sql = invocation.getArgument(0);
                     if (sql.contains("pg_attribute")) {
-                        RowMapper<DBTableColumn> mapper = invocation.getArgument(2);
-                        List<DBTableColumn> result = new ArrayList<>();
+                        RowMapper mapper = invocation.getArgument(2);
+                        List result = new ArrayList<>();
                         int rowNum = 0;
                         while (columnsRs.next()) {
                             result.add(mapper.mapRow(columnsRs, rowNum++));
                         }
                         return result;
                     }
-                    return null; // For constraint and index queries
+                    return new ArrayList();
                 });
 
-        // Mock getTableOptions
         doAnswer(invocation -> {
             ResultSet mockResultSet = mock(ResultSet.class);
             when(mockResultSet.next()).thenReturn(true).thenReturn(false);
@@ -575,9 +570,6 @@ public class PostgresSchemaAccessorTest {
 
     // ============== Helper Methods ==============
 
-    /**
-     * Helper method to create a mock ResultSet from data
-     */
     private ResultSet createMockResultSet(List<Map<String, Object>> data) throws Exception {
         ResultSet rs = mock(ResultSet.class);
         ResultSetMetaData rsmd = mock(ResultSetMetaData.class);
@@ -587,7 +579,6 @@ public class PostgresSchemaAccessorTest {
             return rs;
         }
 
-        // Get column names from first row
         String[] columnNames = data.get(0).keySet().toArray(new String[0]);
         when(rsmd.getColumnCount()).thenReturn(columnNames.length);
         for (int i = 0; i < columnNames.length; i++) {
@@ -596,7 +587,6 @@ public class PostgresSchemaAccessorTest {
         }
         when(rs.getMetaData()).thenReturn(rsmd);
 
-        // Setup row iteration
         AtomicInteger rowIndex = new AtomicInteger(0);
         when(rs.next()).thenAnswer(invocation -> {
             int current = rowIndex.get();
@@ -607,7 +597,6 @@ public class PostgresSchemaAccessorTest {
             return false;
         });
 
-        // Setup getObject method
         when(rs.getObject(anyString())).thenAnswer(invocation -> {
             String columnName = invocation.getArgument(0);
             int currentRow = rowIndex.get() - 1;
@@ -617,13 +606,11 @@ public class PostgresSchemaAccessorTest {
             return null;
         });
 
-        // Setup getString method
         when(rs.getString(anyString())).thenAnswer(invocation -> {
             Object value = rs.getObject(invocation.getArgument(0));
             return value != null ? value.toString() : null;
         });
 
-        // Setup getBoolean method
         when(rs.getBoolean(anyString())).thenAnswer(invocation -> {
             Object value = rs.getObject(invocation.getArgument(0));
             if (value instanceof Boolean) {
@@ -632,7 +619,6 @@ public class PostgresSchemaAccessorTest {
             return false;
         });
 
-        // Setup getInt method
         when(rs.getInt(anyString())).thenAnswer(invocation -> {
             Object value = rs.getObject(invocation.getArgument(0));
             if (value instanceof Integer) {
@@ -644,7 +630,6 @@ public class PostgresSchemaAccessorTest {
             return 0;
         });
 
-        // Setup getLong method
         when(rs.getLong(anyString())).thenAnswer(invocation -> {
             Object value = rs.getObject(invocation.getArgument(0));
             if (value instanceof Long) {
