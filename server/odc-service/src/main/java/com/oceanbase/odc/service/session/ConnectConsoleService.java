@@ -109,6 +109,7 @@ import com.oceanbase.tools.dbbrowser.parser.result.ParseSqlResult;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
+import com.oceanbase.tools.dbbrowser.util.PostgresSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlServerSqlBuilder;
 
@@ -167,6 +168,8 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
             sqlBuilder = new SqlServerSqlBuilder();
+        } else if (dialectType.isPostgreSql()) {
+            sqlBuilder = new PostgresSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
@@ -261,11 +264,14 @@ public class ConnectConsoleService {
                     StringUtils.length(request.getSql()), maxSqlLength);
         }
 
-        // SQL Server 需要应该通过按行的 GO 进行分割 临时代码放在公共层，后续应当移动到SQLServer适配层
-        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer())
-                ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
-                        sessionProperties.isOracleRemoveCommentPrefix())
-                : Collections.singletonList(new OffsetString(0, request.getSql()));
+        // SQL Server needs batch-aware splitting by line-based GO
+        // PostgreSQL needs special splitting for dollar-quoting, E-string, etc.
+        List<OffsetString> sqls = (request.ifSplitSqls()
+                || connectionSession.getDialectType().isSqlServer()
+                || connectionSession.getDialectType().isPostgreSql())
+                        ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
+                                sessionProperties.isOracleRemoveCommentPrefix())
+                        : Collections.singletonList(new OffsetString(0, request.getSql()));
         if (sqls.size() == 0) {
             /**
              * if a sql only contains delimiter setting(eg. delimiter $$), code will do this
