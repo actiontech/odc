@@ -60,6 +60,7 @@ import com.oceanbase.tools.dbbrowser.model.DBTrigger;
 import com.oceanbase.tools.dbbrowser.model.DBType;
 import com.oceanbase.tools.dbbrowser.model.DBVariable;
 import com.oceanbase.tools.dbbrowser.model.DBView;
+import com.oceanbase.tools.dbbrowser.model.DBViewCheckOption;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.StringUtils;
 
@@ -236,29 +237,168 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    /**
+     * 列出指定 schema 下的视图
+     * <p>
+     * PostgreSQL 使用 information_schema.views 或 pg_class 查询视图信息
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @return 视图对象列表
+     */
     @Override
     public List<DBObjectIdentity> listViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return listAllUserViews(null);
+        }
+
+        String sql = "SELECT c.relname AS view_name " +
+                "FROM pg_catalog.pg_class c " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND c.relkind = 'v' " + // v = view
+                "ORDER BY c.relname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("view_name"));
+                identity.setType(DBObjectType.VIEW);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出所有视图（用户视图 + 系统视图）
+     *
+     * @param viewNameLike 视图名匹配模式（可选）
+     * @return 视图对象列表
+     */
     @Override
     public List<DBObjectIdentity> listAllViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        List<DBObjectIdentity> results = new ArrayList<>();
+        results.addAll(listAllUserViews(viewNameLike));
+        results.addAll(listAllSystemViews(viewNameLike));
+        return results;
     }
 
+    /**
+     * 列出所有用户视图
+     * <p>
+     * 过滤系统 schema：pg_catalog, information_schema
+     * </p>
+     *
+     * @param viewNameLike 视图名匹配模式（可选）
+     * @return 用户视图对象列表
+     */
     @Override
     public List<DBObjectIdentity> listAllUserViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT c.relname AS view_name, n.nspname AS schema_name ");
+        sql.append("FROM pg_catalog.pg_class c ");
+        sql.append("INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid ");
+        sql.append("WHERE c.relkind = 'v' ");
+        sql.append("  AND n.nspname NOT LIKE 'pg_%' ");
+        sql.append("  AND n.nspname <> 'information_schema' ");
+
+        List<Object> params = new ArrayList<>();
+        if (StringUtils.isNotBlank(viewNameLike)) {
+            sql.append("  AND c.relname LIKE ? ESCAPE '\\'");
+            params.add(StringUtils.escapeLike(viewNameLike));
+        }
+        sql.append("ORDER BY n.nspname, c.relname");
+
+        try {
+            return jdbcOperations.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setSchemaName(rs.getString("schema_name"));
+                identity.setName(rs.getString("view_name"));
+                identity.setType(DBObjectType.VIEW);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            log.warn("Failed to list user views", e);
+            return Collections.emptyList();
+        }
     }
 
+    /**
+     * 列出所有系统视图
+     * <p>
+     * 系统视图位于 pg_catalog 和 information_schema 中
+     * </p>
+     *
+     * @param viewNameLike 视图名匹配模式（可选）
+     * @return 系统视图对象列表
+     */
     @Override
     public List<DBObjectIdentity> listAllSystemViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT c.relname AS view_name, n.nspname AS schema_name ");
+        sql.append("FROM pg_catalog.pg_class c ");
+        sql.append("INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid ");
+        sql.append("WHERE c.relkind = 'v' ");
+        sql.append("  AND (n.nspname LIKE 'pg_%' OR n.nspname = 'information_schema') ");
+
+        List<Object> params = new ArrayList<>();
+        if (StringUtils.isNotBlank(viewNameLike)) {
+            sql.append("  AND c.relname LIKE ? ESCAPE '\\'");
+            params.add(StringUtils.escapeLike(viewNameLike));
+        }
+        sql.append("ORDER BY n.nspname, c.relname");
+
+        try {
+            return jdbcOperations.query(sql.toString(), params.toArray(), (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setSchemaName(rs.getString("schema_name"));
+                identity.setName(rs.getString("view_name"));
+                identity.setType(DBObjectType.VIEW);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            log.warn("Failed to list system views", e);
+            return Collections.emptyList();
+        }
     }
 
+    /**
+     * 显示指定 schema 下的系统视图名称列表
+     *
+     * @param schemaName schema 名称
+     * @return 系统视图名称列表
+     */
     @Override
     public List<String> showSystemViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT c.relname AS view_name ");
+        sql.append("FROM pg_catalog.pg_class c ");
+        sql.append("INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid ");
+        sql.append("WHERE c.relkind = 'v' ");
+
+        List<Object> params = new ArrayList<>();
+        if (StringUtils.isNotBlank(schemaName)) {
+            sql.append("  AND n.nspname = ?");
+            params.add(schemaName);
+        } else {
+            sql.append("  AND (n.nspname LIKE 'pg_%' OR n.nspname = 'information_schema')");
+        }
+        sql.append("ORDER BY c.relname");
+
+        try {
+            return jdbcOperations.query(sql.toString(), params.toArray(), (rs, rowNum) -> rs.getString("view_name"));
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -296,19 +436,87 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         throw new UnsupportedOperationException("not support yet");
     }
 
+    /**
+     * 列出所有变量
+     * <p>
+     * PostgreSQL 使用 pg_settings 视图查询所有变量
+     * </p>
+     *
+     * @return 变量列表
+     */
     @Override
     public List<DBVariable> showVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        String sql = "SELECT name, setting AS value, short_desc AS description " +
+                "FROM pg_catalog.pg_settings " +
+                "ORDER BY name";
+
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBVariable variable = new DBVariable();
+                variable.setName(rs.getString("name"));
+                variable.setValue(rs.getString("value"));
+                return variable;
+            });
+        } catch (Exception e) {
+            log.warn("Failed to show variables", e);
+            return Collections.emptyList();
+        }
     }
 
+    /**
+     * 列出会话级变量
+     * <p>
+     * context 为 'user' 或 'superuser' 的变量是会话级变量
+     * </p>
+     *
+     * @return 会话变量列表
+     */
     @Override
     public List<DBVariable> showSessionVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        String sql = "SELECT name, setting AS value, short_desc AS description " +
+                "FROM pg_catalog.pg_settings " +
+                "WHERE context IN ('user', 'superuser') " +
+                "ORDER BY name";
+
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBVariable variable = new DBVariable();
+                variable.setName(rs.getString("name"));
+                variable.setValue(rs.getString("value"));
+                return variable;
+            });
+        } catch (Exception e) {
+            log.warn("Failed to show session variables", e);
+            return Collections.emptyList();
+        }
     }
 
+    /**
+     * 列出全局级变量
+     * <p>
+     * context 为 'postmaster' 的变量是全局级变量（需要重启才能生效）
+     * </p>
+     *
+     * @return 全局变量列表
+     */
     @Override
     public List<DBVariable> showGlobalVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        String sql = "SELECT name, setting AS value, short_desc AS description " +
+                "FROM pg_catalog.pg_settings " +
+                "WHERE context = 'postmaster' " +
+                "ORDER BY name";
+
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBVariable variable = new DBVariable();
+                variable.setName(rs.getString("name"));
+                variable.setValue(rs.getString("value"));
+                return variable;
+            });
+        } catch (Exception e) {
+            log.warn("Failed to show global variables", e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -323,45 +531,233 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         return jdbcOperations.queryForList(sql, String.class);
     }
 
+    /**
+     * 列出指定 schema 下的函数
+     * <p>
+     * PostgreSQL 使用 pg_proc 查询函数，prokind='f' 表示函数
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @return 函数对象列表
+     */
     @Override
     public List<DBPLObjectIdentity> listFunctions(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT p.proname AS function_name, " +
+                "  pg_get_function_arguments(p.oid) AS arguments, " +
+                "  pg_get_function_result(p.oid) AS return_type " +
+                "FROM pg_catalog.pg_proc p " +
+                "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND p.prokind = 'f' " + // f = function
+                "ORDER BY p.proname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBPLObjectIdentity identity = new DBPLObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("function_name"));
+                identity.setType(DBObjectType.FUNCTION);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出指定 schema 下的存储过程
+     * <p>
+     * PostgreSQL 11+ 支持存储过程，prokind='p' 表示存储过程
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @return 存储过程对象列表
+     */
     @Override
     public List<DBPLObjectIdentity> listProcedures(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT p.proname AS procedure_name " +
+                "FROM pg_catalog.pg_proc p " +
+                "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND p.prokind = 'p' " + // p = procedure (PG 11+)
+                "ORDER BY p.proname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBPLObjectIdentity identity = new DBPLObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("procedure_name"));
+                identity.setType(DBObjectType.PROCEDURE);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            // 如果 prokind 列不存在（PG 11 之前版本），返回空列表
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "prokind")) {
+                log.debug("PostgreSQL version does not support stored procedures (requires PG 11+)");
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出指定 schema 下的包
+     * <p>
+     * PostgreSQL 不支持 Oracle 风格的包概念
+     * </p>
+     */
     @Override
     public List<DBPLObjectIdentity> listPackages(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL 不支持包，返回空列表
+        return Collections.emptyList();
     }
 
+    /**
+     * 列出指定 schema 下的包体
+     * <p>
+     * PostgreSQL 不支持 Oracle 风格的包概念
+     * </p>
+     */
     @Override
     public List<DBPLObjectIdentity> listPackageBodies(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL 不支持包体，返回空列表
+        return Collections.emptyList();
     }
 
+    /**
+     * 列出指定 schema 下的触发器
+     *
+     * @param schemaName schema 名称
+     * @return 触发器对象列表
+     */
     @Override
     public List<DBPLObjectIdentity> listTriggers(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT t.tgname AS trigger_name, " +
+                "  c.relname AS table_name " +
+                "FROM pg_catalog.pg_trigger t " +
+                "INNER JOIN pg_catalog.pg_class c ON t.tgrelid = c.oid " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND NOT t.tgisinternal " + // 排除内部触发器
+                "ORDER BY t.tgname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBPLObjectIdentity identity = new DBPLObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("trigger_name"));
+                identity.setType(DBObjectType.TRIGGER);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出指定 schema 下的类型
+     *
+     * @param schemaName schema 名称
+     * @return 类型对象列表
+     */
     @Override
     public List<DBPLObjectIdentity> listTypes(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT t.typname AS type_name " +
+                "FROM pg_catalog.pg_type t " +
+                "INNER JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND t.typtype = 'c' " + // c = composite type
+                "ORDER BY t.typname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBPLObjectIdentity identity = new DBPLObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("type_name"));
+                identity.setType(DBObjectType.TYPE);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出指定 schema 下的序列
+     * <p>
+     * PostgreSQL 使用 pg_class 查询序列，relkind='S' 表示序列
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @return 序列对象列表
+     */
     @Override
     public List<DBObjectIdentity> listSequences(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+
+        String sql = "SELECT c.relname AS sequence_name " +
+                "FROM pg_catalog.pg_class c " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND c.relkind = 'S' " + // S = sequence
+                "ORDER BY c.relname";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setSchemaName(schemaName);
+                identity.setName(rs.getString("sequence_name"));
+                identity.setType(DBObjectType.SEQUENCE);
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 列出指定 schema 下的同义词
+     * <p>
+     * PostgreSQL 不原生支持同义词，返回空列表
+     * </p>
+     */
     @Override
-    public List<DBObjectIdentity> listSynonyms(String schemaName,
-            DBSynonymType synonymType) {
-        throw new UnsupportedOperationException("Not supported yet");
+    public List<DBObjectIdentity> listSynonyms(String schemaName, DBSynonymType synonymType) {
+        // PostgreSQL 不原生支持同义词，返回空列表
+        return Collections.emptyList();
     }
 
     /**
@@ -655,14 +1051,95 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         }
     }
 
+    /**
+     * 获取指定 schema 下所有视图的列信息
+     *
+     * @param schemaName schema 名称
+     * @return 视图名到列列表的映射
+     */
     @Override
     public Map<String, List<DBTableColumn>> listBasicViewColumns(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        String sql = "SELECT " +
+                "    c.relname AS view_name, " +
+                "    a.attnum AS ordinal_position, " +
+                "    a.attname AS column_name, " +
+                "    pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type, " +
+                "    t.typname AS type_name " +
+                "FROM pg_catalog.pg_attribute a " +
+                "INNER JOIN pg_catalog.pg_class c ON a.attrelid = c.oid " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND c.relkind = 'v' " +
+                "  AND a.attnum > 0 " +
+                "  AND NOT a.attisdropped " +
+                "ORDER BY c.relname, a.attnum";
+
+        try {
+            List<DBTableColumn> columns = jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+                DBTableColumn column = new DBTableColumn();
+                column.setSchemaName(schemaName);
+                column.setTableName(rs.getString("view_name"));
+                column.setOrdinalPosition(rs.getInt("ordinal_position"));
+                column.setName(rs.getString("column_name"));
+                column.setTypeName(rs.getString("type_name"));
+                column.setFullTypeName(rs.getString("data_type"));
+                return column;
+            });
+            return columns.stream()
+                    .filter(col -> col.getTableName() != null)
+                    .collect(Collectors.groupingBy(DBTableColumn::getTableName));
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyMap();
+            }
+            throw e;
+        }
     }
 
+    /**
+     * 获取指定视图的列信息
+     *
+     * @param schemaName schema 名称
+     * @param viewName 视图名
+     * @return 列信息列表
+     */
     @Override
     public List<DBTableColumn> listBasicViewColumns(String schemaName, String viewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        String sql = "SELECT " +
+                "    a.attnum AS ordinal_position, " +
+                "    a.attname AS column_name, " +
+                "    pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type, " +
+                "    t.typname AS type_name " +
+                "FROM pg_catalog.pg_attribute a " +
+                "INNER JOIN pg_catalog.pg_class c ON a.attrelid = c.oid " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "INNER JOIN pg_catalog.pg_type t ON a.atttypid = t.oid " +
+                "WHERE n.nspname = ? " +
+                "  AND c.relname = ? " +
+                "  AND c.relkind = 'v' " +
+                "  AND a.attnum > 0 " +
+                "  AND NOT a.attisdropped " +
+                "ORDER BY a.attnum";
+
+        try {
+            return jdbcOperations.query(sql, new Object[] {schemaName, viewName}, (rs, rowNum) -> {
+                DBTableColumn column = new DBTableColumn();
+                column.setSchemaName(schemaName);
+                column.setTableName(viewName);
+                column.setOrdinalPosition(rs.getInt("ordinal_position"));
+                column.setName(rs.getString("column_name"));
+                column.setTypeName(rs.getString("type_name"));
+                column.setFullTypeName(rs.getString("data_type"));
+                return column;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "relation")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -1720,50 +2197,370 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    /**
+     * 获取视图详情
+     * <p>
+     * PostgreSQL 使用 information_schema.views 和 pg_class 查询视图定义
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @param viewName 视图名
+     * @return 视图详情
+     */
     @Override
     public DBView getView(String schemaName, String viewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        DBView view = new DBView();
+        view.setViewName(viewName);
+        view.setSchemaName(schemaName);
+
+        // 查询视图基本信息
+        String infoSql = "SELECT " +
+                "  v.table_schema, " +
+                "  v.check_option, " +
+                "  v.is_updatable, " +
+                "  pg_get_viewdef(c.oid, true) AS view_definition " +
+                "FROM information_schema.views v " +
+                "INNER JOIN pg_catalog.pg_class c ON c.relname = v.table_name " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid AND n.nspname = v.table_schema " +
+                "WHERE v.table_schema = ? AND v.table_name = ?";
+
+        try {
+            jdbcOperations.query(infoSql, new Object[] {schemaName, viewName}, rs -> {
+                view.setDefiner(rs.getString("table_schema"));
+
+                String checkOption = rs.getString("check_option");
+                // PostgreSQL 的 check_option 可以是 NONE, CASCADED 或 LOCAL
+                // 但 DBViewCheckOption 只有 NONE 和 READ_ONLY
+                // CASCADED 和 LOCAL 在 PostgreSQL 中表示视图的检查选项级联方式
+                // 将 CASCADED 映射为 READ_ONLY（更严格的检查），其他映射为 NONE
+                if ("CASCADED".equalsIgnoreCase(checkOption) || "LOCAL".equalsIgnoreCase(checkOption)) {
+                    view.setCheckOption(DBViewCheckOption.READ_ONLY.name());
+                } else {
+                    view.setCheckOption(DBViewCheckOption.NONE.name());
+                }
+
+                String isUpdatable = rs.getString("is_updatable");
+                view.setUpdatable("YES".equalsIgnoreCase(isUpdatable));
+
+                String viewDefinition = rs.getString("view_definition");
+                if (StringUtils.isNotBlank(viewDefinition)) {
+                    StringBuilder ddl = new StringBuilder();
+                    ddl.append("CREATE OR REPLACE VIEW \"").append(schemaName).append("\".\"").append(viewName)
+                            .append("\" AS ").append(viewDefinition);
+                    view.setDdl(ddl.toString());
+                }
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "relation")) {
+                return null;
+            }
+            throw e;
+        }
+
+        // 获取视图列信息
+        view.setColumns(listBasicViewColumns(schemaName, viewName));
+
+        return view;
     }
 
+    /**
+     * 获取函数详情
+     * <p>
+     * PostgreSQL 使用 pg_get_functiondef 获取函数定义
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @param functionName 函数名
+     * @return 函数详情
+     */
     @Override
     public DBFunction getFunction(String schemaName, String functionName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        DBFunction function = new DBFunction();
+        function.setFunName(functionName);
+
+        // 查询函数基本信息
+        String sql = "SELECT " +
+                "  p.proname AS function_name, " +
+                "  n.nspname AS schema_name, " +
+                "  pg_get_functiondef(p.oid) AS function_ddl, " +
+                "  pg_get_function_arguments(p.oid) AS arguments, " +
+                "  pg_get_function_result(p.oid) AS return_type, " +
+                "  p.prosrc AS body, " +
+                "  l.lanname AS language, " +
+                "  d.description AS comment " +
+                "FROM pg_catalog.pg_proc p " +
+                "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid " +
+                "INNER JOIN pg_catalog.pg_language l ON p.prolang = l.oid " +
+                "LEFT JOIN pg_catalog.pg_description d ON d.objoid = p.oid AND d.classoid = 'pg_proc'::regclass " +
+                "WHERE n.nspname = ? AND p.proname = ? " +
+                "  AND p.prokind = 'f'";
+
+        try {
+            jdbcOperations.query(sql, new Object[] {schemaName, functionName}, rs -> {
+                function.setDdl(rs.getString("function_ddl"));
+                function.setReturnType(rs.getString("return_type"));
+                function.setStatus("VALID");
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return null;
+            }
+            throw e;
+        }
+
+        return function;
     }
 
+    /**
+     * 获取存储过程详情
+     * <p>
+     * PostgreSQL 11+ 使用 pg_get_functiondef 获取存储过程定义
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @param procedureName 存储过程名
+     * @return 存储过程详情
+     */
     @Override
     public DBProcedure getProcedure(String schemaName, String procedureName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        DBProcedure procedure = new DBProcedure();
+        procedure.setProName(procedureName);
+
+        // 查询存储过程基本信息
+        String sql = "SELECT " +
+                "  p.proname AS procedure_name, " +
+                "  n.nspname AS schema_name, " +
+                "  pg_get_functiondef(p.oid) AS procedure_ddl, " +
+                "  pg_get_function_arguments(p.oid) AS arguments, " +
+                "  p.prosrc AS body, " +
+                "  l.lanname AS language, " +
+                "  d.description AS comment " +
+                "FROM pg_catalog.pg_proc p " +
+                "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid " +
+                "INNER JOIN pg_catalog.pg_language l ON p.prolang = l.oid " +
+                "LEFT JOIN pg_catalog.pg_description d ON d.objoid = p.oid AND d.classoid = 'pg_proc'::regclass " +
+                "WHERE n.nspname = ? AND p.proname = ? " +
+                "  AND p.prokind = 'p'";
+
+        try {
+            jdbcOperations.query(sql, new Object[] {schemaName, procedureName}, rs -> {
+                procedure.setDdl(rs.getString("procedure_ddl"));
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return null;
+            }
+            // 如果 prokind 列不存在（PG 11 之前版本），返回 null
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "prokind")) {
+                log.debug("PostgreSQL version does not support stored procedures (requires PG 11+)");
+                return null;
+            }
+            throw e;
+        }
+
+        return procedure;
     }
 
+    /**
+     * 获取包详情
+     * <p>
+     * PostgreSQL 不支持 Oracle 风格的包概念
+     * </p>
+     */
     @Override
     public DBPackage getPackage(String schemaName, String packageName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL 不支持包，返回 null
+        return null;
     }
 
+    /**
+     * 获取触发器详情
+     *
+     * @param schemaName schema 名称
+     * @param triggerName 触发器名称（注意：接口参数名为 packageName，实际表示触发器名）
+     * @return 触发器详情
+     */
     @Override
-    public DBTrigger getTrigger(String schemaName, String packageName) {
-        throw new UnsupportedOperationException("Not supported yet");
+    public DBTrigger getTrigger(String schemaName, String triggerName) {
+        DBTrigger trigger = new DBTrigger();
+        trigger.setTriggerName(triggerName);
+
+        // 查询触发器基本信息
+        String sql = "SELECT " +
+                "  t.tgname AS trigger_name, " +
+                "  c.relname AS table_name, " +
+                "  n.nspname AS schema_name, " +
+                "  pg_get_triggerdef(t.oid) AS trigger_ddl, " +
+                "  t.tgenabled AS enabled, " +
+                "  pg_catalog.obj_description(t.oid, 'pg_trigger') AS comment " +
+                "FROM pg_catalog.pg_trigger t " +
+                "INNER JOIN pg_catalog.pg_class c ON t.tgrelid = c.oid " +
+                "INNER JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid " +
+                "WHERE n.nspname = ? AND t.tgname = ? " +
+                "  AND NOT t.tgisinternal";
+
+        try {
+            jdbcOperations.query(sql, new Object[] {schemaName, triggerName}, rs -> {
+                trigger.setSchemaName(rs.getString("schema_name"));
+                trigger.setSchemaMode(rs.getString("table_name"));
+                trigger.setTableName(rs.getString("table_name"));
+
+                String ddl = rs.getString("trigger_ddl");
+                trigger.setDdl(ddl);
+
+                // tgenabled: 'O' = enabled, 'D' = disabled, 'R' = replica
+                char enabled = rs.getString("enabled") != null ? rs.getString("enabled").charAt(0) : 'O';
+                if (enabled == 'O') {
+                    trigger.setEnable(true);
+                    trigger.setStatus("ENABLED");
+                } else {
+                    trigger.setEnable(false);
+                    trigger.setStatus("DISABLED");
+                }
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return null;
+            }
+            throw e;
+        }
+
+        return trigger;
     }
 
+    /**
+     * 获取类型详情
+     *
+     * @param schemaName schema 名称
+     * @param typeName 类型名
+     * @return 类型详情
+     */
     @Override
     public DBType getType(String schemaName, String typeName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        DBType type = new DBType();
+        type.setTypeName(typeName);
+        type.setOwner(schemaName);
+
+        // 查询类型基本信息
+        String sql = "SELECT " +
+                "  t.typname AS type_name, " +
+                "  n.nspname AS schema_name, " +
+                "  t.typtype AS type_kind, " +
+                "  pg_catalog.format_type(t.oid, NULL) AS formatted_type " +
+                "FROM pg_catalog.pg_type t " +
+                "INNER JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid " +
+                "WHERE n.nspname = ? AND t.typname = ?";
+
+        try {
+            jdbcOperations.query(sql, new Object[] {schemaName, typeName}, rs -> {
+                String typeKind = rs.getString("type_kind");
+                if ("c".equals(typeKind)) {
+                    type.setType("COMPOSITE");
+                } else if ("e".equals(typeKind)) {
+                    type.setType("ENUM");
+                } else if ("d".equals(typeKind)) {
+                    type.setType("DOMAIN");
+                } else {
+                    type.setType("OTHER");
+                }
+                type.setStatus("VALID");
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return null;
+            }
+            throw e;
+        }
+
+        return type;
     }
 
+    /**
+     * 获取序列详情
+     * <p>
+     * PostgreSQL 使用 pg_sequences 或查询序列值获取序列信息
+     * </p>
+     *
+     * @param schemaName schema 名称
+     * @param sequenceName 序列名
+     * @return 序列详情
+     */
     @Override
     public DBSequence getSequence(String schemaName, String sequenceName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        DBSequence sequence = new DBSequence();
+        sequence.setName(sequenceName);
+        sequence.setUser(schemaName);
+
+        // 查询序列属性（PG 10+ 使用 pg_sequence）
+        // 使用兼容性更好的方式查询序列信息
+        String sql = "SELECT " +
+                "  s.relname AS sequence_name, " +
+                "  n.nspname AS schema_name " +
+                "FROM pg_catalog.pg_class s " +
+                "INNER JOIN pg_catalog.pg_namespace n ON s.relnamespace = n.oid " +
+                "WHERE n.nspname = ? AND s.relname = ? AND s.relkind = 'S'";
+
+        try {
+            jdbcOperations.query(sql, new Object[] {schemaName, sequenceName}, rs -> {
+                // 序列存在
+            });
+
+            // 查询序列当前值和属性
+            try {
+                String valueSql = "SELECT last_value, is_called FROM \"" + schemaName + "\".\"" + sequenceName + "\"";
+                jdbcOperations.query(valueSql, rs -> {
+                    if (rs.next()) {
+                        Long lastValue = rs.getLong("last_value");
+                        boolean isCalled = rs.getBoolean("is_called");
+                        if (isCalled) {
+                            sequence.setNextCacheValue(String.valueOf(lastValue));
+                        } else {
+                            sequence.setStartValue(String.valueOf(lastValue));
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                log.debug("Failed to get sequence current value: " + e.getMessage());
+            }
+
+            // 构建 DDL
+            StringBuilder ddl = new StringBuilder();
+            ddl.append("CREATE SEQUENCE IF NOT EXISTS \"").append(schemaName).append("\".\"").append(sequenceName)
+                    .append("\";\n");
+            ddl.append("ALTER SEQUENCE \"").append(schemaName).append("\".\"").append(sequenceName).append("\"");
+            ddl.append(" OWNED BY NONE;");
+            sequence.setDdl(ddl.toString());
+
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema") ||
+                    StringUtils.containsIgnoreCase(e.getMessage(), "relation")) {
+                return null;
+            }
+            throw e;
+        }
+
+        return sequence;
     }
 
+    /**
+     * 获取同义词详情
+     * <p>
+     * PostgreSQL 不原生支持同义词，返回 null
+     * </p>
+     */
     @Override
-    public DBSynonym getSynonym(String schemaName, String synonymName,
-            DBSynonymType synonymType) {
-        throw new UnsupportedOperationException("Not supported yet");
+    public DBSynonym getSynonym(String schemaName, String synonymName, DBSynonymType synonymType) {
+        // PostgreSQL 不原生支持同义词，返回 null
+        return null;
     }
 
+    /**
+     * 批量获取表详情
+     */
     @Override
-    public Map<String, DBTable> getTables(String schemaName,
-            List<String> tableNames) {
+    public Map<String, DBTable> getTables(String schemaName, List<String> tableNames) {
+        // 暂不实现，留作后续扩展
         throw new UnsupportedOperationException("Not supported yet");
     }
 }
