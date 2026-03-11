@@ -112,7 +112,9 @@ import com.oceanbase.tools.dbbrowser.util.HanaSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.HiveSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
+import com.oceanbase.tools.dbbrowser.util.PostgresSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
+import com.oceanbase.tools.dbbrowser.util.SqlServerSqlBuilder;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -175,8 +177,7 @@ public class ConnectConsoleService {
         } else if (dialectType.isHive()) {
             sqlBuilder = new HiveSqlBuilder();
         } else if (dialectType.isSqlServer()) {
-            throw new UnsupportedOperationException(
-                    "db-browser:1.2.3 lacks SqlServerSqlBuilder; SqlServer dialect SQL builder is not available in this version");
+            sqlBuilder = new SqlServerSqlBuilder();
         } else if (dialectType.isHana()) {
             sqlBuilder = new HanaSqlBuilder();
         } else if (dialectType.isMongoDB()) {
@@ -190,8 +191,10 @@ public class ConnectConsoleService {
             asyncExecuteReq.setContinueExecutionOnError(true);
             asyncExecuteReq.setFullLinkTraceEnabled(false);
             return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+        } else if (dialectType.isPostgreSql()) {
+            sqlBuilder = new PostgresSqlBuilder();
         } else if (dialectType.isPgFamily()) {
-            // GaussDB / openGauss / PostgreSQL use PostgreSQL wire protocol, where identifiers
+            // GaussDB / openGauss use PostgreSQL wire protocol, where identifiers
             // are quoted with double quotes (e.g. "schema"."table"), NOT MySQL back-ticks.
             // Reusing MySQLSqlBuilder here previously produced
             // SELECT t.* FROM `schema`.`table` t LIMIT 1000
@@ -303,11 +306,14 @@ public class ConnectConsoleService {
                     StringUtils.length(request.getSql()), maxSqlLength);
         }
 
-        // SQL Server 需要应该通过按行的 GO 进行分割 临时代码放在公共层，后续应当移动到SQLServer适配层
-        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer())
-                ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
-                        sessionProperties.isOracleRemoveCommentPrefix())
-                : Collections.singletonList(new OffsetString(0, request.getSql()));
+        // SQL Server needs batch-aware splitting by line-based GO
+        // PostgreSQL needs special splitting for dollar-quoting, E-string, etc.
+        List<OffsetString> sqls = (request.ifSplitSqls()
+                || connectionSession.getDialectType().isSqlServer()
+                || connectionSession.getDialectType().isPostgreSql())
+                        ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
+                                sessionProperties.isOracleRemoveCommentPrefix())
+                        : Collections.singletonList(new OffsetString(0, request.getSql()));
         if (sqls.size() == 0) {
             /**
              * if a sql only contains delimiter setting(eg. delimiter $$), code will do this
