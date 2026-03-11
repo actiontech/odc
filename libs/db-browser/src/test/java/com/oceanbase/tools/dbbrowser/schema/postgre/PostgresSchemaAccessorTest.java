@@ -37,15 +37,21 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
+import com.oceanbase.tools.dbbrowser.model.DBFunction;
 import com.oceanbase.tools.dbbrowser.model.DBIndexType;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
+import com.oceanbase.tools.dbbrowser.model.DBPLObjectIdentity;
+import com.oceanbase.tools.dbbrowser.model.DBProcedure;
+import com.oceanbase.tools.dbbrowser.model.DBSequence;
 import com.oceanbase.tools.dbbrowser.model.DBTable.DBTableOptions;
 import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 import com.oceanbase.tools.dbbrowser.model.DBTableConstraint;
 import com.oceanbase.tools.dbbrowser.model.DBTableIndex;
 import com.oceanbase.tools.dbbrowser.model.DBTablePartition;
 import com.oceanbase.tools.dbbrowser.model.DBTablePartitionType;
+import com.oceanbase.tools.dbbrowser.model.DBVariable;
+import com.oceanbase.tools.dbbrowser.model.DBView;
 
 /**
  * Unit tests for {@link PostgresSchemaAccessor}
@@ -566,6 +572,293 @@ public class PostgresSchemaAccessorTest {
         Assert.assertTrue(ddl.contains("\"id\""));
         Assert.assertTrue(ddl.contains("integer"));
         Assert.assertTrue(ddl.contains("NOT NULL"));
+    }
+
+    // ============== listViews Tests ==============
+
+    @Test
+    public void listViews_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> view1 = new HashMap<>();
+        view1.put("view_name", "user_view");
+        mockData.add(view1);
+
+        Map<String, Object> view2 = new HashMap<>();
+        view2.put("view_name", "order_view");
+        mockData.add(view2);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBObjectIdentity> mapper = invocation.getArgument(2);
+                    List<DBObjectIdentity> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBObjectIdentity> views = accessor.listViews(testSchemaName);
+
+        Assert.assertNotNull(views);
+        Assert.assertEquals(2, views.size());
+        Assert.assertEquals("user_view", views.get(0).getName());
+        Assert.assertEquals(DBObjectType.VIEW, views.get(0).getType());
+    }
+
+    // ============== listFunctions Tests ==============
+
+    @Test
+    public void listFunctions_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> func1 = new HashMap<>();
+        func1.put("function_name", "calculate_total");
+        func1.put("arguments", "order_id integer");
+        func1.put("return_type", "numeric");
+        mockData.add(func1);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBPLObjectIdentity> mapper = invocation.getArgument(2);
+                    List<DBPLObjectIdentity> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBPLObjectIdentity> functions = accessor.listFunctions(testSchemaName);
+
+        Assert.assertNotNull(functions);
+        Assert.assertEquals(1, functions.size());
+        Assert.assertEquals("calculate_total", functions.get(0).getName());
+        Assert.assertEquals(DBObjectType.FUNCTION, functions.get(0).getType());
+    }
+
+    // ============== listProcedures Tests ==============
+
+    @Test
+    public void listProcedures_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> proc1 = new HashMap<>();
+        proc1.put("procedure_name", "process_order");
+        mockData.add(proc1);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBPLObjectIdentity> mapper = invocation.getArgument(2);
+                    List<DBPLObjectIdentity> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBPLObjectIdentity> procedures = accessor.listProcedures(testSchemaName);
+
+        Assert.assertNotNull(procedures);
+        Assert.assertEquals(1, procedures.size());
+        Assert.assertEquals("process_order", procedures.get(0).getName());
+        Assert.assertEquals(DBObjectType.PROCEDURE, procedures.get(0).getType());
+    }
+
+    // ============== listSequences Tests ==============
+
+    @Test
+    public void listSequences_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> seq1 = new HashMap<>();
+        seq1.put("sequence_name", "user_id_seq");
+        mockData.add(seq1);
+
+        Map<String, Object> seq2 = new HashMap<>();
+        seq2.put("sequence_name", "order_id_seq");
+        mockData.add(seq2);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBObjectIdentity> mapper = invocation.getArgument(2);
+                    List<DBObjectIdentity> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBObjectIdentity> sequences = accessor.listSequences(testSchemaName);
+
+        Assert.assertNotNull(sequences);
+        Assert.assertEquals(2, sequences.size());
+        Assert.assertEquals("user_id_seq", sequences.get(0).getName());
+        Assert.assertEquals(DBObjectType.SEQUENCE, sequences.get(0).getType());
+    }
+
+    // ============== showVariables Tests ==============
+
+    @Test
+    public void showVariables_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> var1 = new HashMap<>();
+        var1.put("name", "work_mem");
+        var1.put("value", "4MB");
+        mockData.add(var1);
+
+        Map<String, Object> var2 = new HashMap<>();
+        var2.put("name", "shared_buffers");
+        var2.put("value", "128MB");
+        mockData.add(var2);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBVariable> mapper = invocation.getArgument(1);
+                    List<DBVariable> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBVariable> variables = accessor.showVariables();
+
+        Assert.assertNotNull(variables);
+        Assert.assertEquals(2, variables.size());
+        Assert.assertEquals("work_mem", variables.get(0).getName());
+        Assert.assertEquals("4MB", variables.get(0).getValue());
+    }
+
+    // ============== showSessionVariables Tests ==============
+
+    @Test
+    public void showSessionVariables_Success() throws Exception {
+        List<Map<String, Object>> mockData = new ArrayList<>();
+        Map<String, Object> var1 = new HashMap<>();
+        var1.put("name", "work_mem");
+        var1.put("value", "4MB");
+        mockData.add(var1);
+
+        ResultSet mockResultSet = createMockResultSet(mockData);
+
+        when(jdbcOperations.query(anyString(), any(RowMapper.class)))
+                .thenAnswer(invocation -> {
+                    RowMapper<DBVariable> mapper = invocation.getArgument(1);
+                    List<DBVariable> result = new ArrayList<>();
+                    int rowNum = 0;
+                    while (mockResultSet.next()) {
+                        result.add(mapper.mapRow(mockResultSet, rowNum++));
+                    }
+                    return result;
+                });
+
+        List<DBVariable> variables = accessor.showSessionVariables();
+
+        Assert.assertNotNull(variables);
+        Assert.assertEquals(1, variables.size());
+        Assert.assertEquals("work_mem", variables.get(0).getName());
+    }
+
+    // ============== getFunction Tests ==============
+
+    @Test
+    public void getFunction_Success() throws Exception {
+        doAnswer(invocation -> {
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
+            when(mockResultSet.getString("function_name")).thenReturn("calculate_total");
+            when(mockResultSet.getString("function_ddl")).thenReturn(
+                    "CREATE FUNCTION calculate_total() RETURNS numeric AS $$ BEGIN RETURN 0; END; $$ LANGUAGE plpgsql");
+            when(mockResultSet.getString("return_type")).thenReturn("numeric");
+            when(mockResultSet.getString("arguments")).thenReturn("");
+            RowCallbackHandler handler = invocation.getArgument(2);
+            handler.processRow(mockResultSet);
+            return null;
+        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+
+        DBFunction function = accessor.getFunction(testSchemaName, "calculate_total");
+
+        Assert.assertNotNull(function);
+        Assert.assertEquals("calculate_total", function.getFunName());
+        Assert.assertEquals("numeric", function.getReturnType());
+    }
+
+    // ============== getProcedure Tests ==============
+
+    @Test
+    public void getProcedure_Success() throws Exception {
+        doAnswer(invocation -> {
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
+            when(mockResultSet.getString("procedure_name")).thenReturn("process_order");
+            when(mockResultSet.getString("procedure_ddl"))
+                    .thenReturn("CREATE PROCEDURE process_order() AS $$ BEGIN NULL; END; $$ LANGUAGE plpgsql");
+            when(mockResultSet.getString("arguments")).thenReturn("");
+            RowCallbackHandler handler = invocation.getArgument(2);
+            handler.processRow(mockResultSet);
+            return null;
+        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+
+        DBProcedure procedure = accessor.getProcedure(testSchemaName, "process_order");
+
+        Assert.assertNotNull(procedure);
+        Assert.assertEquals("process_order", procedure.getProName());
+    }
+
+    // ============== getView Tests ==============
+
+    @Test
+    public void getView_Success() throws Exception {
+        doAnswer(invocation -> {
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
+            when(mockResultSet.getString("table_schema")).thenReturn(testSchemaName);
+            when(mockResultSet.getString("check_option")).thenReturn("NONE");
+            when(mockResultSet.getString("is_updatable")).thenReturn("YES");
+            when(mockResultSet.getString("view_definition")).thenReturn("SELECT * FROM users");
+            RowCallbackHandler handler = invocation.getArgument(2);
+            handler.processRow(mockResultSet);
+            return null;
+        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+
+        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
+                .thenReturn(new ArrayList<>());
+
+        DBView view = accessor.getView(testSchemaName, "user_view");
+
+        Assert.assertNotNull(view);
+        Assert.assertEquals("user_view", view.getViewName());
+        Assert.assertTrue(view.isUpdatable());
+    }
+
+    // ============== getSequence Tests ==============
+
+    @Test
+    public void getSequence_Success() throws Exception {
+        // Mock first query to check sequence exists
+        doAnswer(invocation -> {
+            ResultSet mockResultSet = mock(ResultSet.class);
+            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
+            RowCallbackHandler handler = invocation.getArgument(2);
+            handler.processRow(mockResultSet);
+            return null;
+        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+
+        DBSequence sequence = accessor.getSequence(testSchemaName, "user_id_seq");
+
+        Assert.assertNotNull(sequence);
+        Assert.assertEquals("user_id_seq", sequence.getName());
     }
 
     // ============== Helper Methods ==============
