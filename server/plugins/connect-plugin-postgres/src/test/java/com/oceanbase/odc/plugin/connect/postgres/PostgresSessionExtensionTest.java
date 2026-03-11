@@ -162,10 +162,7 @@ public class PostgresSessionExtensionTest {
      */
     @Test
     public void testSetClientInfo_ReturnsFalse() throws SQLException {
-        DBClientInfo clientInfo = new DBClientInfo();
-        clientInfo.setModule("test-module");
-        clientInfo.setAction("test-action");
-        clientInfo.setContext("test-context");
+        DBClientInfo clientInfo = new DBClientInfo("test-module", "test-action", "test-context");
 
         boolean result = extension.setClientInfo(mockConnection, clientInfo);
         Assert.assertFalse(result);
