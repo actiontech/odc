@@ -16,10 +16,16 @@
 package com.oceanbase.odc.core.sql.execute.cache;
 
 import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
+import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.commons.lang3.StringUtils;
+
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.sql.execute.cache.model.BinaryContentMetaData;
 import com.oceanbase.odc.core.sql.execute.cache.model.BinaryVirtualElement;
 import com.oceanbase.odc.core.sql.execute.cache.model.CommonVirtualElement;
@@ -47,12 +53,20 @@ public class ResultSetCachedElementFactory implements VirtualElementFactory {
     private final ResultSet resultSet;
     private final BinaryDataManager dataManager;
     private final ResultSetMetaData metaData;
+    private final DialectType dialectType;
 
     public ResultSetCachedElementFactory(@NonNull ResultSet resultSet, @NonNull BinaryDataManager dataManager)
+            throws SQLException {
+        this(resultSet, dataManager, DialectType.OB_MYSQL);
+    }
+
+    public ResultSetCachedElementFactory(@NonNull ResultSet resultSet, @NonNull BinaryDataManager dataManager,
+            DialectType dialectType)
             throws SQLException {
         this.resultSet = resultSet;
         this.dataManager = dataManager;
         this.metaData = resultSet.getMetaData();
+        this.dialectType = dialectType;
     }
 
     @Override
@@ -61,7 +75,17 @@ public class ResultSetCachedElementFactory implements VirtualElementFactory {
             String dataType = this.metaData.getColumnTypeName(columnId + 1);
             String columnName = this.metaData.getColumnLabel(columnId + 1);
             if (DataTypeUtil.isBinaryType(dataType)) {
-                InputStream inputStream = resultSet.getBinaryStream(columnId + 1);
+                InputStream inputStream;
+                if (isCharacterType(dataType)) {
+                    Reader reader = resultSet.getCharacterStream(columnId + 1);
+                    if (reader == null) {
+                        return null;
+                    }
+                    // Normalize character LOBs into UTF-8 before caching on disk.
+                    inputStream = new ReaderInputStream(reader, StandardCharsets.UTF_8);
+                } else {
+                    inputStream = resultSet.getBinaryStream(columnId + 1);
+                }
                 if (inputStream == null) {
                     return null;
                 }
@@ -77,6 +101,17 @@ public class ResultSetCachedElementFactory implements VirtualElementFactory {
             log.info("Failed to create element", e);
             throw new IllegalStateException(e);
         }
+    }
+
+    private boolean isCharacterType(String dataType) {
+        if (StringUtils.isBlank(dataType) || dialectType == null) {
+            return false;
+        }
+        if (dialectType.isOracle() || dialectType == DialectType.OB_ORACLE) {
+            String upperType = dataType.toUpperCase();
+            return upperType.contains("CLOB");
+        }
+        return false;
     }
 
 }

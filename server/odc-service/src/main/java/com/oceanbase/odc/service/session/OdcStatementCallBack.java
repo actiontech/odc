@@ -295,7 +295,7 @@ public class OdcStatementCallBack implements StatementCallback<List<JdbcGeneralR
                     while (resultSet.next()) {
                         jdbcQueryResult.addLine(resultSet);
                         virtualTable.addLine((line++), resultSet,
-                                new ResultSetCachedElementFactory(resultSet, binaryDataManager));
+                                new ResultSetCachedElementFactory(resultSet, binaryDataManager, dialectType));
                     }
                     if (virtualTable.count() != 0) {
                         ConnectionSessionUtil.setQueryCache(connectionSession, virtualTable);
