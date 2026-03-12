@@ -1,0 +1,116 @@
+# built-in snippet for PostgreSQL
+- name: pg create table
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'table', 'create' ]
+  type: DDL
+  description: 'Create a new table for PostgreSQL'
+  prefix: create_table
+  body: |
+    -- please modify column_name and data_type
+    CREATE TABLE IF NOT EXISTS "${1:schema}"."${2:table_name}" (
+      id BIGSERIAL PRIMARY KEY,
+      ${3:column_name} ${4:data_type} NOT NULL,
+      created_at TIMESTAMP DEFAULT now()
+    );
+    COMMENT ON TABLE "${1:schema}"."${2:table_name}" IS '${5:table_description}';
+
+- name: pg create index
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'index', 'create' ]
+  type: DDL
+  description: 'Create a new index for PostgreSQL'
+  prefix: create_index
+  body: |
+    CREATE ${1:UNIQUE }INDEX "${2:index_name}"
+    ON "${3:schema}"."${4:table_name}" USING ${5:btree} (${6:column_name});
+
+- name: pg create function
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'function', 'create' ]
+  type: DDL
+  description: 'Create a new function for PostgreSQL'
+  prefix: create_function
+  body: |
+    CREATE OR REPLACE FUNCTION "${1:schema}"."${2:function_name}" (
+      ${3:p_param1} ${4:INTEGER}
+    )
+    RETURNS ${5:INTEGER}
+    LANGUAGE plpgsql
+    AS \$\$
+    BEGIN
+      RETURN ${3:p_param1};
+    END;
+    \$\$;
+
+- name: pg create procedure
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'procedure', 'create' ]
+  type: DDL
+  description: 'Create a new procedure for PostgreSQL (PG 11+)'
+  prefix: create_procedure
+  body: |
+    CREATE OR REPLACE PROCEDURE "${1:schema}"."${2:procedure_name}" (
+      ${3:p_param1} ${4:INTEGER}
+    )
+    LANGUAGE plpgsql
+    AS \$\$
+    BEGIN
+      -- procedure body
+      NULL;
+    END;
+    \$\$;
+
+- name: pg explain analyze
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'explain', 'performance' ]
+  type: DML
+  description: 'Explain analyze a query for PostgreSQL'
+  prefix: explain_analyze
+  body: |
+    EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+    ${1:SELECT * FROM "schema"."table_name"};
+
+- name: pg query table info
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'table', 'info' ]
+  type: DQL
+  description: 'Query table column information for PostgreSQL'
+  prefix: query_table_info
+  body: |
+    SELECT column_name, data_type, is_nullable, column_default
+    FROM information_schema.columns
+    WHERE table_schema = '${1:public}' AND table_name = '${2:table_name}'
+    ORDER BY ordinal_position;
+
+- name: pg upsert
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'upsert', 'conflict' ]
+  type: DML
+  description: 'Insert on conflict (upsert) for PostgreSQL'
+  prefix: upsert
+  body: |
+    INSERT INTO "${1:schema}"."${2:table_name}" (${3:col1}, ${4:col2})
+    VALUES (${5:val1}, ${6:val2})
+    ON CONFLICT (${3:col1})
+    DO UPDATE SET ${4:col2} = EXCLUDED.${4:col2};
+
+- name: pg query user list
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'user', 'role' ]
+  type: DQL
+  description: 'Query all database roles for PostgreSQL'
+  prefix: query_user_list
+  body: |
+    SELECT rolname, rolsuper, rolcreatedb, rolcreaterole, rolcanlogin
+    FROM pg_roles
+    ORDER BY rolname;
+
+- name: pg grant privileges
+  dialect_type: POSTGRESQL
+  tags: [ 'developer', 'postgresql', 'grant', 'privilege' ]
+  type: DDL
+  description: 'Grant privileges on schema or table for PostgreSQL'
+  prefix: grant_privileges
+  body: |
+    GRANT ${1:ALL PRIVILEGES} ON ${2:ALL TABLES IN SCHEMA} "${3:public}"
+    TO "${4:role_name}";
