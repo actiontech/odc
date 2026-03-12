@@ -66,14 +66,15 @@ public class FileBaseBinaryDataManager implements BinaryDataManager {
     public synchronized BinaryContentMetaData write(@NonNull InputStream inputStream) throws IOException {
         reloadCurrentFile();
         int offset = currentWriteFile.length();
-        int fileSize = inputStream.available();
+        int fileSize = 0;
         try {
             currentWriteFile.seekForWrite(offset);
             byte[] buffer = new byte[1024 * 4];
             int length = inputStream.read(buffer);
             while (length != -1) {
                 currentWriteFile.write(buffer, 0, length);
-                length = inputStream.read(buffer, 0, length);
+                fileSize += length;
+                length = inputStream.read(buffer);
             }
             inputStream.close();
             return new BinaryContentMetaData(this.currentWriteFile.getPath(), offset, fileSize);
