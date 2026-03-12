@@ -33,6 +33,7 @@ import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleLessThan2270StatsAcces
 import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleNoLessThan2270StatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.oracle.OBOracleNoLessThan400StatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.oracle.OracleStatsAccessor;
+import com.oceanbase.tools.dbbrowser.stats.postgres.PostgresStatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.sqlserver.SqlServerStatsAccessor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
@@ -109,7 +110,7 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
 
     @Override
     public DBStatsAccessor buildForPostgres() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new PostgresStatsAccessor(getJdbcOperations());
     }
 
     @Override
