@@ -19,6 +19,7 @@ import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBView;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleViewTemplate;
+import com.oceanbase.tools.dbbrowser.template.postgre.PostgresViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerViewTemplate;
 
 public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBView>> {
@@ -55,7 +56,7 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
 
     @Override
     public DBObjectTemplate<DBView> buildForPostgres() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new PostgresViewTemplate();
     }
 
     @Override
