@@ -101,26 +101,16 @@ public class JdbcOperationsUtil {
     /**
      * 从 ResultSet 中获取生成的主键 ID
      *
-     * 问题描述：
-     *  - MySQL 批量插入时，getGeneratedKeys() 返回的 ResultSet 可能没有列名，
-     *    导致通过列名访问（如 getObject("id")）抛出 SQLException: Column 'id' not found
-     *  - 不同数据库驱动对 getGeneratedKeys() 返回的 ResultSet 列名处理不一致：
-     *      - MySQL: 批量插入时可能无列名，或列名为 "GENERATED_KEY"
-     *      - Oracle: 可能有实际列名或 "GENERATED_KEY"
-     *      - SQL Server: 列名可能为 "GENERATED_KEYS" 或实际列名
-     *      - OceanBase for MySQL: 兼容 MySQL 协议，行为与 MySQL 相同
+     * 问题描述： - MySQL 批量插入时，getGeneratedKeys() 返回的 ResultSet 可能没有列名， 导致通过列名访问（如 getObject("id")）抛出
+     * SQLException: Column 'id' not found - 不同数据库驱动对 getGeneratedKeys() 返回的 ResultSet 列名处理不一致： - MySQL:
+     * 批量插入时可能无列名，或列名为 "GENERATED_KEY" - Oracle: 可能有实际列名或 "GENERATED_KEY" - SQL Server: 列名可能为
+     * "GENERATED_KEYS" 或实际列名 - OceanBase for MySQL: 兼容 MySQL 协议，行为与 MySQL 相同
      *
-     * 解决方案：
-     *  - 优先通过索引访问（resultSet.getObject(1)）：
-     *      JDBC 规范强制要求 getGeneratedKeys() 返回的 ResultSet 第一列就是生成的主键，
-     *      这是标准做法，不依赖列名，适用于所有数据库
-     *  - 回退到列名访问：如果索引访问失败（理论上不应该），
-     *      尝试通过常见列名访问，兼容不同驱动的列名差异
+     * 解决方案： - 优先通过索引访问（resultSet.getObject(1)）： JDBC 规范强制要求 getGeneratedKeys() 返回的 ResultSet
+     * 第一列就是生成的主键， 这是标准做法，不依赖列名，适用于所有数据库 - 回退到列名访问：如果索引访问失败（理论上不应该）， 尝试通过常见列名访问，兼容不同驱动的列名差异
      *
-     * 兼容性保证：
-     *  - 索引访问（第 1 列）：100% 兼容所有数据库，符合 JDBC 规范
-     *  - 列名回退机制：处理特殊情况，提供额外容错保障
-     *  - 异常容错：多层 try-catch 确保不会因列名问题导致程序崩溃
+     * 兼容性保证： - 索引访问（第 1 列）：100% 兼容所有数据库，符合 JDBC 规范 - 列名回退机制：处理特殊情况，提供额外容错保障 - 异常容错：多层 try-catch
+     * 确保不会因列名问题导致程序崩溃
      *
      * @param resultSet getGeneratedKeys() 返回的 ResultSet，已调用 next() 定位到当前行
      * @return 生成的主键 ID，如果无法获取则返回 null
