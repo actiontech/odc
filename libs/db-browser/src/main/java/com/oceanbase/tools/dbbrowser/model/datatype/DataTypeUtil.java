@@ -35,6 +35,7 @@ public class DataTypeUtil {
     private final static String[] BINARY_DATA_TYPES = new String[] {
             "blob",
             "clob",
+            "nclob",
             "raw",
             "longblob",
             "mediumblob",
