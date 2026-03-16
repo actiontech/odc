@@ -46,7 +46,7 @@ public class PostgreSQLVersionDiffConfigTest {
 
     // The migration script file path relative to odc module directory
     private static final String MIGRATION_SCRIPT_RELATIVE_PATH =
-            "server/odc-migrate/src/main/resources/migrate/common/V_4_3_4_11__add_postgresql_version_diff_config.sql";
+            "server/odc-migrate/src/main/resources/migrate/common/V_4_3_4_13__add_postgresql_version_diff_config.sql";
 
     /**
      * PostgreSQL config keys that must be present for resource tree to work correctly.
