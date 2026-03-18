@@ -486,6 +486,22 @@ public class OdcStatementCallBack implements StatementCallback<List<JdbcGeneralR
 
     private void setExecuteTraceStage(TraceWatch traceWatch, SqlExecTime executeDetails, StopWatch stopWatch) {
         if (executeDetails.getExecuteMicroseconds() == null) {
+            // Fallback: Use Execute stage time as approximate DB execution time
+            // This is useful for databases like PostgreSQL and SQLServer that don't provide
+            // built-in trace mechanism to get detailed execution time.
+            List<TraceStage> executeStages = traceWatch.getByTaskName(SqlExecuteStages.EXECUTE);
+            if (executeStages != null && !executeStages.isEmpty()) {
+                long executeTimeMicros = executeStages.get(0).getTime(TimeUnit.MICROSECONDS);
+                try (EditableTraceStage dbServerExecute =
+                        traceWatch.startEditableStage(SqlExecuteStages.DB_SERVER_EXECUTE_SQL)) {
+                    dbServerExecute.setStartTime(executeStages.get(0).getStartTime(), TimeUnit.MICROSECONDS);
+                    dbServerExecute.setTime(executeTimeMicros, TimeUnit.MICROSECONDS);
+                }
+                try (EditableTraceStage calculateDuration =
+                        traceWatch.startEditableStage(SqlExecuteStages.CALCULATE_DURATION)) {
+                    calculateDuration.adapt(stopWatch);
+                }
+            }
             return;
         } else if (executeDetails.getLastPacketSendTimestamp() == null
                 || executeDetails.getLastPacketResponseTimestamp() == null) {
