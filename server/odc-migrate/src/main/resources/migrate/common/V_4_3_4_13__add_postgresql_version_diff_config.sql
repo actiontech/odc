@@ -88,23 +88,26 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 values('support_rowid','POSTGRESQL','false','0',CURRENT_TIMESTAMP) 
 ON DUPLICATE KEY update `config_key`=`config_key`;
 
--- PostgreSQL supports sequences
+-- PostgreSQL supports sequences, but ODC doesn't implement SequenceExtensionPoint yet
+-- Keep these features disabled until plugin extension is implemented (same as SQL Server)
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) 
-values('support_sequence','POSTGRESQL','true','0',CURRENT_TIMESTAMP) 
+values('support_sequence','POSTGRESQL','false','0',CURRENT_TIMESTAMP) 
 ON DUPLICATE KEY update `config_key`=`config_key`;
 
--- PostgreSQL supports triggers
+-- PostgreSQL supports triggers, but ODC doesn't implement TriggerExtensionPoint yet
+-- Keep these features disabled until plugin extension is implemented (same as SQL Server)
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) 
-values('support_trigger','POSTGRESQL','true','0',CURRENT_TIMESTAMP) 
+values('support_trigger','POSTGRESQL','false','0',CURRENT_TIMESTAMP) 
 ON DUPLICATE KEY update `config_key`=`config_key`;
 
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) 
-values('support_trigger_ddl','POSTGRESQL','true','0',CURRENT_TIMESTAMP) 
+values('support_trigger_ddl','POSTGRESQL','false','0',CURRENT_TIMESTAMP) 
 ON DUPLICATE KEY update `config_key`=`config_key`;
 
--- PostgreSQL supports custom types
+-- PostgreSQL supports custom types, but ODC doesn't implement TypeExtensionPoint yet
+-- Keep these features disabled until plugin extension is implemented (same as SQL Server)
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) 
-values('support_type','POSTGRESQL','true','0',CURRENT_TIMESTAMP) 
+values('support_type','POSTGRESQL','false','0',CURRENT_TIMESTAMP) 
 ON DUPLICATE KEY update `config_key`=`config_key`;
 
 -- PostgreSQL doesn't have synonyms like Oracle

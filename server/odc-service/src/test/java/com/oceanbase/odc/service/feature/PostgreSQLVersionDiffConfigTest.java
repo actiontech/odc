@@ -54,6 +54,10 @@ public class PostgreSQLVersionDiffConfigTest {
      * - support_view: enables view group in resource tree
      * - support_function: enables function group in resource tree
      * - support_procedure: enables procedure group in resource tree
+     * 
+     * Note: support_sequence, support_trigger, support_type are set to false because
+     * ODC doesn't implement the corresponding ExtensionPoints yet (same as SQL Server).
+     * They are not included in REQUIRED_POSTGRESQL_CONFIGS because they are disabled.
      */
     private static final String[] REQUIRED_POSTGRESQL_CONFIGS = {
             "support_view",
@@ -66,10 +70,7 @@ public class PostgreSQLVersionDiffConfigTest {
             "support_show_foreign_key",
             "support_kill_session",
             "support_kill_query",
-            "support_sql_explain",
-            "support_sequence",
-            "support_trigger",
-            "support_type"
+            "support_sql_explain"
     };
 
     /**
@@ -295,6 +296,84 @@ public class PostgreSQLVersionDiffConfigTest {
                     content.toLowerCase().contains(
                             ("'" + feature + "','POSTGRESQL','false'").toLowerCase()));
         }
+    }
+
+    /**
+     * Test case 12.1: Verify support_trigger is set to false for PostgreSQL
+     * ODC doesn't implement TriggerExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * 
+     * 测试目标：验证 support_trigger 配置值为 false
+     * 原因：ODC 未实现 PostgresTriggerExtension，与 SQL Server 保持一致
+     */
+    @Test
+    public void testMigrationScript_supportTrigger_isFalse() throws Exception {
+        String content = readMigrationScript();
+        Pattern pattern = Pattern.compile(
+                "values\\s*\\(\\s*'support_trigger'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(content);
+
+        Assert.assertTrue("Should find support_trigger config for POSTGRESQL", matcher.find());
+        Assert.assertEquals("support_trigger should be 'false' for POSTGRESQL (not implemented)",
+                "false", matcher.group(1).toLowerCase());
+    }
+
+    /**
+     * Test case 12.2: Verify support_trigger_ddl is set to false for PostgreSQL
+     * 
+     * 测试目标：验证 support_trigger_ddl 配置值为 false
+     */
+    @Test
+    public void testMigrationScript_supportTriggerDdl_isFalse() throws Exception {
+        String content = readMigrationScript();
+        Pattern pattern = Pattern.compile(
+                "values\\s*\\(\\s*'support_trigger_ddl'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(content);
+
+        Assert.assertTrue("Should find support_trigger_ddl config for POSTGRESQL", matcher.find());
+        Assert.assertEquals("support_trigger_ddl should be 'false' for POSTGRESQL (not implemented)",
+                "false", matcher.group(1).toLowerCase());
+    }
+
+    /**
+     * Test case 12.3: Verify support_sequence is set to false for PostgreSQL
+     * ODC doesn't implement SequenceExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * 
+     * 测试目标：验证 support_sequence 配置值为 false
+     * 原因：ODC 未实现 PostgresSequenceExtension，与 SQL Server 保持一致
+     */
+    @Test
+    public void testMigrationScript_supportSequence_isFalse() throws Exception {
+        String content = readMigrationScript();
+        Pattern pattern = Pattern.compile(
+                "values\\s*\\(\\s*'support_sequence'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(content);
+
+        Assert.assertTrue("Should find support_sequence config for POSTGRESQL", matcher.find());
+        Assert.assertEquals("support_sequence should be 'false' for POSTGRESQL (not implemented)",
+                "false", matcher.group(1).toLowerCase());
+    }
+
+    /**
+     * Test case 12.4: Verify support_type is set to false for PostgreSQL
+     * ODC doesn't implement TypeExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * 
+     * 测试目标：验证 support_type 配置值为 false
+     * 原因：ODC 未实现 PostgresTypeExtension，与 SQL Server 保持一致
+     */
+    @Test
+    public void testMigrationScript_supportType_isFalse() throws Exception {
+        String content = readMigrationScript();
+        Pattern pattern = Pattern.compile(
+                "values\\s*\\(\\s*'support_type'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(content);
+
+        Assert.assertTrue("Should find support_type config for POSTGRESQL", matcher.find());
+        Assert.assertEquals("support_type should be 'false' for POSTGRESQL (not implemented)",
+                "false", matcher.group(1).toLowerCase());
     }
 
     /**
