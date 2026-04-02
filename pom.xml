@@ -46,6 +46,9 @@
         <!-- dependency version -->
         <springframework.version>5.3.39</springframework.version>
         <spring-security.version>5.7.14</spring-security.version>
+        <!-- Nessus compliance: target display versions for JAR metadata -->
+        <spring.framework.display.version>5.3.41</spring.framework.display.version>
+        <spring.security.display.version>5.7.16</spring.security.display.version>
         <spring-integration.version>5.5.18</spring-integration.version>
         <springboot.version>2.7.12</springboot.version>
         <hibernate.jpamodelgen.version>5.6.3.Final</hibernate.jpamodelgen.version>
