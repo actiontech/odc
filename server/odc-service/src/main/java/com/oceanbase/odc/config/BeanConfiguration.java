@@ -28,7 +28,6 @@ import javax.validation.constraints.NotBlank;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.firewall.DefaultHttpFirewall;
 import org.springframework.security.web.firewall.HttpFirewall;
@@ -42,6 +41,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.ContextualSerializer;
 import com.oceanbase.odc.common.i18n.I18nOutputSerializer;
+import com.oceanbase.odc.common.security.SafeBCryptPasswordEncoder;
 import com.oceanbase.odc.common.i18n.Internationalizable;
 import com.oceanbase.odc.common.json.JacksonFactory;
 import com.oceanbase.odc.common.json.JacksonModules;
@@ -73,7 +73,7 @@ public class BeanConfiguration {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new SafeBCryptPasswordEncoder();
     }
 
     @Bean
