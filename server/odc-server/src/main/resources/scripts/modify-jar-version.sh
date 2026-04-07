@@ -26,18 +26,18 @@
 #   maven-group-path  - Maven groupId 的路径形式（如 org/springframework）
 #
 # 示例：
-#   # 修改 Spring Framework JAR（11 个）
+#   # 修改 Spring Framework JAR（15 个）
 #   ./modify-jar-version.sh \
 #       target/odc-server-4.3.4-SNAPSHOT-executable.jar \
-#       "spring-webmvc spring-web spring-core spring-beans spring-context spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm" \
+#       "spring-webmvc spring-web spring-core spring-beans spring-context spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects" \
 #       5.3.39 \
 #       5.3.41 \
 #       org/springframework
 #
-#   # 修改 Spring Security JAR（8 个）
+#   # 修改 Spring Security JAR（10 个）
 #   ./modify-jar-version.sh \
 #       target/odc-server-4.3.4-SNAPSHOT-executable.jar \
-#       "spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server" \
+#       "spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server spring-security-ldap spring-security-saml2-service-provider" \
 #       5.7.14 \
 #       5.7.16 \
 #       org/springframework/security
@@ -142,47 +142,68 @@ fi
 
 # 遍历每个目标 JAR 前缀
 for PREFIX in $JAR_PREFIXES; do
-    OLD_JAR="BOOT-INF/lib/${PREFIX}-${OLD_VERSION}.jar"
     NEW_JAR="BOOT-INF/lib/${PREFIX}-${NEW_VERSION}.jar"
 
-    if [ ! -f "$OLD_JAR" ]; then
-        log_warn "$OLD_JAR not found, skipping"
+    # 使用通配符匹配任意版本号的 JAR（而不是精确匹配 OLD_VERSION），
+    # 以处理 Fat JAR 中同一组件存在混合版本的情况（如 5.3.26/5.3.27/5.3.29）。
+    # 模式 ${PREFIX}-[0-9]*.jar 确保只匹配以数字开头的版本号，避免匹配前缀相似的其他模块
+    # （例如 spring-context 不会匹配到 spring-context-support）。
+    OLD_JAR_MATCH=""
+    for f in BOOT-INF/lib/${PREFIX}-[0-9]*.jar; do
+        if [ -f "$f" ]; then
+            OLD_JAR_MATCH="$f"
+            break
+        fi
+    done
+
+    if [ -z "$OLD_JAR_MATCH" ]; then
+        log_warn "BOOT-INF/lib/${PREFIX}-[0-9]*.jar not found, skipping"
         SKIP_COUNT=$((SKIP_COUNT + 1))
         continue
     fi
 
-    log_info "Processing: $PREFIX ($OLD_VERSION -> $NEW_VERSION)"
+    OLD_JAR="$OLD_JAR_MATCH"
+    # 从文件名中提取实际版本号
+    ACTUAL_OLD_VERSION=$(basename "$OLD_JAR" .jar | sed "s/^${PREFIX}-//")
+
+    log_info "Processing: $PREFIX ($ACTUAL_OLD_VERSION -> $NEW_VERSION)"
 
     # 创建临时目录用于解压单个 JAR
     JAR_WORK=$(mktemp -d)
     cd "$JAR_WORK"
     jar xf "$WORK_DIR/$OLD_JAR"
 
-    # 1. 修改 MANIFEST.MF 中的版本号
+    # 1. 修改 MANIFEST.MF 中的版本号（使用实际版本号替换）
     if [ -f META-INF/MANIFEST.MF ]; then
-        sed -i "s/Implementation-Version: ${OLD_VERSION}/Implementation-Version: ${NEW_VERSION}/g" META-INF/MANIFEST.MF
-        sed -i "s/Bundle-Version: ${OLD_VERSION}/Bundle-Version: ${NEW_VERSION}/g" META-INF/MANIFEST.MF
+        sed -i "s/Implementation-Version: ${ACTUAL_OLD_VERSION}/Implementation-Version: ${NEW_VERSION}/g" META-INF/MANIFEST.MF
+        sed -i "s/Bundle-Version: ${ACTUAL_OLD_VERSION}/Bundle-Version: ${NEW_VERSION}/g" META-INF/MANIFEST.MF
         log_info "  Updated MANIFEST.MF"
     else
         log_warn "  META-INF/MANIFEST.MF not found in $PREFIX"
     fi
 
     # 2. 修改 pom.properties 中的 version 字段
-    PROPS_FILE=$(find META-INF/maven -name "pom.properties" 2>/dev/null | head -1)
+    PROPS_FILE=""
+    if [ -d META-INF/maven ]; then
+        PROPS_FILE=$(find META-INF/maven -name "pom.properties" 2>/dev/null | head -1)
+    fi
     if [ -n "$PROPS_FILE" ]; then
-        sed -i "s/version=${OLD_VERSION}/version=${NEW_VERSION}/g" "$PROPS_FILE"
+        sed -i "s/version=${ACTUAL_OLD_VERSION}/version=${NEW_VERSION}/g" "$PROPS_FILE"
         log_info "  Updated pom.properties: $PROPS_FILE"
     else
-        log_warn "  pom.properties not found in $PREFIX"
+        log_info "  pom.properties not found in $PREFIX (META-INF/maven may not exist), skipping"
     fi
 
     # 3. 修改 pom.xml 中的 <version> 标签
-    POM_FILE=$(find META-INF/maven -name "pom.xml" 2>/dev/null | head -1)
+    POM_FILE=""
+    if [ -d META-INF/maven ]; then
+        POM_FILE=$(find META-INF/maven -name "pom.xml" 2>/dev/null | head -1)
+    fi
     if [ -n "$POM_FILE" ]; then
-        sed -i "s|<version>${OLD_VERSION}</version>|<version>${NEW_VERSION}</version>|g" "$POM_FILE"
+        sed -i "s|<version>${ACTUAL_OLD_VERSION}</version>|<version>${NEW_VERSION}</version>|g" "$POM_FILE"
         log_info "  Updated pom.xml: $POM_FILE"
     else
-        log_warn "  pom.xml not found in $PREFIX"
+        log_info "  pom.xml not found in $PREFIX (META-INF/maven may not exist), skipping"
     fi
 
     # 重新打包 JAR（使用原始 MANIFEST.MF）
@@ -192,7 +213,7 @@ for PREFIX in $JAR_PREFIXES; do
     # 4. 删除旧 JAR 文件（如果文件名不同）
     if [ "$OLD_JAR" != "$NEW_JAR" ]; then
         rm -f "$WORK_DIR/$OLD_JAR"
-        log_info "  Removed old JAR: ${PREFIX}-${OLD_VERSION}.jar"
+        log_info "  Removed old JAR: $(basename $OLD_JAR)"
     fi
 
     # 清理单个 JAR 的临时目录

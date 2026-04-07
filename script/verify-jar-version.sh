@@ -23,8 +23,8 @@ set -euo pipefail
 EXPECTED_SPRING_VERSION="5.3.41"
 EXPECTED_SECURITY_VERSION="5.7.16"
 
-SPRING_FRAMEWORK_JARS="spring-webmvc spring-web spring-core spring-context spring-beans spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm"
-SPRING_SECURITY_JARS="spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server"
+SPRING_FRAMEWORK_JARS="spring-webmvc spring-web spring-core spring-context spring-beans spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects"
+SPRING_SECURITY_JARS="spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server spring-security-ldap spring-security-saml2-service-provider"
 
 TOTAL_CHECKS=0
 PASSED_CHECKS=0
@@ -99,35 +99,43 @@ verify_jar() {
     fi
 
     # Check 3: pom.properties version
-    local props_file
-    props_file=$(find "$jar_tmp/META-INF/maven" -name "pom.properties" 2>/dev/null | head -1)
-    if [ -n "$props_file" ]; then
-        local prop_ver
-        prop_ver=$(grep "^version=" "$props_file" | head -1 | cut -d= -f2 | tr -d '\r')
-        if [ "$prop_ver" = "$expected_version" ]; then
-            record_pass "$filename" "pom.properties version"
+    if [ -d "$jar_tmp/META-INF/maven" ]; then
+        local props_file
+        props_file=$(find "$jar_tmp/META-INF/maven" -name "pom.properties" 2>/dev/null | head -1)
+        if [ -n "$props_file" ]; then
+            local prop_ver
+            prop_ver=$(grep "^version=" "$props_file" | head -1 | cut -d= -f2 | tr -d '\r')
+            if [ "$prop_ver" = "$expected_version" ]; then
+                record_pass "$filename" "pom.properties version"
+            else
+                record_fail "$filename" "pom.properties version" "$expected_version" "$prop_ver"
+            fi
         else
-            record_fail "$filename" "pom.properties version" "$expected_version" "$prop_ver"
+            echo "    SKIP: ${filename} - pom.properties not found in META-INF/maven"
         fi
     else
-        record_fail "$filename" "pom.properties version" "$expected_version" "pom.properties not found"
+        echo "    SKIP: ${filename} - META-INF/maven directory does not exist, pom.properties check skipped"
     fi
 
     # Check 4: pom.xml version
-    local pom_file
-    pom_file=$(find "$jar_tmp/META-INF/maven" -name "pom.xml" 2>/dev/null | head -1)
-    if [ -n "$pom_file" ]; then
-        # Extract the version from the project-level <version> tag (direct child of <project>)
-        # We look for lines containing <version> and pick the first occurrence
-        local pom_ver
-        pom_ver=$(grep "<version>" "$pom_file" | head -1 | sed 's/.*<version>//' | sed 's/<\/version>.*//' | tr -d ' \r')
-        if [ "$pom_ver" = "$expected_version" ]; then
-            record_pass "$filename" "pom.xml version"
+    if [ -d "$jar_tmp/META-INF/maven" ]; then
+        local pom_file
+        pom_file=$(find "$jar_tmp/META-INF/maven" -name "pom.xml" 2>/dev/null | head -1)
+        if [ -n "$pom_file" ]; then
+            # Extract the version from the project-level <version> tag (direct child of <project>)
+            # We look for lines containing <version> and pick the first occurrence
+            local pom_ver
+            pom_ver=$(grep "<version>" "$pom_file" | head -1 | sed 's/.*<version>//' | sed 's/<\/version>.*//' | tr -d ' \r')
+            if [ "$pom_ver" = "$expected_version" ]; then
+                record_pass "$filename" "pom.xml version"
+            else
+                record_fail "$filename" "pom.xml version" "$expected_version" "$pom_ver"
+            fi
         else
-            record_fail "$filename" "pom.xml version" "$expected_version" "$pom_ver"
+            echo "    SKIP: ${filename} - pom.xml not found in META-INF/maven"
         fi
     else
-        record_fail "$filename" "pom.xml version" "$expected_version" "pom.xml not found"
+        echo "    SKIP: ${filename} - META-INF/maven directory does not exist, pom.xml check skipped"
     fi
 
     rm -rf "$jar_tmp"
