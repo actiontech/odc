@@ -29,7 +29,7 @@
 #   # 修改 Spring Framework JAR（15 个）
 #   ./modify-jar-version.sh \
 #       target/odc-server-4.3.4-SNAPSHOT-executable.jar \
-#       "spring-webmvc spring-web spring-core spring-beans spring-context spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects" \
+#       "spring-webmvc spring-web spring-core spring-beans spring-context spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-orm spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects" \
 #       5.3.39 \
 #       5.3.41 \
 #       org/springframework

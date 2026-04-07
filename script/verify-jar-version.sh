@@ -23,7 +23,7 @@ set -euo pipefail
 EXPECTED_SPRING_VERSION="5.3.41"
 EXPECTED_SECURITY_VERSION="5.7.16"
 
-SPRING_FRAMEWORK_JARS="spring-webmvc spring-web spring-core spring-context spring-beans spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects"
+SPRING_FRAMEWORK_JARS="spring-webmvc spring-web spring-core spring-context spring-beans spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-orm spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects"
 SPRING_SECURITY_JARS="spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server spring-security-ldap spring-security-saml2-service-provider"
 
 TOTAL_CHECKS=0
