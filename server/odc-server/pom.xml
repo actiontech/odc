@@ -222,6 +222,40 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>${maven-antrun-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>modify-spring-jar-versions</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/src/main/resources/scripts/modify-jar-version.sh"/>
+                                    <arg value="${project.build.directory}/${project.artifactId}-${project.version}-executable.jar"/>
+                                    <arg value="spring-webmvc spring-web spring-core spring-beans spring-context spring-expression spring-aop spring-jcl spring-tx spring-jdbc spring-orm spring-oxm spring-messaging spring-context-support spring-websocket spring-aspects"/>
+                                    <arg value="${springframework.version}"/>
+                                    <arg value="${spring.framework.display.version}"/>
+                                    <arg value="org/springframework"/>
+                                </exec>
+                                <exec executable="bash" failonerror="true">
+                                    <arg value="${project.basedir}/src/main/resources/scripts/modify-jar-version.sh"/>
+                                    <arg value="${project.build.directory}/${project.artifactId}-${project.version}-executable.jar"/>
+                                    <arg value="spring-security-core spring-security-config spring-security-web spring-security-crypto spring-security-oauth2-core spring-security-oauth2-jose spring-security-oauth2-client spring-security-oauth2-resource-server spring-security-ldap spring-security-saml2-service-provider"/>
+                                    <arg value="${spring-security.version}"/>
+                                    <arg value="${spring.security.display.version}"/>
+                                    <arg value="org/springframework/security"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

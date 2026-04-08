@@ -51,7 +51,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,6 +61,7 @@ import org.springframework.validation.annotation.Validated;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.MoreObjects;
+import com.oceanbase.odc.common.security.SafeBCryptPasswordEncoder;
 import com.oceanbase.odc.common.util.StringUtils;
 import com.oceanbase.odc.core.authority.permission.ResourcePermission;
 import com.oceanbase.odc.core.authority.util.Authenticated;
@@ -186,7 +186,7 @@ public class UserService {
     @Autowired
     private ResourcePermissionExtractor resourcePermissionExtractor;
 
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder = new SafeBCryptPasswordEncoder();
     private final List<Consumer<PasswordChangeEvent>> postPasswordChangeHooks = new ArrayList<>();
     private final List<Consumer<UserDeleteEvent>> postUserDeleteHooks = new ArrayList<>();
     private final List<Consumer<UserDeleteEvent>> preUserDeleteHooks = new ArrayList<>();
