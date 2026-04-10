@@ -224,9 +224,10 @@ for PREFIX in $JAR_PREFIXES; do
 done
 
 # 重新打包 Fat JAR（不生成 MANIFEST，保留原有的）
+# 重要：必须使用 0 参数（no compression），否则 Spring Boot 无法加载嵌套 JAR
 log_info "Repacking Fat JAR..."
 cd "$WORK_DIR"
-jar cfM "$FAT_JAR_ABS" .
+jar c0fM "$FAT_JAR_ABS" .
 
 log_info "=== Done ==="
 log_info "Results: $SUCCESS_COUNT modified, $SKIP_COUNT skipped, $FAIL_COUNT failed"
