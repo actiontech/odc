@@ -20,9 +20,9 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
- * BCryptPasswordEncoder wrapper that enforces the 72-byte password length limit.
- * Addresses CVE-2025-22228 by explicitly rejecting passwords exceeding BCrypt's
- * maximum input length, rather than silently truncating them.
+ * BCryptPasswordEncoder wrapper that enforces the 72-byte password length limit. Addresses
+ * CVE-2025-22228 by explicitly rejecting passwords exceeding BCrypt's maximum input length, rather
+ * than silently truncating them.
  */
 public class SafeBCryptPasswordEncoder extends BCryptPasswordEncoder {
 

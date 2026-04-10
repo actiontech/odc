@@ -28,8 +28,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
- * Unit tests for {@link SafeBCryptPasswordEncoder}.
- * Uses parameterized tests (map case style) to cover normal, boundary, and exception scenarios.
+ * Unit tests for {@link SafeBCryptPasswordEncoder}. Uses parameterized tests (map case style) to
+ * cover normal, boundary, and exception scenarios.
  */
 @RunWith(Parameterized.class)
 public class SafeBCryptPasswordEncoderTest {
