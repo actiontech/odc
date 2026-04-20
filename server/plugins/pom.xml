@@ -21,6 +21,7 @@
         <module>connect-plugin-oracle</module>
         <module>connect-plugin-postgres</module>
         <module>connect-plugin-sqlserver</module>
+        <module>connect-plugin-dm</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
         <module>schema-plugin-ob-oracle</module>
