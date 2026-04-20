@@ -103,6 +103,8 @@ public class ConnectTypeUtil {
                 return ConnectType.ORACLE;
             case SQL_SERVER:
                 return ConnectType.SQL_SERVER;
+            case DM:
+                return ConnectType.DM;
         }
         return null;
     }
