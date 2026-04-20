@@ -325,6 +325,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         switch (dialectType) {
             case OB_ORACLE:
             case ORACLE:
+            case DM:
                 return "\"" + schema + "\"";
             case OB_MYSQL:
             case MYSQL:
@@ -365,6 +366,11 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(defaultSchema, connectionConfig.getDialectType());
+            case DM:
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return getSchema(defaultSchema, connectionConfig.getDialectType());
+                }
+                return getSchema(getDbUser(connectionConfig), connectionConfig.getDialectType());
             default:
                 return null;
         }
