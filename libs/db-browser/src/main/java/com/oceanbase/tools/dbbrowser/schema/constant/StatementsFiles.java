@@ -45,4 +45,6 @@ public final class StatementsFiles {
 
     public static final String ORACLE_11_g = "schema/sql/oracle/oracle_11g.yaml";
 
+    public static final String DM_8 = "schema/sql/dm/dm_8.yaml";
+
 }
