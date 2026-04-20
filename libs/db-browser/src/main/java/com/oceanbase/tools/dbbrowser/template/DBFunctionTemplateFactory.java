@@ -63,4 +63,9 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
         return new SqlServerFunctionTemplate();
     }
 
+    @Override
+    public DBObjectTemplate<DBFunction> buildForDm() {
+        return buildForOracle();
+    }
+
 }

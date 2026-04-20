@@ -62,4 +62,9 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return new SqlServerTriggerTemplate();
     }
 
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForDm() {
+        return buildForOracle();
+    }
+
 }

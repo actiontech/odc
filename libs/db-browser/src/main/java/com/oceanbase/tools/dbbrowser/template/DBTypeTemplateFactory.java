@@ -61,4 +61,9 @@ public class DBTypeTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBType> buildForDm() {
+        return buildForOracle();
+    }
+
 }

@@ -63,4 +63,9 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         return new SqlServerViewTemplate();
     }
 
+    @Override
+    public DBObjectTemplate<DBView> buildForDm() {
+        return buildForOracle();
+    }
+
 }

@@ -63,4 +63,9 @@ public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjec
         return new SqlServerProcedureTemplate();
     }
 
+    @Override
+    public DBObjectTemplate<DBProcedure> buildForDm() {
+        return buildForOracle();
+    }
+
 }

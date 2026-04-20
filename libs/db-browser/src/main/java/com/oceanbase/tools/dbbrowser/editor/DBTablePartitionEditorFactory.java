@@ -87,4 +87,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         return new SqlServerPartitionEditor();
     }
 
+    @Override
+    public DBTablePartitionEditor buildForDm() {
+        return buildForOracle();
+    }
+
 }

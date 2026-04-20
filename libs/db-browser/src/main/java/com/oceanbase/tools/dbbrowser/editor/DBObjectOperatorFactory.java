@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.dm.DmObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerObjectOperator;
@@ -73,6 +74,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
     @Override
     public DBObjectOperator buildForSqlServer() {
         return new SqlServerObjectOperator(getJdbcOperations());
+    }
+
+    @Override
+    public DBObjectOperator buildForDm() {
+        return new DmObjectOperator(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

@@ -92,6 +92,11 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
                 getTablePartitionEditor());
     }
 
+    @Override
+    public DBTableEditor buildForDm() {
+        return buildForOracle();
+    }
+
     private DBTableIndexEditor getTableIndexEditor() {
         DBTableIndexEditorFactory indexFactory = new DBTableIndexEditorFactory();
         indexFactory.setType(this.type);

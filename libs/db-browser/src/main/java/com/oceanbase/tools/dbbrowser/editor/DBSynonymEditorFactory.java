@@ -62,4 +62,9 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
         return new SqlServerSynonymEditor();
     }
 
+    @Override
+    public DBObjectEditor<DBSynonym> buildForDm() {
+        return buildForOracle();
+    }
+
 }

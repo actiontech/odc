@@ -62,4 +62,9 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
         return new SqlServerSequenceEditor();
     }
 
+    @Override
+    public DBObjectEditor<DBSequence> buildForDm() {
+        return buildForOracle();
+    }
+
 }
