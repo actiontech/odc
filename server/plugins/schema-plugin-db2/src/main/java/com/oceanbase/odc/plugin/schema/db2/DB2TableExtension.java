@@ -16,6 +16,11 @@
 package com.oceanbase.odc.plugin.schema.db2;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.pf4j.Extension;
 
@@ -23,6 +28,7 @@ import com.oceanbase.odc.common.unit.BinarySizeUnit;
 import com.oceanbase.odc.plugin.schema.db2.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLTableExtension;
 import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
+import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBTable;
 import com.oceanbase.tools.dbbrowser.model.DBTableStats;
@@ -33,6 +39,67 @@ import lombok.NonNull;
 
 @Extension
 public class DB2TableExtension extends OBMySQLTableExtension {
+
+    /**
+     * List tables or external tables in a DB2 schema. Uses SYSCAT.TABLES directly to avoid the parent
+     * class's dependency on SqlServerSchemaAccessor.getDatabaseName() which uses SQL Server-specific
+     * syntax not supported by DB2.
+     */
+    @Override
+    public List<DBObjectIdentity> list(@NonNull Connection connection, @NonNull String schemaName,
+            @NonNull DBObjectType tableType) {
+        if (tableType == DBObjectType.TABLE) {
+            List<String> names = listTableNames(connection, schemaName);
+            return names.stream().map(name -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.TABLE);
+                identity.setSchemaName(schemaName);
+                identity.setName(name);
+                return identity;
+            }).collect(Collectors.toList());
+        }
+        throw new IllegalArgumentException("Unsupported table type for DB2: " + tableType);
+    }
+
+    /**
+     * Show table names matching a LIKE pattern in a DB2 schema. Uses SYSCAT.TABLES to avoid the parent
+     * class's dependency on SqlServerSchemaAccessor which uses SQL Server-specific syntax.
+     */
+    @Override
+    public List<String> showNamesLike(@NonNull Connection connection, @NonNull String schemaName,
+            @NonNull String tableNameLike) {
+        String sql = "SELECT TABNAME FROM SYSCAT.TABLES WHERE TABSCHEMA = ? AND TYPE = 'T'"
+                + " AND TABNAME LIKE ? ORDER BY TABNAME";
+        List<String> names = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, schemaName);
+            ps.setString(2, tableNameLike);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    names.add(rs.getString("TABNAME").trim());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to list DB2 tables like '" + tableNameLike + "'", e);
+        }
+        return names;
+    }
+
+    private List<String> listTableNames(Connection connection, String schemaName) {
+        String sql = "SELECT TABNAME FROM SYSCAT.TABLES WHERE TABSCHEMA = ? AND TYPE = 'T' ORDER BY TABNAME";
+        List<String> names = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, schemaName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    names.add(rs.getString("TABNAME").trim());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to list DB2 tables", e);
+        }
+        return names;
+    }
 
     @Override
     public DBTable getDetail(@NonNull Connection connection, @NonNull String schemaName, @NonNull String tableName) {

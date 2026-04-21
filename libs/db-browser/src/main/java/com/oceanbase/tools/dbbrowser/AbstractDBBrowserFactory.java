@@ -46,6 +46,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForPostgres();
             case SQL_SERVER:
                 return buildForSqlServer();
+            case DB2:
+                return buildForDB2();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -66,5 +68,13 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForPostgres();
 
     public abstract T buildForSqlServer();
+
+    /**
+     * Build for DB2. Default implementation falls back to SQL Server accessor since db-browser doesn't
+     * have a dedicated DB2 implementation yet.
+     */
+    public T buildForDB2() {
+        return buildForSqlServer();
+    }
 
 }

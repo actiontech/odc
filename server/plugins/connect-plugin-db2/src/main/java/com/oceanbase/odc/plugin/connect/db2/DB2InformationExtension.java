@@ -16,6 +16,8 @@
 package com.oceanbase.odc.plugin.connect.db2;
 
 import java.sql.Connection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.pf4j.Extension;
 
@@ -28,16 +30,28 @@ import lombok.extern.slf4j.Slf4j;
 @Extension
 public class DB2InformationExtension implements InformationExtensionPoint {
 
+    private static final String DEFAULT_VERSION = "11.5.0";
+    private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)*)");
+
     @Override
     public String getDBVersion(Connection connection) {
         String querySql = "SELECT service_level FROM TABLE(sysproc.env_get_inst_info())";
         try {
-            String version = JdbcOperationsUtil.getJdbcOperations(connection)
+            String raw = JdbcOperationsUtil.getJdbcOperations(connection)
                     .queryForObject(querySql, String.class);
-            return version != null ? version : "11.5.0";
+            if (raw == null) {
+                return DEFAULT_VERSION;
+            }
+            // service_level returns strings like "DB2 v11.5.8.0", extract numeric version
+            Matcher matcher = VERSION_PATTERN.matcher(raw);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+            log.warn("Could not extract numeric version from service_level: {}", raw);
+            return DEFAULT_VERSION;
         } catch (Exception e) {
             log.warn("Failed to get DB2 version, falling back to default", e);
-            return "11.5.0";
+            return DEFAULT_VERSION;
         }
     }
 }

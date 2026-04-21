@@ -25,6 +25,7 @@ public interface DBBrowserFactory<T> {
     String ODP_SHARDING_OB_MYSQL = "ODP_SHARDING_OB_MYSQL";
     String POSTGRESQL = "POSTGRESQL";
     String SQL_SERVER = "SQL_SERVER";
+    String DB2 = "DB2";
 
     T create();
 
