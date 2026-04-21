@@ -66,8 +66,7 @@ public class DmStatsAccessor implements DBStatsAccessor {
                 + "USER_NAME AS USERNAME, "
                 + "CURR_SCH AS DATABASE_NAME, "
                 + "STATE, "
-                + "CLNT_HOST AS HOST, "
-                + "CLNT_PORT AS PORT, "
+                + "CLNT_IP AS HOST, "
                 + "SQL_TEXT AS LATEST_QUERIES, "
                 + "LAST_RECV_TIME AS EXECUTE_TIME "
                 + "FROM V$SESSIONS";
@@ -81,8 +80,7 @@ public class DmStatsAccessor implements DBStatsAccessor {
                 + "USER_NAME AS USERNAME, "
                 + "CURR_SCH AS DATABASE_NAME, "
                 + "STATE, "
-                + "CLNT_HOST AS HOST, "
-                + "CLNT_PORT AS PORT, "
+                + "CLNT_IP AS HOST, "
                 + "SQL_TEXT AS LATEST_QUERIES, "
                 + "LAST_RECV_TIME AS EXECUTE_TIME "
                 + "FROM V$SESSIONS WHERE SESS_ID = SESSID()";
