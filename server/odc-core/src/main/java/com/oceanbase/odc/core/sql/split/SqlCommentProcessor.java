@@ -170,6 +170,8 @@ public class SqlCommentProcessor {
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isSqlServer()) {
                     // TODO: 这里暂时使用MySQL的逻辑，避免抛出异常
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isDm()) {
+                    addLineOracle(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
                 }

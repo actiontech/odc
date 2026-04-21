@@ -128,7 +128,7 @@ public class SqlUtils {
             SqlServerSqlSplitter splitter = new SqlServerSqlSplitter(processor.getDelimiter());
             return splitter.split(sql);
         }
-        if (dialectType.isOracle()
+        if ((dialectType.isOracle() || dialectType.isDm())
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             SqlSplitter sqlSplitter = new SqlSplitter(PlSqlLexer.class, processor.getDelimiter(), false);
             sqlSplitter.setRemoveCommentPrefix(removeCommentPrefix);
