@@ -55,23 +55,45 @@ public class DB2ConnectionExtension extends OBMySQLConnectionExtension {
         jdbcUrl.append("jdbc:db2://").append(host).append(":").append(port)
                 .append("/").append(catalogName);
 
-        // DB2 JDBC URL parameters are appended after the database name with colon separator
+        // DB2 JDBC URL parameters: jdbc:db2://host:port/db:key1=val1;key2=val2;
+        // Each property pair is separated by semicolon, and the list must end with semicolon.
         String parameters = getJdbcUrlParameters(properties.getJdbcParameters());
         if (StringUtils.isNotBlank(parameters)) {
-            jdbcUrl.append(":").append(parameters.replace("&", ";"));
+            String db2Params = parameters.replace("&", ";");
+            if (!db2Params.endsWith(";")) {
+                db2Params += ";";
+            }
+            jdbcUrl.append(":").append(db2Params);
         }
         return jdbcUrl.toString();
     }
 
     @Override
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
-        if (jdbcUrlParams == null) {
-            jdbcUrlParams = new java.util.HashMap<>();
+        // DB2 JDBC driver only accepts DB2-specific parameters.
+        // OBConsoleDataSourceFactory injects MySQL-specific params (allowMultiQueries, autoDeserialize,
+        // etc.)
+        // which cause "Invalid database URL syntax" errors with the DB2 driver.
+        // Filter down to only DB2-compatible parameters.
+        java.util.Set<String> db2AllowedParams = new java.util.HashSet<>(java.util.Arrays.asList(
+                "sslConnection", "sslTrustStoreLocation", "sslTrustStorePassword",
+                "sslKeyStoreLocation", "sslKeyStorePassword",
+                "currentSchema", "retrieveMessagesFromServerOnGetMessage",
+                "loginTimeout", "blockingReadConnectionTimeout",
+                "queryTimeoutInterruptProcessingMode", "enableSysplexWLB",
+                "traceLevel", "traceFile", "traceDirectory"));
+        Map<String, String> filtered = new java.util.HashMap<>();
+        if (jdbcUrlParams != null) {
+            for (Map.Entry<String, String> entry : jdbcUrlParams.entrySet()) {
+                if (db2AllowedParams.contains(entry.getKey())) {
+                    filtered.put(entry.getKey(), entry.getValue());
+                }
+            }
         }
-        if (!jdbcUrlParams.containsKey("sslConnection")) {
-            jdbcUrlParams.put("sslConnection", "false");
+        if (!filtered.containsKey("sslConnection")) {
+            filtered.put("sslConnection", "false");
         }
-        return jdbcUrlParams;
+        return filtered;
     }
 
     @Override
