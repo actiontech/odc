@@ -30,6 +30,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.oceanbase.odc.core.datasource.CloneableDataSourceFactory;
 import com.oceanbase.odc.core.datasource.ConnectionInitializer;
 import com.oceanbase.odc.core.datasource.DataSourceFactory;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.JdbcUrlParser;
 import com.oceanbase.odc.plugin.connect.model.ConnectionPropertiesBuilder;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
@@ -76,12 +77,15 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
     }
 
     private void init(DruidDataSource dataSource) {
-        String validationQuery =
-                getConnectType().getDialectType().isMysql() || getConnectType().getDialectType().isDoris()
-                        || getConnectType().getDialectType().isPostgreSql()
-                        || getConnectType().getDialectType().isSqlServer()
-                                ? "select 1"
-                                : "select 1 from dual";
+        String validationQuery;
+        DialectType dt = getConnectType().getDialectType();
+        if (dt.isMysql() || dt.isDoris() || dt.isPostgreSql() || dt.isSqlServer()) {
+            validationQuery = "select 1";
+        } else if (dt.isDb2()) {
+            validationQuery = "SELECT 1 FROM SYSIBM.SYSDUMMY1";
+        } else {
+            validationQuery = "select 1 from dual";
+        }
         dataSource.setValidationQuery(validationQuery);
         dataSource.setTestWhileIdle(true);
         dataSource.setTimeBetweenEvictionRunsMillis(30000);

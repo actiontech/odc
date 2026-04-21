@@ -55,10 +55,11 @@ public class DBIdentitiesService {
         Map<String, SchemaIdentities> all = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         List<String> existedDatabases = schemaAccessor.showDatabases();
         boolean isSqlServer = session.getDialectType().isSqlServer();
+        boolean isDb2 = session.getDialectType().isDb2();
         if (StringUtils.isNotBlank(schemaName) && !existedDatabases.contains(schemaName)) {
-            // 对于 SQLServer，不预先创建 SchemaIdentities，因为不知道具体的 schema
+            // 对于 SQLServer 和 DB2，不预先创建 SchemaIdentities，因为不知道具体的 schema
             // 对于其他数据库，保持原有逻辑
-            if (!isSqlServer) {
+            if (!isSqlServer && !isDb2) {
                 existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
             }
             return new ArrayList<>(all.values());
@@ -75,10 +76,10 @@ public class DBIdentitiesService {
         if (types.contains(DBObjectType.MATERIALIZED_VIEW)) {
             listMViews(schemaAccessor, schemaName, identityNameLike, all);
         }
-        // 对于 SQLServer，不预先为所有数据库创建空的 SchemaIdentities
-        // 因为 SQLServer 使用 database.schema 格式，我们不知道每个数据库有哪些 schema
+        // 对于 SQLServer 和 DB2，不预先为所有数据库创建空的 SchemaIdentities
+        // 因为 SQLServer 使用 database.schema 格式，DB2 使用 schema 格式
         // 只返回实际有对象的 schema
-        if (!isSqlServer) {
+        if (!isSqlServer && !isDb2) {
             existedDatabases.forEach(db -> all.computeIfAbsent(db, SchemaIdentities::of));
         }
         return new ArrayList<>(all.values());

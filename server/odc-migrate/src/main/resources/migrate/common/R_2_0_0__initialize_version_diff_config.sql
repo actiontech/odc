@@ -276,3 +276,10 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_procedure','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_function','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- support db2 datasource
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('column_data_type', 'DB2',
+'SMALLINT:NUMERIC, INTEGER:NUMERIC, BIGINT:NUMERIC, DECIMAL:NUMERIC, REAL:NUMERIC, DOUBLE:NUMERIC, DECFLOAT:NUMERIC, CHAR:TEXT, VARCHAR:TEXT, CLOB:OBJECT, GRAPHIC:TEXT, VARGRAPHIC:TEXT, DBCLOB:OBJECT, BLOB:OBJECT, DATE:DATE, TIME:TIME, TIMESTAMP:TIMESTAMP, XML:OBJECT, BOOLEAN:NUMERIC', '0', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_session','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_query','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;

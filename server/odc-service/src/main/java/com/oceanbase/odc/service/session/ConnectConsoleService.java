@@ -167,6 +167,9 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
             sqlBuilder = new SqlServerSqlBuilder();
+        } else if (dialectType.isDb2()) {
+            // DB2 uses double-quoted identifiers, same as Oracle
+            sqlBuilder = new OracleSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
@@ -191,6 +194,9 @@ public class ConnectConsoleService {
             }
         } else if (DialectType.ORACLE == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
+        } else if (DialectType.DB2 == connectionSession.getDialectType()) {
+            // DB2 uses FETCH FIRST N ROWS ONLY
+            sqlBuilder.append(" FETCH FIRST ").append(queryLimit.toString()).append(" ROWS ONLY");
         } else if (DialectType.SQL_SERVER != connectionSession.getDialectType()) {
             // SQL Server already uses TOP clause, skip LIMIT
             sqlBuilder.append(" LIMIT ").append(queryLimit.toString());
@@ -261,11 +267,12 @@ public class ConnectConsoleService {
                     StringUtils.length(request.getSql()), maxSqlLength);
         }
 
-        // SQL Server 需要应该通过按行的 GO 进行分割 临时代码放在公共层，后续应当移动到SQLServer适配层
-        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer())
-                ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
-                        sessionProperties.isOracleRemoveCommentPrefix())
-                : Collections.singletonList(new OffsetString(0, request.getSql()));
+        // SQL Server / DB2 需要应该通过分割器进行分割
+        List<OffsetString> sqls = (request.ifSplitSqls() || connectionSession.getDialectType().isSqlServer()
+                || connectionSession.getDialectType().isDb2())
+                        ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
+                                sessionProperties.isOracleRemoveCommentPrefix())
+                        : Collections.singletonList(new OffsetString(0, request.getSql()));
         if (sqls.size() == 0) {
             /**
              * if a sql only contains delimiter setting(eg. delimiter $$), code will do this
