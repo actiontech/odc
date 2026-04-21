@@ -96,6 +96,10 @@ public class OdcConstants {
      * SQL Server driver class name
      */
     public static final String SQL_SERVER_DRIVER_CLASS_NAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    /**
+     * DB2 driver class name
+     */
+    public static final String DB2_DRIVER_CLASS_NAME = "com.ibm.db2.jcc.DB2Driver";
 
     /**
      * Parameters name

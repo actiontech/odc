@@ -30,6 +30,7 @@ public enum DialectType {
     DORIS,
     POSTGRESQL,
     SQL_SERVER,
+    DB2,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -71,6 +72,10 @@ public enum DialectType {
 
     public boolean isSqlServer() {
         return SQL_SERVER == this;
+    }
+
+    public boolean isDb2() {
+        return DB2 == this;
     }
 
 }
