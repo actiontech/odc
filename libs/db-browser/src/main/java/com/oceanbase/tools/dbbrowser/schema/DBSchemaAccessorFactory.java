@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.schema.db2.DB2SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.doris.DorisSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.MySQLNoLessThan5600SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.MySQLNoLessThan5700SchemaAccessor;
@@ -165,6 +166,11 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     @Override
     public DBSchemaAccessor buildForSqlServer() {
         return new SqlServerSchemaAccessor(getJdbcOperations());
+    }
+
+    @Override
+    public DBSchemaAccessor buildForDB2() {
+        return new DB2SchemaAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

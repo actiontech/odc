@@ -18,7 +18,6 @@ package com.oceanbase.odc.plugin.schema.db2.utils;
 import java.sql.Connection;
 
 import com.oceanbase.odc.common.util.JdbcOperationsUtil;
-import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.db2.DB2InformationExtension;
 import com.oceanbase.tools.dbbrowser.DBBrowser;
 import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
@@ -28,14 +27,12 @@ import com.oceanbase.tools.dbbrowser.stats.DBStatsAccessor;
 /**
  * DB2 DB Accessor utility.
  *
- * Note: db-browser library does not natively support DB2 type. As a transitional approach,
- * SQL_SERVER accessor is reused since both are non-MySQL relational databases with similar
- * INFORMATION_SCHEMA patterns. A dedicated DB2SchemaAccessor using SYSCAT views should be
- * implemented when full DB2 metadata support is needed at runtime.
+ * Uses the dedicated DB2 type in db-browser library, which maps to DB2SchemaAccessor and
+ * DB2StatsAccessor using SYSCAT views instead of SQL Server system views.
  */
 public class DBAccessorUtil {
 
-    private static final String FALLBACK_TYPE = DialectType.SQL_SERVER.getDBBrowserDialectTypeName();
+    private static final String DB2_TYPE = "DB2";
 
     public static String getDbVersion(Connection connection) {
         return new DB2InformationExtension().getDBVersion(connection);
@@ -44,20 +41,20 @@ public class DBAccessorUtil {
     public static DBSchemaAccessor getSchemaAccessor(Connection connection) {
         return DBBrowser.schemaAccessor()
                 .setJdbcOperations(JdbcOperationsUtil.getJdbcOperations(connection))
-                .setType(FALLBACK_TYPE).create();
+                .setType(DB2_TYPE).create();
     }
 
     public static DBStatsAccessor getStatsAccessor(Connection connection) {
         return DBBrowser.statsAccessor()
                 .setJdbcOperations(JdbcOperationsUtil.getJdbcOperations(connection))
                 .setDbVersion(getDbVersion(connection))
-                .setType(FALLBACK_TYPE).create();
+                .setType(DB2_TYPE).create();
     }
 
     public static DBTableEditor getTableEditor(Connection connection) {
         return DBBrowser.objectEditor().tableEditor()
                 .setDbVersion(getDbVersion(connection))
-                .setType(FALLBACK_TYPE).create();
+                .setType(DB2_TYPE).create();
     }
 
 }
