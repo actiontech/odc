@@ -98,6 +98,9 @@ public class TableDataService {
             } else if (dialectType.isOracle()) {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
+            } else if (dialectType.isDb2()) {
+                dmlBuilder =
+                        new DB2DMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else {
                 throw new IllegalArgumentException("Illegal dialect type, " + dialectType);
             }
