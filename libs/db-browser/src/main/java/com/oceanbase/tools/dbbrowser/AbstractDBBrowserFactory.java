@@ -46,6 +46,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForPostgres();
             case SQL_SERVER:
                 return buildForSqlServer();
+            case DM:
+                return buildForDm();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -66,5 +68,7 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForPostgres();
 
     public abstract T buildForSqlServer();
+
+    public abstract T buildForDm();
 
 }

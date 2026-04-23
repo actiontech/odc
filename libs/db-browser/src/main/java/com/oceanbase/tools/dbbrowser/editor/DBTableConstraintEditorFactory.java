@@ -82,4 +82,9 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
         return new SqlServerConstraintEditor();
     }
 
+    @Override
+    public DBTableConstraintEditor buildForDm() {
+        return buildForOracle();
+    }
+
 }

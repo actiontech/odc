@@ -74,6 +74,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         throw new UnsupportedOperationException("Not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBPackage> buildForDm() {
+        return buildForOracle();
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

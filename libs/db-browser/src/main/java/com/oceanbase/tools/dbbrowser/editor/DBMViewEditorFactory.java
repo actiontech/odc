@@ -76,6 +76,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         return new SqlServerMViewEditor(getMViewIndexEditor());
     }
 
+    @Override
+    public DBMViewEditor buildForDm() {
+        return buildForOracle();
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

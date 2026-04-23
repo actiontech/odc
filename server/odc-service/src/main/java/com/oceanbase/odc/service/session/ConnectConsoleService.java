@@ -107,6 +107,7 @@ import com.oceanbase.odc.service.session.util.SqlRewriteUtil;
 import com.oceanbase.tools.dbbrowser.parser.result.BasicResult;
 import com.oceanbase.tools.dbbrowser.parser.result.ParseSqlResult;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.util.DmSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
@@ -163,6 +164,8 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isOracle()) {
             sqlBuilder = new OracleSqlBuilder();
+        } else if (dialectType.isDm()) {
+            sqlBuilder = new DmSqlBuilder();
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
@@ -189,7 +192,8 @@ public class ConnectConsoleService {
             } else {
                 sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
             }
-        } else if (DialectType.ORACLE == connectionSession.getDialectType()) {
+        } else if (DialectType.ORACLE == connectionSession.getDialectType()
+                || DialectType.DM == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
         } else if (DialectType.SQL_SERVER != connectionSession.getDialectType()) {
             // SQL Server already uses TOP clause, skip LIMIT

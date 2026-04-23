@@ -96,6 +96,11 @@ public class OdcConstants {
      * SQL Server driver class name
      */
     public static final String SQL_SERVER_DRIVER_CLASS_NAME = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    /**
+     * DM (达梦) driver class name
+     */
+    public static final String DM_DRIVER_CLASS_NAME = "dm.jdbc.driver.DmDriver";
+    public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
 
     /**
      * Parameters name

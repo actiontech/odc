@@ -67,4 +67,9 @@ public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTem
     public DBObjectTemplate<DBMaterializedView> buildForSqlServer() {
         throw new UnsupportedOperationException("not support yet");
     }
+
+    @Override
+    public DBObjectTemplate<DBMaterializedView> buildForDm() {
+        return buildForOracle();
+    }
 }

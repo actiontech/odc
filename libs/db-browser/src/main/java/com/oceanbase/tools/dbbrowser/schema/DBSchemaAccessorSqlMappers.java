@@ -57,7 +57,8 @@ public class DBSchemaAccessorSqlMappers {
                 StatementsFiles.OBORACLE_4_0_x,
                 StatementsFiles.OBORACLE_4_1_x,
                 StatementsFiles.OBORACLE_4_3_2_x,
-                StatementsFiles.ORACLE_11_g));
+                StatementsFiles.ORACLE_11_g,
+                StatementsFiles.DM_8));
         for (String path : SQL_MAPPER_FILE_PATHS) {
             URL url = DBSchemaAccessorSqlMappers.class.getClassLoader().getResource(path);
             if (url == null) {

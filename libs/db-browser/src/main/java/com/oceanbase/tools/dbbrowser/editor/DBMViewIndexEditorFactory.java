@@ -66,4 +66,9 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     public DBTableIndexEditor buildForSqlServer() {
         return new SqlServerIndexEditor();
     }
+
+    @Override
+    public DBTableIndexEditor buildForDm() {
+        return buildForOracle();
+    }
 }

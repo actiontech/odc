@@ -62,4 +62,9 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
         return new SqlServerColumnEditor();
     }
 
+    @Override
+    public DBTableColumnEditor buildForDm() {
+        return buildForOracle();
+    }
+
 }
