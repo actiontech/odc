@@ -30,14 +30,12 @@ import com.oceanbase.odc.plugin.connect.model.JdbcUrlProperty;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.Jedis;
 
 /**
- * Redis connection extension that handles connection testing via Jedis.
- * Redis does not use JDBC, so generateJdbcUrl returns a redis:// URI
- * and getDriverClassName returns an empty string.
+ * Redis connection extension that handles connection testing via Jedis. Redis does not use JDBC, so
+ * generateJdbcUrl returns a redis:// URI and getDriverClassName returns an empty string.
  */
 @Slf4j
 @Extension

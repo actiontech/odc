@@ -217,6 +217,16 @@ public class ConnectSessionService {
 
     public CreateSessionResp createByDataSourceId(@NotNull Long dataSourceId) {
         ConnectionSession session = create(dataSourceId, null);
+        // Redis sessions do not use JDBC, skip JDBC-dependent metadata queries
+        if (session.getDialectType().isRedis()) {
+            return CreateSessionResp.builder()
+                    .sessionId(session.getId())
+                    .supports(Collections.emptyList())
+                    .dataTypeUnits(Collections.emptyList())
+                    .charsets(Collections.emptyList())
+                    .collations(Collections.emptyList())
+                    .build();
+        }
         return CreateSessionResp.builder()
                 .sessionId(session.getId())
                 .supports(configService.getSupportFeatures(session))
@@ -290,8 +300,12 @@ public class ConnectSessionService {
         ConnectionConfig connection = connectionService.getForConnectionSkipPermissionCheck(dataSourceId);
         cloudMetadataClient.checkPermission(OBTenant.of(connection.getClusterName(),
                 connection.getTenantName()), connection.getInstanceType(), false, CloudPermissionAction.READONLY);
-        PreConditions.validArgumentState(Objects.nonNull(connection.getPassword()),
-                ErrorCodes.ConnectionPasswordMissed, null, "password required for connection without password saved");
+        // Redis connections may not require a password (authentication is optional)
+        if (!connection.getDialectType().isRedis()) {
+            PreConditions.validArgumentState(Objects.nonNull(connection.getPassword()),
+                    ErrorCodes.ConnectionPasswordMissed, null,
+                    "password required for connection without password saved");
+        }
         if (StringUtils.isNotBlank(schemaName) && connection.getDialectType().isOracle()) {
             schemaName = com.oceanbase.odc.common.util.StringUtils.quoteOracleIdentifier(schemaName);
         }

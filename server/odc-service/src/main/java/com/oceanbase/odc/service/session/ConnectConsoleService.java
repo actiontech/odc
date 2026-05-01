@@ -487,9 +487,8 @@ public class ConnectConsoleService {
     }
 
     /**
-     * Execute a Redis command bypassing the JDBC execution path.
-     * Redis commands are sent directly via Jedis and results are wrapped
-     * into the standard ODC async execution format.
+     * Execute a Redis command bypassing the JDBC execution path. Redis commands are sent directly via
+     * Jedis and results are wrapped into the standard ODC async execution format.
      */
     private SqlAsyncExecuteResp executeRedisCommand(ConnectionSession connectionSession,
             SqlAsyncExecuteReq request) throws Exception {
@@ -522,8 +521,8 @@ public class ConnectConsoleService {
     }
 
     /**
-     * Execute a Redis command string via Jedis and return the result as a string.
-     * The command string is parsed into command name + arguments.
+     * Execute a Redis command string via Jedis and return the result as a string. The command string is
+     * parsed into command name + arguments.
      */
     private String executeRedisViaJedis(ConnectionConfig config, String commandStr) {
         String host = config.getHost();

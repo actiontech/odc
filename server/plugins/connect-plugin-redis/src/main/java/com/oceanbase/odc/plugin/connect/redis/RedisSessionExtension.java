@@ -26,9 +26,8 @@ import com.oceanbase.odc.plugin.connect.model.DBClientInfo;
 import lombok.NonNull;
 
 /**
- * Redis session extension. Redis does not support most session
- * operations (schema switching, variable queries, kill query, etc.),
- * so this implementation provides no-op defaults.
+ * Redis session extension. Redis does not support most session operations (schema switching,
+ * variable queries, kill query, etc.), so this implementation provides no-op defaults.
  */
 @Extension
 public class RedisSessionExtension implements SessionExtensionPoint {
