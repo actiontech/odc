@@ -33,6 +33,7 @@ public enum ConnectType {
     POSTGRESQL(DialectType.POSTGRESQL),
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
+    REDIS(DialectType.REDIS),
 
     // reserved for future version
     ODP_SHARDING_OB_ORACLE(DialectType.OB_ORACLE),

@@ -160,6 +160,9 @@ public class ConnectConsoleService {
         ConnectionSession connectionSession = sessionService.nullSafeGet(sessionId, true);
         SqlBuilder sqlBuilder;
         DialectType dialectType = connectionSession.getConnectType().getDialectType();
+        if (dialectType.isRedis()) {
+            throw new BadRequestException("Table/view data query is not supported for Redis connections");
+        }
         if (dialectType.isMysql()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isOracle()) {
@@ -258,6 +261,10 @@ public class ConnectConsoleService {
         ConnectionSession connectionSession = sessionService.nullSafeGet(sessionId, true);
         if (ConnectionSessionUtil.isLogicalSession(connectionSession)) {
             return new SqlAsyncExecuteResp(true);
+        }
+        // Redis commands bypass the JDBC execution path entirely
+        if (connectionSession.getDialectType().isRedis()) {
+            return executeRedisCommand(connectionSession, request);
         }
         long maxSqlLength = sessionProperties.getMaxSqlLength();
         if (maxSqlLength > 0) {
@@ -480,6 +487,131 @@ public class ConnectConsoleService {
     }
 
     /**
+     * Execute a Redis command bypassing the JDBC execution path.
+     * Redis commands are sent directly via Jedis and results are wrapped
+     * into the standard ODC async execution format.
+     */
+    private SqlAsyncExecuteResp executeRedisCommand(ConnectionSession connectionSession,
+            SqlAsyncExecuteReq request) throws Exception {
+        String command = request.getSql();
+        SqlTuple sqlTuple = SqlTuple.newTuple(command);
+        AsyncExecuteContext executeContext =
+                new AsyncExecuteContext(Collections.singletonList(sqlTuple), new HashMap<>());
+
+        // Get connection config from session to build Redis connection
+        ConnectionConfig connConfig =
+                (ConnectionConfig) ConnectionSessionUtil.getConnectionConfig(connectionSession);
+
+        JdbcGeneralResult generalResult;
+        try {
+            String redisResult = executeRedisViaJedis(connConfig, command);
+            generalResult = JdbcGeneralResult.successResult(sqlTuple);
+            // Store the Redis result as dbmsOutput so it appears in the result
+            generalResult.setDbmsOutput(redisResult);
+        } catch (Exception e) {
+            generalResult = JdbcGeneralResult.failedResult(sqlTuple, e);
+        }
+
+        Future<List<JdbcGeneralResult>> future = FutureResult.successResultList(generalResult);
+        executeContext.setFuture(future);
+        executeContext.addSqlExecutionResults(future.get());
+        String id = ConnectionSessionUtil.setExecuteContext(connectionSession, executeContext);
+        SqlAsyncExecuteResp response = SqlAsyncExecuteResp.newSqlAsyncExecuteResp(
+                id, Collections.singletonList(sqlTuple));
+        return response;
+    }
+
+    /**
+     * Execute a Redis command string via Jedis and return the result as a string.
+     * The command string is parsed into command name + arguments.
+     */
+    private String executeRedisViaJedis(ConnectionConfig config, String commandStr) {
+        String host = config.getHost();
+        int port = config.getPort() != null ? config.getPort() : 6379;
+        String user = config.getUsername();
+        String password = config.getPassword();
+
+        redis.clients.jedis.DefaultJedisClientConfig.Builder configBuilder =
+                redis.clients.jedis.DefaultJedisClientConfig.builder()
+                        .connectionTimeoutMillis(5000)
+                        .socketTimeoutMillis(10000);
+
+        if (password != null && !password.isEmpty()) {
+            configBuilder.password(password);
+        }
+        if (user != null && !user.isEmpty()) {
+            configBuilder.user(user);
+        }
+
+        // Parse the default schema as DB index
+        String defaultSchema = config.getDefaultSchema();
+        if (defaultSchema != null && !defaultSchema.isEmpty()) {
+            try {
+                int dbIndex = Integer.parseInt(defaultSchema);
+                configBuilder.database(dbIndex);
+            } catch (NumberFormatException e) {
+                // ignore non-numeric schema
+            }
+        }
+
+        try (redis.clients.jedis.Jedis jedis =
+                new redis.clients.jedis.Jedis(host, port, configBuilder.build())) {
+            // Parse command string into parts
+            String trimmed = commandStr.trim();
+            if (trimmed.isEmpty()) {
+                return "(empty command)";
+            }
+            String[] parts = trimmed.split("\\s+");
+            String cmd = parts[0].toUpperCase();
+            String[] args = new String[parts.length - 1];
+            System.arraycopy(parts, 1, args, 0, args.length);
+
+            // Execute via sendCommand using raw protocol
+            redis.clients.jedis.Protocol.Command redisCmd;
+            try {
+                redisCmd = redis.clients.jedis.Protocol.Command.valueOf(cmd);
+            } catch (IllegalArgumentException e) {
+                // Try using raw command for unknown commands
+                Object rawResult = jedis.sendCommand(() -> cmd.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        args);
+                return formatRedisResult(rawResult);
+            }
+            Object result = jedis.sendCommand(redisCmd, args);
+            return formatRedisResult(result);
+        }
+    }
+
+    /**
+     * Format a Redis response object into a human-readable string.
+     */
+    private String formatRedisResult(Object result) {
+        if (result == null) {
+            return "(nil)";
+        }
+        if (result instanceof byte[]) {
+            return new String((byte[]) result, java.nio.charset.StandardCharsets.UTF_8);
+        }
+        if (result instanceof Long) {
+            return "(integer) " + result;
+        }
+        if (result instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) result;
+            if (list.isEmpty()) {
+                return "(empty list or set)";
+            }
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < list.size(); i++) {
+                sb.append(i + 1).append(") ").append(formatRedisResult(list.get(i)));
+                if (i < list.size() - 1) {
+                    sb.append("\n");
+                }
+            }
+            return sb.toString();
+        }
+        return result.toString();
+    }
+
+    /**
      * Rewrite sqls, will do <br>
      * 1. add ODC_INTERNAL_ROWID query column
      */
@@ -563,6 +695,10 @@ public class ConnectConsoleService {
     private SqlExecuteResult generateResult(@NonNull ConnectionSession connectionSession,
             @NonNull JdbcGeneralResult generalResult, @NonNull Map<String, Object> cxt) {
         SqlExecuteResult result = new SqlExecuteResult(generalResult);
+        if (connectionSession.getDialectType().isRedis()) {
+            // Redis results don't need SQL type parsing, editable info, or column info
+            return result;
+        }
         TraceWatch watch = generalResult.getSqlTuple().getSqlWatch();
         OdcTable resultTable = null;
         DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);

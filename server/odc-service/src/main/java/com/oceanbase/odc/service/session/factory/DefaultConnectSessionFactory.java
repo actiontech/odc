@@ -103,6 +103,12 @@ public class DefaultConnectSessionFactory implements ConnectionSessionFactory {
     @Override
     public ConnectionSession generateSession() {
         ConnectionSession session = createSession();
+        if (connectionConfig.getDialectType().isRedis()) {
+            // Redis does not use JDBC DataSources. Skip DataSource registration
+            // but still store connection config in the session for later use.
+            ConnectionSessionUtil.setConnectionConfig(session, connectionConfig);
+            return session;
+        }
         registerSysDataSource(session);
         registerConsoleDataSource(session);
         registerBackendDataSource(session);

@@ -109,6 +109,9 @@ public class ConnectionTesting {
         if (type.isFileSystem()) {
             return fileSystemConnectionTesting.test(config);
         }
+        if (type != null && type.getDialectType().isRedis()) {
+            return testRedisConnection(config);
+        }
         try {
             /**
              * 进行连接测试时需要关注的值有一个 {@link ConnectType}， 容易产生问题信息主要是两个：{@code username}, {@code defaultSchema} 首先分析
@@ -161,6 +164,9 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isRedis()) {
+                // Redis test is handled above; should not reach here
+                schema = null;
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }
@@ -224,6 +230,28 @@ public class ConnectionTesting {
         return ConnectionPropertiesBuilder.getBuilder().user(OBConsoleDataSourceFactory.getUsername(config))
                 .password(OBConsoleDataSourceFactory.getPassword(config)).userRole(config.getUserRole())
                 .build();
+    }
+
+    private ConnectionTestResult testRedisConnection(ConnectionConfig config) {
+        try {
+            ConnectionExtensionPoint connectionExtensionPoint =
+                    ConnectionPluginUtil.getConnectionExtension(DialectType.REDIS);
+            JdbcUrlProperty urlProperties = new JdbcUrlProperty(config.getHost(), config.getPort(),
+                    null, null, null, null, null);
+            String url = connectionExtensionPoint.generateJdbcUrl(urlProperties);
+            Properties props = new Properties();
+            if (config.getUsername() != null) {
+                props.setProperty("user", config.getUsername());
+            }
+            String password = OBConsoleDataSourceFactory.getPassword(config);
+            if (password != null) {
+                props.setProperty("password", password);
+            }
+            TestResult result = connectionExtensionPoint.test(url, props, queryTimeoutSeconds, null);
+            return new ConnectionTestResult(result, config.getType());
+        } catch (Exception e) {
+            return new ConnectionTestResult(TestResult.unknownError(e), null);
+        }
     }
 
     private ConnectionConfig reqToConnectionConfig(TestConnectionReq req) {
