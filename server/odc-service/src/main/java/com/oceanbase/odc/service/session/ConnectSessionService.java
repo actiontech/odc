@@ -102,6 +102,7 @@ import com.oceanbase.odc.service.session.factory.DefaultConnectSessionFactory;
 import com.oceanbase.odc.service.session.factory.DefaultConnectSessionIdGenerator;
 import com.oceanbase.odc.service.session.factory.LogicalConnectionSessionFactory;
 import com.oceanbase.odc.service.session.factory.StateHostGenerator;
+import com.oceanbase.odc.service.session.model.SessionSettings;
 import com.oceanbase.tools.dbbrowser.model.DBSession;
 
 import lombok.NonNull;
@@ -538,6 +539,17 @@ public class ConnectSessionService {
 
     public DBSessionResp currentDBSession(@NotNull String sessionId) {
         ConnectionSession connectionSession = nullSafeGet(SidUtils.getSessionId(sessionId), true);
+        // Redis sessions do not use JDBC; return minimal response
+        if (connectionSession.getDialectType().isRedis()) {
+            SessionSettings settings = new SessionSettings();
+            settings.setAutocommit(false);
+            settings.setDelimiter(ConnectionSessionUtil.getSqlCommentProcessor(connectionSession).getDelimiter());
+            settings.setQueryLimit(ConnectionSessionUtil.getQueryLimit(connectionSession));
+            return DBSessionResp.builder()
+                    .settings(settings)
+                    .session(null)
+                    .build();
+        }
         DBSession dbSession = dbSessionService.currentSession(connectionSession);
         DBSessionRespDelegate dbSessionRespDelegate = DBSessionRespDelegate.of(dbSession);
         if (dbSessionRespDelegate != null) {
