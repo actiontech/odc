@@ -601,6 +601,13 @@ public class DatabaseService {
             if (connection.getType().isFileSystem()) {
                 return true;
             }
+            // Redis does not use JDBC; sync DB 0-15 entries directly
+            if (connection.getDialectType() != null && connection.getDialectType().isRedis()) {
+                syncRedisDataSources(connection);
+                connectionSyncHistoryService.upsert(connection.getId(), ConnectionSyncResult.SUCCESS,
+                        connection.getOrganizationId(), null, null);
+                return true;
+            }
             horizontalDataPermissionValidator.checkCurrentOrganization(connection);
             organizationOpt = organizationService.get(connection.getOrganizationId());
             Organization organization =
@@ -738,6 +745,81 @@ public class DatabaseService {
                     log.warn("Failed to close datasource, errorMessgae={}", e.getMessage());
                 }
             }
+        }
+    }
+
+    /**
+     * Sync Redis databases (DB 0-15) without JDBC. Redis does not use JDBC drivers, so we create
+     * database entries directly for each Redis DB index.
+     */
+    private void syncRedisDataSources(ConnectionConfig connection) {
+        Long currentProjectId = connection.getProjectId();
+        int redisDbCount = 16; // Redis supports DB 0-15 by default
+        List<DatabaseEntity> latestDatabases = new ArrayList<>();
+        for (int i = 0; i < redisDbCount; i++) {
+            DatabaseEntity entity = new DatabaseEntity();
+            entity.setDatabaseId(com.oceanbase.odc.common.util.StringUtils.uuid());
+            entity.setConnectType(connection.getType());
+            entity.setExisted(Boolean.TRUE);
+            entity.setName(String.valueOf(i));
+            entity.setCharsetName(null);
+            entity.setCollationName(null);
+            entity.setTableCount(0L);
+            entity.setOrganizationId(connection.getOrganizationId());
+            entity.setEnvironmentId(connection.getEnvironmentId());
+            entity.setConnectionId(connection.getId());
+            entity.setSyncStatus(DatabaseSyncStatus.SUCCEEDED);
+            entity.setProjectId(currentProjectId);
+            entity.setObjectSyncStatus(DBObjectSyncStatus.INITIALIZED);
+            entity.setLastSyncTime(new Date(System.currentTimeMillis()));
+            latestDatabases.add(entity);
+        }
+
+        List<DatabaseEntity> existedDatabasesInDb =
+                databaseRepository.findByConnectionId(connection.getId()).stream()
+                        .filter(DatabaseEntity::getExisted).collect(Collectors.toList());
+        Set<String> existedDatabaseNames = existedDatabasesInDb.stream()
+                .map(DatabaseEntity::getName).collect(Collectors.toSet());
+
+        List<Object[]> toAdd = latestDatabases.stream()
+                .filter(database -> !existedDatabaseNames.contains(database.getName()))
+                .map(database -> new Object[] {
+                        database.getDatabaseId(),
+                        database.getOrganizationId(),
+                        database.getName(),
+                        database.getProjectId(),
+                        database.getConnectionId(),
+                        database.getEnvironmentId(),
+                        database.getSyncStatus().name(),
+                        database.getCharsetName(),
+                        database.getCollationName(),
+                        database.getTableCount(),
+                        database.getExisted(),
+                        database.getObjectSyncStatus().name(),
+                        database.getConnectType().name(),
+                        database.getLastSyncTime()
+                }).collect(Collectors.toList());
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        if (CollectionUtils.isNotEmpty(toAdd)) {
+            jdbcTemplate.batchUpdate(
+                    "insert into connect_database(database_id, organization_id, name, project_id, connection_id, environment_id, sync_status, charset_name, collation_name, table_count, is_existed, object_sync_status, connect_type, last_sync_time) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    toAdd);
+            log.info("Synced {} Redis databases for connection id={}", toAdd.size(), connection.getId());
+        }
+
+        // Update existing entries' last_sync_time
+        Set<String> latestDatabaseNames = latestDatabases.stream()
+                .map(DatabaseEntity::getName).collect(Collectors.toSet());
+        List<Object[]> toUpdate = existedDatabasesInDb.stream()
+                .filter(database -> latestDatabaseNames.contains(database.getName()))
+                .map(database -> new Object[] {currentProjectId, new Date(System.currentTimeMillis()),
+                        database.getId()})
+                .collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(toUpdate)) {
+            jdbcTemplate.batchUpdate(
+                    "update connect_database set project_id=?, last_sync_time=? where id = ?",
+                    toUpdate);
         }
     }
 
