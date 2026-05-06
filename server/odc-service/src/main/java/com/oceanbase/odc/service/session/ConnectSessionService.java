@@ -239,6 +239,16 @@ public class ConnectSessionService {
     @SkipAuthorize("check permission internally")
     public CreateSessionResp createByDatabaseId(@NotNull Long databaseId) {
         ConnectionSession session = create(null, databaseId);
+        // Redis sessions do not use JDBC, skip JDBC-dependent metadata queries
+        if (session.getDialectType().isRedis()) {
+            return CreateSessionResp.builder()
+                    .sessionId(session.getId())
+                    .supports(Collections.emptyList())
+                    .dataTypeUnits(Collections.emptyList())
+                    .charsets(Collections.emptyList())
+                    .collations(Collections.emptyList())
+                    .build();
+        }
         if (ConnectionSessionUtil.isLogicalSession(session)) {
             Long dataSourceId = logicalDatabaseService.listDataSourceIds(databaseId).stream().findFirst()
                     .orElseThrow(() -> new NotFoundException(ResourceType.ODC_DATABASE, "ID", databaseId));
