@@ -24,6 +24,11 @@ import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerProcedureTempla
 public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBProcedure>> {
 
     @Override
+    public DBObjectTemplate<DBProcedure> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBProcedure> buildForDoris() {
         return new MySQLProcedureTemplate();
     }

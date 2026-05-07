@@ -35,6 +35,11 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
     private String dbVersion;
 
     @Override
+    public DBTableEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBTableEditor buildForDoris() {
         return buildForMySQL();
     }

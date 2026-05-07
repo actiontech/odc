@@ -23,6 +23,11 @@ import com.oceanbase.tools.dbbrowser.model.DBSynonym;
 public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEditor<DBSynonym>> {
 
     @Override
+    public DBObjectEditor<DBSynonym> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectEditor<DBSynonym> buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

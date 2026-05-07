@@ -34,7 +34,9 @@ public class RestrictAutoIncrementUnsignedFactory implements SqlCheckRuleFactory
     @Override
     public SqlCheckRule generate(@NonNull SqlCheckRuleContext sqlCheckRuleContext) {
         DialectType dialectType = sqlCheckRuleContext.getDialectType();
-        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLRestrictAutoIncrementUnsigned() : null;
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb())
+                ? new MySQLRestrictAutoIncrementUnsigned()
+                : null;
     }
 
 }

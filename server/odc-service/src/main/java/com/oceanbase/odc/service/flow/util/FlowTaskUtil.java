@@ -372,8 +372,8 @@ public class FlowTaskUtil {
             taskConfig.setLogDir(taskId + "");
             taskConfig.setDialectType(session.getDialectType().isMysql() || session.getDialectType().isDoris()
                     || session.getDialectType().isTidb()
-                    ? ObModeType.OB_MYSQL
-                    : ObModeType.OB_ORACLE);
+                            ? ObModeType.OB_MYSQL
+                            : ObModeType.OB_ORACLE);
             List<MockTableConfig> tableConfigList = taskConfig.getTables();
             PreConditions.notEmpty(tableConfigList, "tasks"); // table config list can not be null or empty
 

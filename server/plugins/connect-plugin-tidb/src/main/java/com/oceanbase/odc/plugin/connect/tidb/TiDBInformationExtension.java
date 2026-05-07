@@ -52,9 +52,7 @@ public class TiDBInformationExtension implements InformationExtensionPoint {
     }
 
     /**
-     * Parse TiDB version string.
-     * Input format: "5.7.25-TiDB-v8.1.0"
-     * Output: "8.1.0"
+     * Parse TiDB version string. Input format: "5.7.25-TiDB-v8.1.0" Output: "8.1.0"
      *
      * Fallback: if no "-TiDB-v" marker, split by "-" and take the first segment.
      */

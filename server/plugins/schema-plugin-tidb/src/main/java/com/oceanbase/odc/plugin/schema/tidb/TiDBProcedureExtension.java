@@ -17,8 +17,8 @@ package com.oceanbase.odc.plugin.schema.tidb;
 
 import java.sql.Connection;
 
-import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLProcedureExtension;
+import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
 public class TiDBProcedureExtension extends OBMySQLProcedureExtension {

@@ -24,6 +24,11 @@ import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerFunctionTemplat
 public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBFunction>> {
 
     @Override
+    public DBObjectTemplate<DBFunction> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBFunction> buildForDoris() {
         return new MySQLFunctionTemplate();
     }

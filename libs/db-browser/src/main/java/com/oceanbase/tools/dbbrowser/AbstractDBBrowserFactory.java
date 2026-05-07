@@ -36,6 +36,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForMySQL();
             case DORIS:
                 return buildForDoris();
+            case TIDB:
+                return buildForTidb();
             case OB_ORACLE:
                 return buildForOBOracle();
             case OB_MYSQL:
@@ -54,6 +56,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     }
 
     public abstract T buildForDoris();
+
+    public abstract T buildForTidb();
 
     public abstract T buildForMySQL();
 

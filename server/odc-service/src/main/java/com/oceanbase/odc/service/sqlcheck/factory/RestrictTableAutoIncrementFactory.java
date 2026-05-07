@@ -44,6 +44,8 @@ public class RestrictTableAutoIncrementFactory implements SqlCheckRuleFactory {
         } else {
             initValue = Integer.parseInt(parameters.get(key).toString());
         }
-        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLRestrictTableAutoIncrement(initValue) : null;
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb())
+                ? new MySQLRestrictTableAutoIncrement(initValue)
+                : null;
     }
 }

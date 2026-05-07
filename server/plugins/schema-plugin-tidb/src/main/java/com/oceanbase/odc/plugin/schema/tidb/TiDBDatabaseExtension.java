@@ -20,8 +20,8 @@ import java.sql.Connection;
 import org.pf4j.Extension;
 
 import com.oceanbase.odc.common.util.JdbcOperationsUtil;
-import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLDatabaseExtension;
+import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;

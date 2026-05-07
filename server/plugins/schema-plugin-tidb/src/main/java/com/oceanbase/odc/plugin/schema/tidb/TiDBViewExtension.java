@@ -19,8 +19,8 @@ import java.sql.Connection;
 
 import org.pf4j.Extension;
 
-import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLViewExtension;
+import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
 @Extension

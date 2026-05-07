@@ -17,8 +17,8 @@ package com.oceanbase.odc.plugin.schema.tidb;
 
 import java.sql.Connection;
 
-import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLColumnExtension;
+import com.oceanbase.odc.plugin.schema.tidb.utils.DBAccessorUtil;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
 public class TiDBColumnExtension extends OBMySQLColumnExtension {

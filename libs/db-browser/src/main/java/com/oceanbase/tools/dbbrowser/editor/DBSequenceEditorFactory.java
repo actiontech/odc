@@ -23,6 +23,11 @@ import com.oceanbase.tools.dbbrowser.model.DBSequence;
 public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEditor<DBSequence>> {
 
     @Override
+    public DBObjectEditor<DBSequence> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectEditor<DBSequence> buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

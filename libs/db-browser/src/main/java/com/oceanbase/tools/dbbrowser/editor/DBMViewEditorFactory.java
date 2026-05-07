@@ -37,6 +37,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
     private String dbVersion;
 
     @Override
+    public DBMViewEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBMViewEditor buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

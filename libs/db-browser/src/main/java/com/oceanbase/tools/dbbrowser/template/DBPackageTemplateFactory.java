@@ -35,6 +35,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     private JdbcOperations jdbcOperations;
 
     @Override
+    public DBObjectTemplate<DBPackage> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBPackage> buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }
