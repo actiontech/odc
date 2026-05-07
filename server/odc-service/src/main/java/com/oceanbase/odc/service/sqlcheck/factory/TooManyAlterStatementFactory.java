@@ -45,7 +45,7 @@ public class TooManyAlterStatementFactory implements SqlCheckRuleFactory {
         } else {
             max = Integer.parseInt(parameters.get(key).toString());
         }
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLTooManyAlterStatement(max)
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLTooManyAlterStatement(max)
                 : new OracleTooManyAlterStatement(max);
     }
 

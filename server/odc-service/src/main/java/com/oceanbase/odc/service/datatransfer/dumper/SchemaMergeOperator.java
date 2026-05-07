@@ -114,7 +114,7 @@ public class SchemaMergeOperator {
         this.dialectType = dialectType;
         this.exportOutput = exportOutput;
         this.schemaName =
-                (dialectType.isMysql() || dialectType.isDoris()) ? StringUtils.unquoteMySqlIdentifier(schemaName)
+                (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? StringUtils.unquoteMySqlIdentifier(schemaName)
                         : StringUtils.unquoteOracleIdentifier(schemaName);
         this.objectMap = getSchemaFileIdentifiers();
     }
@@ -233,7 +233,7 @@ public class SchemaMergeOperator {
 
         private void findReferenceTables(SchemaFileIdentifier tableIdentifier, String content) {
             ParseSqlResult result;
-            if (dialectType.isMysql() || dialectType.isDoris()) {
+            if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
                 result = SqlParser.parseMysql(content);
             } else {
                 result = SqlParser.parseOracle(content);

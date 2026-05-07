@@ -144,6 +144,9 @@ public class DBPLService {
         if (Objects.nonNull(session.getDialectType()) && session.getDialectType().isDoris()) {
             throw new UnsupportedException("Batch compile is not supported in doris mode");
         }
+        if (Objects.nonNull(session.getDialectType()) && session.getDialectType().isTidb()) {
+            throw new UnsupportedException("Batch compile is not supported in tidb mode");
+        }
         Validate.notNull(req.getScope(), "Parameter [scope] can not be null");
         List<DBPLObjectIdentity> identities = getPLList(session, req.getObjectType(), "INVALID".equals(req.getScope()));
         Set<String> plNamesSet = new HashSet<>();
@@ -178,6 +181,9 @@ public class DBPLService {
         }
         if (Objects.nonNull(session.getDialectType()) && session.getDialectType().isDoris()) {
             throw new UnsupportedException("Batch compile is not supported in doris mode");
+        }
+        if (Objects.nonNull(session.getDialectType()) && session.getDialectType().isTidb()) {
+            throw new UnsupportedException("Batch compile is not supported in tidb mode");
         }
         BatchCompileTaskCallable taskCallable = new BatchCompileTaskCallable(session, identities);
         Future<BatchCompileResp> handle;
@@ -233,6 +239,8 @@ public class DBPLService {
         } else if (session.getDialectType().isMysql()) {
             result = PLParser.parseObMysql(ddl);
         } else if (session.getDialectType().isDoris()) {
+            result = PLParser.parseObMysql(ddl);
+        } else if (session.getDialectType().isTidb()) {
             result = PLParser.parseObMysql(ddl);
         } else {
             throw new UnsupportedException(

@@ -371,6 +371,7 @@ public class FlowTaskUtil {
             MockTaskConfig taskConfig = mapper.readValue(mapper.writeValueAsString(map), MockTaskConfig.class);
             taskConfig.setLogDir(taskId + "");
             taskConfig.setDialectType(session.getDialectType().isMysql() || session.getDialectType().isDoris()
+                    || session.getDialectType().isTidb()
                     ? ObModeType.OB_MYSQL
                     : ObModeType.OB_ORACLE);
             List<MockTableConfig> tableConfigList = taskConfig.getTables();
@@ -436,6 +437,9 @@ public class FlowTaskUtil {
             dbConfig.setUser(config.getUsername());
             dbConfig.setDefaultSchame(config.getDefaultSchema());
         } else if (Objects.nonNull(config.getDialectType()) && config.getDialectType().isDoris()) {
+            dbConfig.setUser(config.getUsername());
+            dbConfig.setDefaultSchame(config.getDefaultSchema());
+        } else if (Objects.nonNull(config.getDialectType()) && config.getDialectType().isTidb()) {
             dbConfig.setUser(config.getUsername());
             dbConfig.setDefaultSchame(config.getDefaultSchema());
         }

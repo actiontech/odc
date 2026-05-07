@@ -35,7 +35,7 @@ public class NoNotNullAtInExpressionFactory implements SqlCheckRuleFactory {
     @Override
     public SqlCheckRule generate(@NonNull SqlCheckRuleContext sqlCheckRuleContext) {
         DialectType dialectType = sqlCheckRuleContext.getDialectType();
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLNoNotNullAtInExpression()
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLNoNotNullAtInExpression()
                 : new OracleNoNotNullAtInExpression();
     }
 

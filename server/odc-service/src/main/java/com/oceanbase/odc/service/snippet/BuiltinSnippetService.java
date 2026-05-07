@@ -102,6 +102,8 @@ public class BuiltinSnippetService {
                 return Sets.newHashSet(DialectType.MYSQL, DialectType.OB_MYSQL);
             case DORIS:
                 return Sets.newHashSet(DialectType.DORIS, DialectType.MYSQL);
+            case TIDB:
+                return Sets.newHashSet(DialectType.TIDB, DialectType.MYSQL);
             default:
                 return Sets.newHashSet(connectType.getDialectType());
         }

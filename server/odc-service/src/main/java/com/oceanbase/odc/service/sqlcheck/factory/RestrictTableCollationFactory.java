@@ -48,7 +48,7 @@ public class RestrictTableCollationFactory implements SqlCheckRuleFactory {
         } else {
             allowCollations = new HashSet<>((List<String>) parameters.get(key));
         }
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLRestrictTableCollation(allowCollations)
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLRestrictTableCollation(allowCollations)
                 : null;
     }
 

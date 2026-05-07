@@ -93,7 +93,7 @@ public class TableDataService {
             }
             DMLBuilder dmlBuilder;
             DialectType dialectType = connectionSession.getDialectType();
-            if (dialectType.isMysql() || dialectType.isDoris()) {
+            if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
                 dmlBuilder = new MySQLDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else if (dialectType.isOracle() || dialectType.isDm()) {
                 dmlBuilder =
