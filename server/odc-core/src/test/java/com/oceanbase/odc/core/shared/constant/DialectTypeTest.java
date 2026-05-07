@@ -122,4 +122,84 @@ public class DialectTypeTest {
     public void name_DM_ReturnDM() {
         Assert.assertEquals("DM", DialectType.DM.name());
     }
+
+    @Test
+    public void isTidb_TIDB_ReturnTrue() {
+        Assert.assertTrue(DialectType.TIDB.isTidb());
+    }
+
+    @Test
+    public void isTidb_OtherTypes_ReturnFalse() {
+        Map<DialectType, Boolean> testCases = new LinkedHashMap<>();
+        testCases.put(DialectType.MYSQL, false);
+        testCases.put(DialectType.ORACLE, false);
+        testCases.put(DialectType.OB_MYSQL, false);
+        testCases.put(DialectType.OB_ORACLE, false);
+        testCases.put(DialectType.SQL_SERVER, false);
+        testCases.put(DialectType.POSTGRESQL, false);
+        testCases.put(DialectType.DORIS, false);
+        testCases.put(DialectType.DM, false);
+        testCases.put(DialectType.UNKNOWN, false);
+
+        for (Map.Entry<DialectType, Boolean> entry : testCases.entrySet()) {
+            Assert.assertEquals("isTidb() should return false for " + entry.getKey(),
+                    entry.getValue().booleanValue(), entry.getKey().isTidb());
+        }
+    }
+
+    @Test
+    public void isMysql_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isMysql());
+    }
+
+    @Test
+    public void isDoris_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isDoris());
+    }
+
+    @Test
+    public void isOracle_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isOracle());
+    }
+
+    @Test
+    public void isOceanbase_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isOceanbase());
+    }
+
+    @Test
+    public void isSqlServer_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isSqlServer());
+    }
+
+    @Test
+    public void isDm_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isDm());
+    }
+
+    @Test
+    public void isPostgreSql_TIDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.TIDB.isPostgreSql());
+    }
+
+    @Test
+    public void fromValue_TIDB_ReturnDialectTypeTIDB() {
+        Assert.assertEquals(DialectType.TIDB, DialectType.fromValue("TIDB"));
+    }
+
+    @Test
+    public void getDBBrowserDialectTypeName_TIDB_ReturnTIDB() {
+        Assert.assertEquals("TIDB", DialectType.TIDB.getDBBrowserDialectTypeName());
+    }
+
+    @Test
+    public void isTidb_AllDialectTypes_OnlyTidbReturnsTrue() {
+        for (DialectType type : DialectType.values()) {
+            if (type == DialectType.TIDB) {
+                Assert.assertTrue("isTidb() should return true for TIDB", type.isTidb());
+            } else {
+                Assert.assertFalse("isTidb() should return false for " + type, type.isTidb());
+            }
+        }
+    }
 }
