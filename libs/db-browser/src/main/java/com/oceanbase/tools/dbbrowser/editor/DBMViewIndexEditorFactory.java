@@ -28,6 +28,11 @@ import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerIndexEditor;
  */
 public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableIndexEditor> {
     @Override
+    public DBTableIndexEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBTableIndexEditor buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

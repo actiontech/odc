@@ -37,4 +37,29 @@ public class ConnectTypeTest {
         boolean isODPSharding = ConnectType.OB_MYSQL.isODPSharding();
         Assert.assertFalse(isODPSharding);
     }
+
+    @Test
+    public void getDialectType_TIDB_ReturnDialectTypeTIDB() {
+        Assert.assertEquals(DialectType.TIDB, ConnectType.TIDB.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeTIDB_ReturnConnectTypeTIDB() {
+        Assert.assertEquals(ConnectType.TIDB, ConnectType.from(DialectType.TIDB));
+    }
+
+    @Test
+    public void isODPSharding_TIDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.TIDB.isODPSharding());
+    }
+
+    @Test
+    public void isFileSystem_TIDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.TIDB.isFileSystem());
+    }
+
+    @Test
+    public void isCloud_TIDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.TIDB.isCloud());
+    }
 }

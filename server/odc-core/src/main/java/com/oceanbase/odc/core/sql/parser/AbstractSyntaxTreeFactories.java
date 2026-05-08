@@ -36,6 +36,8 @@ public class AbstractSyntaxTreeFactories {
             return new OBMySQLAstFactory(timeoutMillis);
         } else if (dialectType.isDoris()) {
             return new OBMySQLAstFactory(timeoutMillis);
+        } else if (dialectType.isTidb()) {
+            return new OBMySQLAstFactory(timeoutMillis);
         }
         return null;
     }

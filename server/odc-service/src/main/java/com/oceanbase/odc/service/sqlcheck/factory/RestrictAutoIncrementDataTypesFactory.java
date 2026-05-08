@@ -50,7 +50,9 @@ public class RestrictAutoIncrementDataTypesFactory implements SqlCheckRuleFactor
         } else {
             types = new HashSet<>((List<String>) parameters.get(key));
         }
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLRestrictAutoIncrementDataTypes(types) : null;
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb())
+                ? new MySQLRestrictAutoIncrementDataTypes(types)
+                : null;
     }
 
 }

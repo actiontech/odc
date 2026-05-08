@@ -35,7 +35,7 @@ public class ColumnCalculationFactory implements SqlCheckRuleFactory {
     @Override
     public SqlCheckRule generate(@NonNull SqlCheckRuleContext sqlCheckRuleContext) {
         DialectType dialectType = sqlCheckRuleContext.getDialectType();
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLColumnCalculation()
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) ? new MySQLColumnCalculation()
                 : new OracleColumnCalculation();
     }
 

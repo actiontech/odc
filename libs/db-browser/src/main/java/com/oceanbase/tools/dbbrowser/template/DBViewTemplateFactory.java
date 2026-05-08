@@ -24,6 +24,11 @@ import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerViewTemplate;
 public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBView>> {
 
     @Override
+    public DBObjectTemplate<DBView> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBView> buildForDoris() {
         return new MySQLViewTemplate();
     }

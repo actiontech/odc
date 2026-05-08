@@ -51,6 +51,11 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
     private Map<String, Object> properties;
 
     @Override
+    public DBStatsAccessor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBStatsAccessor buildForDoris() {
         Validate.notNull(this.dbVersion, "DBVersion can not be null");
         if (VersionUtils.isGreaterThanOrEqualsTo(this.dbVersion, "5.7.0")) {

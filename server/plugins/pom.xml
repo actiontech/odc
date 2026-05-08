@@ -18,6 +18,7 @@
         <module>connect-plugin-ob-mysql</module>
         <module>connect-plugin-mysql</module>
         <module>connect-plugin-doris</module>
+        <module>connect-plugin-tidb</module>
         <module>connect-plugin-oracle</module>
         <module>connect-plugin-postgres</module>
         <module>connect-plugin-sqlserver</module>
@@ -27,6 +28,7 @@
         <module>schema-plugin-ob-oracle</module>
         <module>schema-plugin-mysql</module>
         <module>schema-plugin-doris</module>
+        <module>schema-plugin-tidb</module>
         <module>schema-plugin-oracle</module>
         <module>schema-plugin-postgres</module>
         <module>schema-plugin-sqlserver</module>
@@ -35,6 +37,7 @@
         <module>task-plugin-api</module>
         <module>task-plugin-mysql</module>
         <module>task-plugin-doris</module>
+        <module>task-plugin-tidb</module>
         <module>task-plugin-ob-mysql</module>
         <module>task-plugin-ob-oracle</module>
         <module>task-plugin-oracle</module>
@@ -89,6 +92,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-tidb</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>connect-plugin-oracle</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -125,6 +134,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>task-plugin-tidb</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>task-plugin-postgres</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -144,6 +159,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-doris</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-tidb</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

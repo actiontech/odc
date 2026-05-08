@@ -128,6 +128,8 @@ public class DBRecyclebinSettingsService {
             return new MySQLSqlBuilder();
         } else if (session.getDialectType().isDoris()) {
             return new MySQLSqlBuilder();
+        } else if (session.getDialectType().isTidb()) {
+            return new MySQLSqlBuilder();
         } else if (session.getDialectType().isOracle()) {
             return new OracleSqlBuilder();
         }

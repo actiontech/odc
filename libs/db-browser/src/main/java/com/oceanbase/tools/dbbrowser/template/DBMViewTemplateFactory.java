@@ -29,6 +29,11 @@ import com.oceanbase.tools.dbbrowser.template.oracle.OracleMViewTemplate;
 public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBMaterializedView>> {
 
     @Override
+    public DBObjectTemplate<DBMaterializedView> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBMaterializedView> buildForDoris() {
         throw new UnsupportedOperationException("not support yet");
     }

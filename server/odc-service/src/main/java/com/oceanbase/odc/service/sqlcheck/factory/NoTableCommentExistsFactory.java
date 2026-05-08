@@ -43,7 +43,8 @@ public class NoTableCommentExistsFactory implements SqlCheckRuleFactory {
     @Override
     public SqlCheckRule generate(@NonNull SqlCheckRuleContext sqlCheckRuleContext) {
         DialectType dialectType = sqlCheckRuleContext.getDialectType();
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLNoTableCommentExists()
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb())
+                ? new MySQLNoTableCommentExists()
                 : new OracleNoTableCommentExists(schemaSupplier);
     }
 

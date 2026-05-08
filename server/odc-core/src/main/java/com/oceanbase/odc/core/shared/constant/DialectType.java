@@ -28,6 +28,7 @@ public enum DialectType {
     MYSQL,
     ODP_SHARDING_OB_MYSQL,
     DORIS,
+    TIDB,
     POSTGRESQL,
     SQL_SERVER,
     DM,
@@ -60,6 +61,10 @@ public enum DialectType {
 
     public boolean isDoris() {
         return DORIS == this;
+    }
+
+    public boolean isTidb() {
+        return TIDB == this;
     }
 
     public boolean isOceanbase() {

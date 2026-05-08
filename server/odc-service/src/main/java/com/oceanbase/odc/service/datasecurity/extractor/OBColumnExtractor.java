@@ -748,6 +748,12 @@ public class OBColumnExtractor implements ColumnExtractor {
                 return unquoted;
             }
             return StringUtils.checkMysqlIdentifierQuoted(identifier) ? unquoted : unquoted.toLowerCase();
+        } else if (Objects.nonNull(dialectType) && dialectType.isTidb()) {
+            String unquoted = StringUtils.unquoteMySqlIdentifier(identifier);
+            if (StringUtils.isBlank(unquoted)) {
+                return unquoted;
+            }
+            return StringUtils.checkMysqlIdentifierQuoted(identifier) ? unquoted : unquoted.toLowerCase();
         } else {
             throw new IllegalStateException("Unknown dialect type: " + dialectType);
         }

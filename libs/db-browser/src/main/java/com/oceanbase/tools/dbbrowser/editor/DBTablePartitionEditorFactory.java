@@ -37,6 +37,11 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
     private String dbVersion;
 
     @Override
+    public DBTablePartitionEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBTablePartitionEditor buildForDoris() {
         return buildForMySQL();
     }

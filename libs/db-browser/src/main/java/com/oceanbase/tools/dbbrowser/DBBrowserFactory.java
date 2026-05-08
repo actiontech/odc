@@ -22,6 +22,7 @@ public interface DBBrowserFactory<T> {
     String OB_ORACLE = "OB_ORACLE";
     String ORACLE = "ORACLE";
     String DORIS = "DORIS";
+    String TIDB = "TIDB";
     String ODP_SHARDING_OB_MYSQL = "ODP_SHARDING_OB_MYSQL";
     String POSTGRESQL = "POSTGRESQL";
     String SQL_SERVER = "SQL_SERVER";

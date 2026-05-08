@@ -22,6 +22,11 @@ import com.oceanbase.tools.dbbrowser.template.oracle.OracleTypeTemplate;
 public class DBTypeTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBType>> {
 
     @Override
+    public DBObjectTemplate<DBType> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBType> buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

@@ -330,6 +330,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case OB_MYSQL:
             case MYSQL:
             case DORIS:
+            case TIDB:
             case ODP_SHARDING_OB_MYSQL:
             case POSTGRESQL:
             case SQL_SERVER:
@@ -351,6 +352,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case OB_MYSQL:
             case MYSQL:
             case DORIS:
+            case TIDB:
             case ODP_SHARDING_OB_MYSQL:
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());

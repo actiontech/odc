@@ -46,6 +46,8 @@ public class DataConverters {
             initForMysqlMode();
         } else if (dialectType.isDoris()) {
             initForMysqlMode();
+        } else if (dialectType.isTidb()) {
+            initForMysqlMode();
         } else {
             throw new IllegalArgumentException("Illegal DialectType " + dialectType);
         }

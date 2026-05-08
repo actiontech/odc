@@ -149,6 +149,11 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     }
 
     @Override
+    public DBSchemaAccessor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBSchemaAccessor buildForDoris() {
         Validate.notNull(this.dbVersion, "DBVersion can not be null");
         if (VersionUtils.isGreaterThanOrEqualsTo(this.dbVersion, "5.7.0")) {

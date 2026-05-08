@@ -26,7 +26,8 @@ public class ForeignKeyHandlers {
 
     public static ForeignKeyHandler getForeignKeyHandler(ConnectionSession session) {
         return session.getDialectType().isMysql() || session.getDialectType().isDoris()
-                ? new OBMySQLForeignKeyHandler(session)
-                : new OBOracleForeignKeyHandler(session);
+                || session.getDialectType().isTidb()
+                        ? new OBMySQLForeignKeyHandler(session)
+                        : new OBOracleForeignKeyHandler(session);
     }
 }

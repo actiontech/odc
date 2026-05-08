@@ -23,6 +23,11 @@ import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerColumnEditor;
 public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTableColumnEditor> {
 
     @Override
+    public DBTableColumnEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBTableColumnEditor buildForDoris() {
         return buildForMySQL();
     }

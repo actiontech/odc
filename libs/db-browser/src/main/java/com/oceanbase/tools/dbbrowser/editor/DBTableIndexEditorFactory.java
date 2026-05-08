@@ -30,6 +30,11 @@ import lombok.experimental.Accessors;
 public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableIndexEditor> {
 
     @Override
+    public DBTableIndexEditor buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBTableIndexEditor buildForDoris() {
         return buildForMySQL();
     }

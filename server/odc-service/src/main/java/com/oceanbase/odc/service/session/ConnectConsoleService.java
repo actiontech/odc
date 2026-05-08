@@ -168,6 +168,8 @@ public class ConnectConsoleService {
             sqlBuilder = new DmSqlBuilder();
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
+        } else if (dialectType.isTidb()) {
+            sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
             sqlBuilder = new SqlServerSqlBuilder();
         } else {

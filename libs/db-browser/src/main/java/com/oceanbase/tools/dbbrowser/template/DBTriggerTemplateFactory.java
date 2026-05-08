@@ -23,6 +23,11 @@ import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerTriggerTemplate
 public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBTrigger>> {
 
     @Override
+    public DBObjectTemplate<DBTrigger> buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectTemplate<DBTrigger> buildForDoris() {
         throw new UnsupportedOperationException("Not supported yet");
     }

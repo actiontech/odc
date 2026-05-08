@@ -37,6 +37,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
     private JdbcOperations jdbcOperations;
 
     @Override
+    public DBObjectOperator buildForTidb() {
+        return buildForDoris();
+    }
+
+    @Override
     public DBObjectOperator buildForDoris() {
         return buildForOBMySQL();
     }

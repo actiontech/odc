@@ -63,6 +63,7 @@ public class DataSourceInfoMapper {
         dataSourceInfo.setPort(connectionConfig.getPort());
         switch (connectionConfig.getDialectType()) {
             case DORIS:
+            case TIDB:
             case MYSQL: {
                 dataSourceInfo.setUsername(connectionConfig.getUsername());
                 dataSourceInfo.setType(DatasourceType.MYSQL);

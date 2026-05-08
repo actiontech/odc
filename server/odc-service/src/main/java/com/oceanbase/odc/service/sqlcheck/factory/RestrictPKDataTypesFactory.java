@@ -58,7 +58,8 @@ public class RestrictPKDataTypesFactory implements SqlCheckRuleFactory {
         } else {
             types = new HashSet<>((List<String>) parameters.get(key));
         }
-        return (dialectType.isMysql() || dialectType.isDoris()) ? new MySQLRestrictPKDataTypes(jdbc, types)
+        return (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb())
+                ? new MySQLRestrictPKDataTypes(jdbc, types)
                 : new OracleRestrictPKDataTypes(jdbc, types);
     }
 

@@ -33,6 +33,7 @@ public class AllFeatures {
             case ODP_SHARDING_OB_ORACLE:
                 return ODP_SHARDING;
             case MYSQL:
+            case TIDB:
                 return MYSQL;
             default:
                 return DEFAULT;
