@@ -357,7 +357,9 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
-                return getSchema(OdcConstants.MYSQL_DEFAULT_SCHEMA, connectionConfig.getDialectType());
+                // Not all MySQL-protocol databases provide information_schema (e.g. GoldenDB).
+                // Return null to omit the database from the JDBC URL, which is valid for MySQL.
+                return null;
             case POSTGRESQL:
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
