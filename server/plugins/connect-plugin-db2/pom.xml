@@ -79,6 +79,16 @@
             <groupId>com.oceanbase</groupId>
             <artifactId>odc-test</artifactId>
         </dependency>
+        <!--
+          T-003 commit-3: Db2ConnectionExtension.test() unit tests stub the JDBC driver via a
+          locally-registered mock to avoid real network connections to DB2 (compat-RISK-13).
+          mockito-core 3.11.2 version-managed by root pom.
+        -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

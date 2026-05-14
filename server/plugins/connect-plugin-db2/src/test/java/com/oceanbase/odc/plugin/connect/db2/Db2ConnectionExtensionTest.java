@@ -15,13 +15,21 @@
  */
 package com.oceanbase.odc.plugin.connect.db2;
 
+import java.net.UnknownHostException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import com.oceanbase.odc.core.shared.constant.ErrorCodes;
+import com.oceanbase.odc.plugin.connect.api.TestResult;
 import com.oceanbase.odc.plugin.connect.model.JdbcUrlProperty;
 
 public class Db2ConnectionExtensionTest {
@@ -129,6 +137,144 @@ public class Db2ConnectionExtensionTest {
             return (Map<String, String>) m.invoke(extension, input);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError(e);
+        }
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // T-003 commit-3: real connectivity test() coverage via a stubbed openConnection.
+    // -------------------------------------------------------------------------------------------
+    //
+    // The IBM JCC driver jar is provided=true so it is NOT on the test classpath. We test
+    // Db2ConnectionExtension.test() with a subclass that overrides openConnection() to return a
+    // mocked Connection or throw a canned SQLException. This avoids touching java.sql.DriverManager
+    // entirely (which can be polluted by other drivers in the maven test classpath such as
+    // MariaDB / oceanbase-client; observed real-network DNS lookups when going through DriverManager).
+
+    @Test
+    public void test_happyPath_executesSelect1FromSysDummy1_returnsSuccess() throws SQLException {
+        Connection conn = Mockito.mock(Connection.class);
+        Statement stmt = Mockito.mock(Statement.class);
+        Mockito.when(conn.createStatement()).thenReturn(stmt);
+        Mockito.when(stmt.execute(Mockito.anyString())).thenReturn(true);
+
+        StubbingExtension ext = new StubbingExtension();
+        ext.connectionToReturn = conn;
+        TestResult result = ext.test("jdbc:db2://h:50000/testdb", new Properties(), 1, null);
+
+        Assert.assertTrue("expected active=true happy-path, got " + result, result.isActive());
+        Mockito.verify(stmt).execute("SELECT 1 FROM SYSIBM.SYSDUMMY1");
+    }
+
+    @Test
+    public void test_authenticationFailure_classifiedAsAccessDenied() {
+        StubbingExtension ext = new StubbingExtension();
+        // IBM JCC reports auth failure with sqlstate=28000 / message containing "authorization"
+        ext.exceptionToThrow = new SQLException(
+                "Connection authorization failure: invalid credentials for user 'db2inst1'",
+                "28000", -4214);
+        TestResult result = ext.test("jdbc:db2://h:50000/testdb", new Properties(), 1, null);
+
+        Assert.assertFalse(result.isActive());
+        Assert.assertEquals(ErrorCodes.ObAccessDenied, result.getErrorCode());
+    }
+
+    @Test
+    public void test_networkTimeout_classifiedAsHostUnreachable() {
+        SQLException ex = new SQLException("Connection timed out: connect");
+        ex.initCause(new java.net.SocketTimeoutException("connect timed out"));
+        StubbingExtension ext = new StubbingExtension();
+        ext.exceptionToThrow = ex;
+        TestResult result = ext.test("jdbc:db2://10.0.0.99:50000/testdb", new Properties(), 1, null);
+
+        Assert.assertFalse(result.isActive());
+        Assert.assertEquals(ErrorCodes.ConnectionHostUnreachable, result.getErrorCode());
+    }
+
+    @Test
+    public void test_unknownHost_classifiedAsUnknownHost() {
+        SQLException ex = new SQLException("Communication link failure: name or service not known");
+        ex.initCause(new UnknownHostException("no.such.host"));
+        StubbingExtension ext = new StubbingExtension();
+        ext.exceptionToThrow = ex;
+        TestResult result = ext.test("jdbc:db2://no.such.host:50000/testdb", new Properties(), 1, null);
+
+        Assert.assertFalse(result.isActive());
+        Assert.assertEquals(ErrorCodes.ConnectionUnknownHost, result.getErrorCode());
+    }
+
+    @Test
+    public void test_missingJccDriver_failsFastWithReadableError() {
+        Db2ConnectionExtension ext = new Db2ConnectionExtension() {
+            @Override
+            protected boolean isDriverClassAvailable() {
+                return false;
+            }
+        };
+        TestResult result = ext.test("jdbc:db2://h:50000/testdb", new Properties(), 1, null);
+        Assert.assertFalse(result.isActive());
+        Assert.assertEquals(ErrorCodes.Unknown, result.getErrorCode());
+        Assert.assertTrue("error message must mention IBM JCC / db2jcc4.jar to be operator-friendly",
+                String.join(" ", result.getArgs()).contains("db2jcc4.jar")
+                        || String.join(" ", result.getArgs()).contains("IBM JCC"));
+    }
+
+    @Test
+    public void executeTestSqls_usesDb2DialectSelectFromSysIbmSysDummy1() throws SQLException {
+        Statement stmt = Mockito.mock(Statement.class);
+        StubbingExtension ext = new StubbingExtension();
+        java.lang.reflect.Method m;
+        try {
+            m = Db2ConnectionExtension.class.getDeclaredMethod("executeTestSqls", Statement.class);
+            m.setAccessible(true);
+            m.invoke(ext, stmt);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+        Mockito.verify(stmt).execute("SELECT 1 FROM SYSIBM.SYSDUMMY1");
+    }
+
+    @Test
+    public void test_initScriptFailure_classifiedAsInitScriptFailed() throws SQLException {
+        Connection conn = Mockito.mock(Connection.class);
+        Statement stmt = Mockito.mock(Statement.class);
+        Mockito.when(conn.createStatement()).thenReturn(stmt);
+        StubbingExtension ext = new StubbingExtension();
+        ext.connectionToReturn = conn;
+
+        com.oceanbase.odc.core.datasource.ConnectionInitializer failing =
+                (c) -> {
+                    throw new SQLException("init script broken");
+                };
+        TestResult result = ext.test("jdbc:db2://h:50000/testdb", new Properties(), 1,
+                java.util.Collections.singletonList(failing));
+
+        Assert.assertFalse(result.isActive());
+        Assert.assertEquals(ErrorCodes.ConnectionInitScriptFailed, result.getErrorCode());
+    }
+
+    /**
+     * Test extension that overrides {@link #openConnection} so unit tests don't depend on the global
+     * {@link java.sql.DriverManager} / a real driver / a real network.
+     */
+    private static class StubbingExtension extends Db2ConnectionExtension {
+        Connection connectionToReturn;
+        SQLException exceptionToThrow;
+
+        @Override
+        protected boolean isDriverClassAvailable() {
+            return true;
+        }
+
+        @Override
+        protected Connection openConnection(String jdbcUrl, Properties properties)
+                throws SQLException {
+            if (exceptionToThrow != null) {
+                throw exceptionToThrow;
+            }
+            if (connectionToReturn == null) {
+                throw new SQLException("StubbingExtension: no canned connection / throw");
+            }
+            return connectionToReturn;
         }
     }
 }

@@ -83,6 +83,17 @@ public class DefaultJdbcRowMapper extends BaseDialectBasedRowMapper {
                     ConnectionSessionUtil.getNlsTimestampTZFormat(session)));
             mapperList.add(new OracleNlsFormatTimestampLTZMapper(
                     ConnectionSessionUtil.getNlsTimestampTZFormat(session)));
+        } else if (dialectType == DialectType.DB2) {
+            // design.md §3.6, compat-RISK-5 / compat-RISK-13.
+            // DB2 numeric (DECIMAL / INTEGER / BIGINT / SMALLINT) and date/datetime conversion
+            // pieces fall back on the MySQL-compatible mappers (IBM JCC returns BigDecimal /
+            // java.sql.Timestamp shapes that match the MySQL path).
+            mapperList.add(new MySQLDatetimeMapper());
+            mapperList.add(new MySQLTimestampMapper());
+            mapperList.add(new MySQLNumberMapper());
+            // DBCLOB / XML are claimed by the DB2-specific LOB mapper before the generic LOB
+            // mapper claims BLOB / CLOB below.
+            mapperList.add(new DB2LobMapper());
         }
         mapperList.add(new GeneralLobMapper());
     }
