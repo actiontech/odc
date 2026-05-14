@@ -15,28 +15,27 @@
  */
 package com.oceanbase.odc.plugin.schema.db2;
 
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.oceanbase.odc.plugin.schema.db2.utils.DBAccessorUtil;
-import com.oceanbase.tools.dbbrowser.model.DBObjectType;
+import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.schema.db2.DB2SchemaAccessor;
 
+/**
+ * T-1.2 接线后：Db2TableExtension 通过 DBAccessorUtil 拿到 DB2SchemaAccessor； syncExternalTableFiles 仍保留
+ * UnsupportedOperationException（DB2 无 external table 概念）。
+ */
 public class Db2TableExtensionTest {
 
     private final Db2TableExtension extension = new Db2TableExtension();
 
-    private static Connection dummyConnection() {
-        return (Connection) Proxy.newProxyInstance(
-                Connection.class.getClassLoader(),
-                new Class<?>[] {Connection.class},
-                (proxy, method, args) -> null);
-    }
-
     @Test
     public void syncExternalTableFiles_throwsUnsupported() {
+        // DB2 没有 external table 概念，MVP 阶段不支持。
         try {
             extension.syncExternalTableFiles(null, "DB2INST1", "T");
             Assert.fail("expected UnsupportedOperationException");
@@ -45,8 +44,13 @@ public class Db2TableExtensionTest {
         }
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void list_throwsUnsupported() {
-        extension.list(dummyConnection(), "DB2INST1", DBObjectType.TABLE);
+    @Test
+    public void getSchemaAccessor_returnsDB2SchemaAccessor() {
+        Connection connection = Mockito.mock(Connection.class);
+        DBSchemaAccessor accessor = DBAccessorUtil.getSchemaAccessor(connection);
+        Assert.assertNotNull(accessor);
+        Assert.assertTrue(
+                "expected DB2SchemaAccessor but got " + accessor.getClass().getName(),
+                accessor instanceof DB2SchemaAccessor);
     }
 }

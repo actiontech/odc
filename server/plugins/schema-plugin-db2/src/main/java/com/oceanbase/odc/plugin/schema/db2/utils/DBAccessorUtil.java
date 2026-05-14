@@ -17,29 +17,28 @@ package com.oceanbase.odc.plugin.schema.db2.utils;
 
 import java.sql.Connection;
 
+import com.oceanbase.odc.common.util.JdbcOperationsUtil;
+import com.oceanbase.odc.core.shared.constant.DialectType;
+import com.oceanbase.tools.dbbrowser.DBBrowser;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
 /**
- * T-002 占位 DBAccessorUtil（蓝本 schema-plugin-postgres / schema-plugin-sqlserver 同名类）。
+ * T-1.2（test 阶段补接力）已接入 DBBrowser.schemaAccessor().setType(DB2).create()。
  * <p>
- * 当前阶段：所有调用都抛 {@link UnsupportedOperationException}（compat-RISK-7）。 T-004 接力实现，目标返回值：
- *
- * <pre>
- * DBBrowser.schemaAccessor()
- *         .setJdbcOperations(JdbcOperationsUtil.getJdbcOperations(connection))
- *         .setType(DialectType.DB2.getDBBrowserDialectTypeName())
- *         .create();
- * </pre>
- *
- * 这一调用链需要 {@code db-browser} 的 13 个 Factory 子类先接 {@code buildForDB2()}（T-003/T-004）。
+ * 真实 SYSCAT SQL 由 {@code DB2SchemaAccessor} 提供；调用链通过
+ * {@link com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessorFactory#buildForDB2()} 路由。
+ * <p>
+ * compat-RISK-7 状态：B (占位) → covered (实接)。
  */
 public class DBAccessorUtil {
 
-    /** 占位错误消息。 */
+    /** 兼容历史 Extension 中仍直接抛错的占位错误消息（如 Db2TableExtension.syncExternalTableFiles）。 */
     public static final String NOT_SUPPORTED_MESSAGE = "Not supported for DB2 yet";
 
     public static DBSchemaAccessor getSchemaAccessor(Connection connection) {
-        // TODO(T-004): 接入 DBBrowser.schemaAccessor().setType(DB2).create()
-        throw new UnsupportedOperationException(NOT_SUPPORTED_MESSAGE);
+        return DBBrowser.schemaAccessor()
+                .setJdbcOperations(JdbcOperationsUtil.getJdbcOperations(connection))
+                .setType(DialectType.DB2.getDBBrowserDialectTypeName()).create();
     }
+
 }
