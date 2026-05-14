@@ -32,6 +32,7 @@ public enum DialectType {
     POSTGRESQL,
     SQL_SERVER,
     DM,
+    DB2,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -81,6 +82,10 @@ public enum DialectType {
 
     public boolean isDm() {
         return DM == this;
+    }
+
+    public boolean isDB2() {
+        return DB2 == this;
     }
 
 }

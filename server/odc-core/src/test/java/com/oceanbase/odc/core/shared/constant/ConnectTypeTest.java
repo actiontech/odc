@@ -62,4 +62,48 @@ public class ConnectTypeTest {
     public void isCloud_TIDB_ReturnFalse() {
         Assert.assertFalse(ConnectType.TIDB.isCloud());
     }
+
+    // ---------- DB2 (compat-RISK-1, D-20260514_db2_dialect_enum) ----------
+
+    @Test
+    public void getDialectType_DB2_ReturnDialectTypeDB2() {
+        Assert.assertEquals(DialectType.DB2, ConnectType.DB2.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeDB2_ReturnConnectTypeDB2() {
+        Assert.assertEquals(ConnectType.DB2, ConnectType.from(DialectType.DB2));
+    }
+
+    @Test
+    public void from_DialectTypeDB2_RoundTrip_DialectStillDB2() {
+        ConnectType ct = ConnectType.from(DialectType.DB2);
+        Assert.assertNotNull(ct);
+        Assert.assertEquals(DialectType.DB2, ct.getDialectType());
+    }
+
+    @Test
+    public void valueOf_DB2_Success() {
+        Assert.assertEquals(ConnectType.DB2, ConnectType.valueOf("DB2"));
+    }
+
+    @Test
+    public void isODPSharding_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isODPSharding());
+    }
+
+    @Test
+    public void isFileSystem_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isFileSystem());
+    }
+
+    @Test
+    public void isCloud_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isCloud());
+    }
+
+    @Test
+    public void isDefaultSchemaRequired_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isDefaultSchemaRequired());
+    }
 }
