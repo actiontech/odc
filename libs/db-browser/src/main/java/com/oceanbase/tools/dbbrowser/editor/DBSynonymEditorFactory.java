@@ -72,4 +72,13 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
         return buildForOracle();
     }
 
+    /**
+     * DB2 SynonymEditor: not in MVP scope; DB2 ALIAS objects are listed read-only by
+     * {@code DB2SchemaAccessor.listSynonyms()} (design.md §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBObjectEditor<DBSynonym> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

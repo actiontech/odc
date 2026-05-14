@@ -102,6 +102,16 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
         return buildForOracle();
     }
 
+    /**
+     * DB2 TableEditor: placeholder in T-003 commit-1; T-003 commit-2 will wire
+     * {@code DB2TableEditor(indexEditor, columnEditor, constraintEditor, partitionEditor)}. See
+     * design.md §3.4 / §3.5.2 and compat_risks.md compat-RISK-7.
+     */
+    @Override
+    public DBTableEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private DBTableIndexEditor getTableIndexEditor() {
         DBTableIndexEditorFactory indexFactory = new DBTableIndexEditorFactory();
         indexFactory.setType(this.type);

@@ -72,4 +72,13 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return buildForOracle();
     }
 
+    /**
+     * DB2 TriggerTemplate: CREATE TRIGGER template generation is not in MVP scope (design.md §3.4
+     * compat-RISK-7).
+     */
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

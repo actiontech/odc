@@ -128,6 +128,15 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
         return new DmStatsAccessor(getJdbcOperations());
     }
 
+    /**
+     * DB2 StatsAccessor: optimizer / runtime stats reading is not in MVP scope (design.md §3.4
+     * compat-RISK-7).
+     */
+    @Override
+    public DBStatsAccessor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

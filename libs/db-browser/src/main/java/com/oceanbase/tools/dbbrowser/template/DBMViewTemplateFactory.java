@@ -77,4 +77,13 @@ public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTem
     public DBObjectTemplate<DBMaterializedView> buildForDm() {
         return buildForOracle();
     }
+
+    /**
+     * DB2 MViewTemplate: DB2 has MQT (Materialized Query Tables) which are not in MVP scope (design.md
+     * §3.3.4 / §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBObjectTemplate<DBMaterializedView> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
 }

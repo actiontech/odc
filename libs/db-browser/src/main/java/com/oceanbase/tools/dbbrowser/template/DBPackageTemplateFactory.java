@@ -84,6 +84,15 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return buildForOracle();
     }
 
+    /**
+     * DB2 PackageTemplate: DB2 PACKAGEs are SQL bind packages (binary), not first-class SQL objects
+     * exposed by the workbench (design.md §3.3.4 compat-RISK-7).
+     */
+    @Override
+    public DBObjectTemplate<DBPackage> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

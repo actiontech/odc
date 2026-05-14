@@ -72,4 +72,13 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
         return buildForOracle();
     }
 
+    /**
+     * DB2 SequenceEditor: not in MVP scope; DB2 sequences are listed read-only by
+     * {@code DB2SchemaAccessor.listSequences()} (design.md §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBObjectEditor<DBSequence> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

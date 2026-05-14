@@ -92,4 +92,13 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
         return buildForOracle();
     }
 
+    /**
+     * DB2 ConstraintEditor: MVP scope does not edit DB2 constraints (see design.md §3.4 compat-RISK-7).
+     * Throws {@link UnsupportedOperationException} with grep-friendly keyword.
+     */
+    @Override
+    public DBTableConstraintEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

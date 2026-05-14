@@ -73,4 +73,13 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         return buildForOracle();
     }
 
+    /**
+     * DB2 ViewTemplate: CREATE VIEW template generation is not in MVP scope (design.md §3.4
+     * compat-RISK-7).
+     */
+    @Override
+    public DBObjectTemplate<DBView> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

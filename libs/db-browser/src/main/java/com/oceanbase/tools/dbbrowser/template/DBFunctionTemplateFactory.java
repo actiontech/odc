@@ -73,4 +73,13 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
         return buildForOracle();
     }
 
+    /**
+     * DB2 FunctionTemplate: CREATE FUNCTION template generation is not in MVP scope (design.md §3.4
+     * compat-RISK-7).
+     */
+    @Override
+    public DBObjectTemplate<DBFunction> buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

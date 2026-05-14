@@ -72,4 +72,13 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
         return buildForOracle();
     }
 
+    /**
+     * DB2 ColumnEditor: placeholder in T-003 commit-1; T-003 commit-2 wires {@code DB2ColumnEditor}.
+     * See design.md §3.4 / §3.5.3 and compat_risks.md compat-RISK-7.
+     */
+    @Override
+    public DBTableColumnEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

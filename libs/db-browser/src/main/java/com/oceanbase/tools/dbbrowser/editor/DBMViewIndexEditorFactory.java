@@ -76,4 +76,13 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     public DBTableIndexEditor buildForDm() {
         return buildForOracle();
     }
+
+    /**
+     * DB2 MView IndexEditor: paired with {@link DBMViewEditorFactory#buildForDB2()}, not in MVP scope
+     * (design.md §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBTableIndexEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
 }

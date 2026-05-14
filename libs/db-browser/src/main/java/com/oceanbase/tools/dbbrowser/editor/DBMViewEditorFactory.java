@@ -86,6 +86,15 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         return buildForOracle();
     }
 
+    /**
+     * DB2 MViewEditor: DB2 has MQT (Materialized Query Tables) which are not in MVP scope (design.md
+     * §3.3.4 / §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBMViewEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

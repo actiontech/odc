@@ -50,6 +50,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForSqlServer();
             case DM:
                 return buildForDm();
+            case DB2:
+                return buildForDB2();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -74,5 +76,18 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForSqlServer();
 
     public abstract T buildForDm();
+
+    /**
+     * Build the factory product for IBM Db2 LUW.
+     *
+     * <p>
+     * Each concrete subclass must implement {@code buildForDB2()}; today most subclasses intentionally
+     * throw {@link UnsupportedOperationException} ("Not supported for DB2 yet") so that misuse fails
+     * fast with a grep-friendly keyword. The Schema / TableEditor / ColumnEditor factories provide real
+     * DB2 implementations (see {@code schema/db2/DB2SchemaAccessor}, {@code editor/db2/DB2TableEditor},
+     * {@code editor/db2/DB2ColumnEditor}). See {@code docs/spec/design.md} §3.4 / §3.5 and
+     * {@code docs/dev/compat_risks.md} compat-RISK-7.
+     */
+    public abstract T buildForDB2();
 
 }

@@ -97,4 +97,12 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         return buildForOracle();
     }
 
+    /**
+     * DB2 PartitionEditor: not in MVP scope (design.md §3.4 compat-RISK-7).
+     */
+    @Override
+    public DBTablePartitionEditor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
 }

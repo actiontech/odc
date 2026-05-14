@@ -178,6 +178,17 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
         return new DmSchemaAccessor(getJdbcOperations());
     }
 
+    /**
+     * DB2 SchemaAccessor: placeholder in T-003 commit-1; real
+     * {@code DB2SchemaAccessor(getJdbcOperations())} will be wired in T-003 commit-2 once the
+     * implementation class lands under {@code schema/db2/}. See design.md §3.4 / §3.5.1 and
+     * compat_risks.md compat-RISK-7.
+     */
+    @Override
+    public DBSchemaAccessor buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

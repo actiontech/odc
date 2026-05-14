@@ -86,6 +86,15 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
         return new DmObjectOperator(getJdbcOperations());
     }
 
+    /**
+     * DB2 ObjectOperator: DROP/RENAME on DB2 objects is not in MVP scope (design.md §3.4
+     * compat-RISK-7).
+     */
+    @Override
+    public DBObjectOperator buildForDB2() {
+        throw new UnsupportedOperationException("Not supported for DB2 yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;
