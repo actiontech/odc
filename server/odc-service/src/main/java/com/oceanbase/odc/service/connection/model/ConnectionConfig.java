@@ -382,7 +382,10 @@ public class ConnectionConfig
             case TIDB:
             case OB_MYSQL:
             case ODP_SHARDING_OB_MYSQL:
-                return OdcConstants.MYSQL_DEFAULT_SCHEMA;
+                // Not all MySQL-protocol databases provide information_schema (e.g. GoldenDB).
+                // Returning null omits the database from the JDBC URL path, which is valid for
+                // MySQL connections and lets the user choose a database via the UI.
+                return null;
             case POSTGRESQL:
                 return OdcConstants.POSTGRESQL_DEFAULT_SCHEMA;
             case SQL_SERVER:
