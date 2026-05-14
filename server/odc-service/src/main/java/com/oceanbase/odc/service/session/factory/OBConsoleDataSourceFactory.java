@@ -146,6 +146,59 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
     }
 
     public static Map<String, String> getJdbcParams(@NonNull ConnectionConfig connectionConfig) {
+        // Dialect-aware JDBC URL params (D2, Refs actiontech/dms-ee#827).
+        //
+        // 历史问题：本方法把 MySQL/OB-MySQL 专属参数（autoDeserialize / allowMultiQueries /
+        // sendConnectionAttributes / maxAllowedPacket / noDatetimeStringSync /
+        // jdbcCompliantTruncation / defaultConnectionAttributesBanList / allowLoadLocalInfile* /
+        // useSSL / zeroDateTimeBehavior 等）硬塞所有 dialect 的 jdbcUrlParams。这套参数被传到
+        // ConnectionExtension.generateJdbcUrl 时，对 MySQL 协议方言走的是 ?k=v&k=v 形式，对 DB2
+        // 走的是 :k=v;k=v; 形式（IBM JCC Type 4）；当值里出现分号或参数键不被 DB2 JCC 识别时，
+        // sync database 阶段抛 "数据库 URL 语法...无效 ERRORCODE=-4461"（D2 现象）。
+        //
+        // 本期修复仅引入 DB2 分支：DB2 jdbcUrlParams 只保留 connect-plugin-db2 内部的默认参数
+        // （Db2ConnectionExtension.appendDefaultJdbcUrlParameters 会注入
+        // retrieveMessagesFromServerOnGetMessage=true 等真正适用于 DB2 的项），加上调用方
+        // 显式通过 connectionConfig.jdbcUrlParameters 透传的自定义键值（尊重用户输入）。
+        //
+        // 其它非 MySQL 方言（POSTGRESQL / ORACLE / SQL_SERVER / DM）保留原行为以避免回归；它们
+        // 的同类隐患登记到 docs/dev/compat_risks.md follow-up（控制 blast radius）。
+        DialectType dialectType = connectionConfig.getDialectType();
+        if (dialectType != null && dialectType.isDB2()) {
+            return buildDB2JdbcParams(connectionConfig);
+        }
+        return buildLegacyJdbcParams(connectionConfig);
+    }
+
+    /**
+     * DB2 专属 JDBC URL 参数构造：
+     * <ul>
+     * <li>只放用户通过 {@code connectionConfig.jdbcUrlParameters} 显式声明的自定义参数；</li>
+     * <li>{@link com.oceanbase.odc.plugin.connect.db2.Db2ConnectionExtension#generateJdbcUrl} 内部 会再
+     * putIfAbsent 默认参数（如 {@code retrieveMessagesFromServerOnGetMessage=true} 与
+     * {@code currentSchema=<defaultSchema>}），无需在此处重复处理；</li>
+     * <li>禁止追加任何 MySQL JCC 不识别的键（autoDeserialize / allowMultiQueries / ...）， 避免 IBM JCC URL 语法错误
+     * ERRORCODE=-4461（D2, Refs actiontech/dms-ee#827）。</li>
+     * </ul>
+     */
+    private static Map<String, String> buildDB2JdbcParams(@NonNull ConnectionConfig connectionConfig) {
+        Map<String, String> jdbcUrlParams = new HashMap<>();
+        Map<String, Object> userParams = connectionConfig.getJdbcUrlParameters();
+        if (userParams != null) {
+            userParams.forEach((key, value) -> {
+                if (value != null) {
+                    jdbcUrlParams.put(key, value.toString());
+                }
+            });
+        }
+        return jdbcUrlParams;
+    }
+
+    /**
+     * Legacy MySQL/OB-MySQL/Oracle/PG/SqlServer/DM JDBC URL 参数构造——保留 fix 前完整行为 以避免回归（本次 D2 修复仅划出 DB2
+     * 分支，不重构其它方言；其它方言同类隐患登记到 {@code docs/dev/compat_risks.md} follow-up）。
+     */
+    private static Map<String, String> buildLegacyJdbcParams(@NonNull ConnectionConfig connectionConfig) {
         Map<String, String> jdbcUrlParams = new HashMap<>();
         jdbcUrlParams.put("maxAllowedPacket", "64000000");
         jdbcUrlParams.put("allowMultiQueries", "true");
