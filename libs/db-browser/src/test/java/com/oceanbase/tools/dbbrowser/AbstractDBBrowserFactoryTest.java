@@ -19,13 +19,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcOperations;
 
 import com.oceanbase.tools.dbbrowser.editor.DBMViewEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBMViewEditorFactory;
@@ -37,7 +41,6 @@ import com.oceanbase.tools.dbbrowser.editor.DBSequenceEditorFactory;
 import com.oceanbase.tools.dbbrowser.editor.DBSynonymEditorFactory;
 import com.oceanbase.tools.dbbrowser.editor.DBTableColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBTableColumnEditorFactory;
-import com.oceanbase.tools.dbbrowser.editor.DBTableConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBTableConstraintEditorFactory;
 import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBTableEditorFactory;
@@ -45,6 +48,8 @@ import com.oceanbase.tools.dbbrowser.editor.DBTableIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBTableIndexEditorFactory;
 import com.oceanbase.tools.dbbrowser.editor.DBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.DBTablePartitionEditorFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.DB2ColumnEditor;
+import com.oceanbase.tools.dbbrowser.editor.db2.DB2TableEditor;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
 import com.oceanbase.tools.dbbrowser.model.DBMaterializedView;
 import com.oceanbase.tools.dbbrowser.model.DBPackage;
@@ -56,6 +61,7 @@ import com.oceanbase.tools.dbbrowser.model.DBType;
 import com.oceanbase.tools.dbbrowser.model.DBView;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessorFactory;
+import com.oceanbase.tools.dbbrowser.schema.db2.DB2SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.stats.DBStatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.DBStatsAccessorFactory;
 import com.oceanbase.tools.dbbrowser.template.DBFunctionTemplateFactory;
@@ -69,18 +75,28 @@ import com.oceanbase.tools.dbbrowser.template.DBViewTemplateFactory;
 
 /**
  * Map-case unit tests covering {@code buildForDB2()} across every concrete subclass of
- * {@link AbstractDBBrowserFactory} (commit-1 of T-003).
+ * {@link AbstractDBBrowserFactory}.
  *
  * <p>
- * This commit ships placeholder implementations only: every {@code buildForDB2()} throws
- * {@link UnsupportedOperationException} with the grep-friendly keyword {@code "Not supported for
- * DB2 yet"} (see {@code docs/dev/compat_risks.md} compat-RISK-7). commit-2 of T-003 wires the
- * Schema / TableEditor / ColumnEditor factories to real {@code DB2*} implementations and the
- * corresponding rows in {@link #factories()} will then be updated.
+ * Three factories return real DB2 implementations (commit-2 of T-003):
+ * <ul>
+ * <li>{@link DBSchemaAccessorFactory} → {@link DB2SchemaAccessor}</li>
+ * <li>{@link DBTableEditorFactory} → {@link DB2TableEditor}</li>
+ * <li>{@link DBTableColumnEditorFactory} → {@link DB2ColumnEditor}</li>
+ * </ul>
+ *
+ * The remaining 16 factories return a {@link UnsupportedOperationException} with the grep-friendly
+ * keyword {@code "Not supported for DB2 yet"} (compat_risks.md compat-RISK-7 / compat-RISK-10).
  */
 public class AbstractDBBrowserFactoryTest {
 
     private static final String DB2_NOT_SUPPORTED = "Not supported for DB2 yet";
+
+    /** Factory names that have real (non-UOE) DB2 implementations in commit-2 of T-003. */
+    private static final Set<String> FULL_DB2_IMPLEMENTATIONS = new HashSet<>(Arrays.asList(
+            "DBSchemaAccessorFactory",
+            "DBTableEditorFactory",
+            "DBTableColumnEditorFactory"));
 
     /**
      * Every concrete factory subclass with its name (for assertion failure messages). Keep this list
@@ -89,7 +105,8 @@ public class AbstractDBBrowserFactoryTest {
      */
     private static List<Map.Entry<String, AbstractDBBrowserFactory<?>>> factories() {
         Map<String, AbstractDBBrowserFactory<?>> m = new java.util.LinkedHashMap<>();
-        m.put("DBSchemaAccessorFactory", new DBSchemaAccessorFactory());
+        m.put("DBSchemaAccessorFactory",
+                new DBSchemaAccessorFactory().setJdbcOperations(mock(JdbcOperations.class)));
         m.put("DBTableEditorFactory", new DBTableEditorFactory());
         m.put("DBTableColumnEditorFactory", new DBTableColumnEditorFactory());
         m.put("DBTableConstraintEditorFactory", new DBTableConstraintEditorFactory());
@@ -112,60 +129,75 @@ public class AbstractDBBrowserFactoryTest {
     }
 
     @Test
-    public void factoryMatrix_buildForDB2_allThrowUnsupportedWithDb2Keyword() {
+    public void factoryMatrix_buildForDB2_consistencyAcrossAllSubclasses() {
         List<Map.Entry<String, AbstractDBBrowserFactory<?>>> matrix = factories();
         // sanity guard: keep the matrix size pinned so adding/removing a factory subclass forces
         // a deliberate test update (compat-RISK-7 coverage owner per docs/dev/compat_risks.md).
         assertEquals("factory subclass count drifted; update both code and case_ids list",
                 19, matrix.size());
         for (Map.Entry<String, AbstractDBBrowserFactory<?>> e : matrix) {
-            try {
-                e.getValue().buildForDB2();
-                fail("Expected UnsupportedOperationException from " + e.getKey() + ".buildForDB2()");
-            } catch (UnsupportedOperationException ex) {
-                assertNotNull(e.getKey() + " threw UOE without a message", ex.getMessage());
-                assertTrue(e.getKey() + " message should contain DB2 keyword: " + ex.getMessage(),
-                        ex.getMessage().contains("DB2"));
-                assertEquals(e.getKey() + " message should match standard skeleton text",
-                        DB2_NOT_SUPPORTED, ex.getMessage());
+            if (FULL_DB2_IMPLEMENTATIONS.contains(e.getKey())) {
+                Object instance = e.getValue().buildForDB2();
+                assertNotNull(e.getKey() + " should return a real DB2 instance", instance);
+            } else {
+                try {
+                    e.getValue().buildForDB2();
+                    fail("Expected UnsupportedOperationException from " + e.getKey()
+                            + ".buildForDB2()");
+                } catch (UnsupportedOperationException ex) {
+                    assertNotNull(e.getKey() + " threw UOE without a message", ex.getMessage());
+                    assertTrue(e.getKey() + " message should contain DB2 keyword: "
+                            + ex.getMessage(), ex.getMessage().contains("DB2"));
+                    assertEquals(e.getKey() + " message should match standard skeleton text",
+                            DB2_NOT_SUPPORTED, ex.getMessage());
+                }
             }
         }
     }
 
     @Test
-    public void createWithTypeDB2_DBSchemaAccessorFactory_routesToBuildForDB2() {
-        DBSchemaAccessorFactory factory = (DBSchemaAccessorFactory) new DBSchemaAccessorFactory()
-                .setType(DBBrowserFactory.DB2);
-        assertCreateDispatchToBuildForDB2(factory, "DBSchemaAccessorFactory");
+    public void buildForDB2_DBSchemaAccessorFactory_returnsDB2SchemaAccessor() {
+        DBSchemaAccessor a = (DBSchemaAccessor) new DBSchemaAccessorFactory()
+                .setJdbcOperations(mock(JdbcOperations.class))
+                .setType(DBBrowserFactory.DB2)
+                .create();
+        assertNotNull(a);
+        assertTrue("expected DB2SchemaAccessor instance but got " + a.getClass().getName(),
+                a instanceof DB2SchemaAccessor);
     }
 
     @Test
-    public void createWithTypeDB2_DBTableEditorFactory_routesToBuildForDB2() {
-        DBTableEditorFactory factory = (DBTableEditorFactory) new DBTableEditorFactory()
-                .setType(DBBrowserFactory.DB2);
-        assertCreateDispatchToBuildForDB2(factory, "DBTableEditorFactory");
+    public void buildForDB2_DBTableEditorFactory_returnsDB2TableEditorWithColumnEditor() {
+        DBTableEditor e = (DBTableEditor) new DBTableEditorFactory()
+                .setType(DBBrowserFactory.DB2)
+                .create();
+        assertNotNull(e);
+        assertTrue("expected DB2TableEditor", e instanceof DB2TableEditor);
+        // its column editor must be the DB2 one (for column comment / data-type rendering)
+        assertTrue("expected DB2ColumnEditor wired into DB2TableEditor",
+                e.getColumnEditor() instanceof DB2ColumnEditor);
     }
 
     @Test
-    public void createWithTypeDB2_DBTableColumnEditorFactory_routesToBuildForDB2() {
-        DBTableColumnEditorFactory factory = new DBTableColumnEditorFactory();
-        factory.setType(DBBrowserFactory.DB2);
-        assertCreateDispatchToBuildForDB2(factory, "DBTableColumnEditorFactory");
+    public void buildForDB2_DBTableColumnEditorFactory_returnsDB2ColumnEditor() {
+        DBTableColumnEditor c = (DBTableColumnEditor) new DBTableColumnEditorFactory()
+                .setType(DBBrowserFactory.DB2)
+                .create();
+        assertNotNull(c);
+        assertTrue("expected DB2ColumnEditor", c instanceof DB2ColumnEditor);
     }
 
     @Test
     public void buildForDB2_DBTableConstraintEditorFactory_unsupportedWithDb2Keyword() {
-        DBTableConstraintEditor editor = null;
+        DBTableConstraintEditorFactory f = new DBTableConstraintEditorFactory();
+        f.setType(DBBrowserFactory.DB2);
         try {
-            DBTableConstraintEditorFactory f = new DBTableConstraintEditorFactory();
-            f.setType(DBBrowserFactory.DB2);
-            editor = (DBTableConstraintEditor) f.create();
+            f.create();
             fail("Expected UOE");
         } catch (UnsupportedOperationException ex) {
             assertTrue(ex.getMessage().contains("DB2"));
+            assertEquals(DB2_NOT_SUPPORTED, ex.getMessage());
         }
-        // editor remains null (placeholder)
-        assertEquals("editor must remain null when factory threw", null, editor);
     }
 
     @Test
@@ -320,20 +352,12 @@ public class AbstractDBBrowserFactoryTest {
     }
 
     @Test
-    public void createWithTypeDB2_DBSchemaAccessorFactory_dispatchesToBuildForDB2WithSameMessage() {
-        // Sanity: AbstractDBBrowserFactory.create() switch case for DB2 must call buildForDB2()
-        // (not throw IllegalStateException from default branch).
-        DBSchemaAccessorFactory f = new DBSchemaAccessorFactory();
+    public void createWithTypeDB2_DBSchemaAccessorFactory_dispatchesToBuildForDB2() {
+        DBSchemaAccessorFactory f = new DBSchemaAccessorFactory()
+                .setJdbcOperations(mock(JdbcOperations.class));
         f.setType(DBBrowserFactory.DB2);
-        try {
-            f.create();
-            fail("Expected UOE thrown by buildForDB2()");
-        } catch (UnsupportedOperationException ex) {
-            // dispatched correctly
-            assertEquals(DB2_NOT_SUPPORTED, ex.getMessage());
-        } catch (IllegalStateException ex) {
-            fail("Switch fell through to default branch (= buildForDB2 not wired): " + ex);
-        }
+        DBSchemaAccessor a = (DBSchemaAccessor) f.create();
+        assertTrue(a instanceof DB2SchemaAccessor);
     }
 
     @Test
@@ -352,11 +376,14 @@ public class AbstractDBBrowserFactoryTest {
     }
 
     @Test
-    public void factoryMatrix_buildForDB2_messageDistinctFromGenericNotSupportedYet() {
+    public void factoryMatrix_placeholderMessages_distinctFromGenericNotSupportedYet() {
         // grep-friendly assertion: every DB2 placeholder uses "Not supported for DB2 yet"
         // (not the generic "Not supported yet" reused by Postgres / Doris / etc.).
         // This protects compat-RISK-10 (readable error messages).
         for (Map.Entry<String, AbstractDBBrowserFactory<?>> e : factories()) {
+            if (FULL_DB2_IMPLEMENTATIONS.contains(e.getKey())) {
+                continue;
+            }
             try {
                 e.getValue().buildForDB2();
                 fail("Expected UOE from " + e.getKey());
@@ -400,20 +427,4 @@ public class AbstractDBBrowserFactoryTest {
         }
         assertEquals(expected.size(), actual.size());
     }
-
-    private static void assertCreateDispatchToBuildForDB2(AbstractDBBrowserFactory<?> factory,
-            String name) {
-        try {
-            factory.create();
-            fail("Expected UOE; " + name + " buildForDB2 must throw for placeholder commit");
-        } catch (UnsupportedOperationException ex) {
-            assertEquals("dispatch path from create() should land on buildForDB2() (commit-1)",
-                    DB2_NOT_SUPPORTED, ex.getMessage());
-        }
-    }
-
-    // suppress unused warnings for type-only imports
-    @SuppressWarnings("unused")
-    private void unusedImportAnchors(DBSchemaAccessor a, DBTableEditor b, DBTableColumnEditor c) {}
-
 }

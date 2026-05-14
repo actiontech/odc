@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.schema.db2.DB2SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.dm.DmSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.doris.DorisSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.MySQLNoLessThan5600SchemaAccessor;
@@ -179,14 +180,14 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     }
 
     /**
-     * DB2 SchemaAccessor: placeholder in T-003 commit-1; real
-     * {@code DB2SchemaAccessor(getJdbcOperations())} will be wired in T-003 commit-2 once the
-     * implementation class lands under {@code schema/db2/}. See design.md §3.4 / §3.5.1 and
-     * compat_risks.md compat-RISK-7.
+     * DB2 SchemaAccessor (T-003 commit-2). Wired to {@link DB2SchemaAccessor}; targets Db2 12.x (and
+     * 11.5 by virtue of selecting columns present in both); T-004 may introduce a 11.5 sub-class
+     * similarly to OB-MySQL sub-versioning. See design.md §3.4 / §3.5.1 and compat_risks.md
+     * compat-RISK-7 / compat-RISK-11.
      */
     @Override
     public DBSchemaAccessor buildForDB2() {
-        throw new UnsupportedOperationException("Not supported for DB2 yet");
+        return new DB2SchemaAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

@@ -18,6 +18,8 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.DB2ColumnEditor;
+import com.oceanbase.tools.dbbrowser.editor.db2.DB2TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor;
@@ -103,13 +105,14 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
     }
 
     /**
-     * DB2 TableEditor: placeholder in T-003 commit-1; T-003 commit-2 will wire
-     * {@code DB2TableEditor(indexEditor, columnEditor, constraintEditor, partitionEditor)}. See
-     * design.md §3.4 / §3.5.2 and compat_risks.md compat-RISK-7.
+     * DB2 TableEditor (T-003 commit-2). Wired to {@link DB2TableEditor} with a real
+     * {@link DB2ColumnEditor} and null index / constraint / partition editors (the latter trio
+     * factories still throw {@link UnsupportedOperationException} for DB2 — MVP table editor flow only
+     * uses the column editor). See design.md §3.4 / §3.5.2 and compat_risks.md compat-RISK-7.
      */
     @Override
     public DBTableEditor buildForDB2() {
-        throw new UnsupportedOperationException("Not supported for DB2 yet");
+        return new DB2TableEditor(null, new DB2ColumnEditor(), null, null);
     }
 
     private DBTableIndexEditor getTableIndexEditor() {

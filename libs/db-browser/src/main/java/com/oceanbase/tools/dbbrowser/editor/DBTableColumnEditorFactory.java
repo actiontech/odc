@@ -16,6 +16,7 @@
 package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.DB2ColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerColumnEditor;
@@ -73,12 +74,12 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
     }
 
     /**
-     * DB2 ColumnEditor: placeholder in T-003 commit-1; T-003 commit-2 wires {@code DB2ColumnEditor}.
-     * See design.md §3.4 / §3.5.3 and compat_risks.md compat-RISK-7.
+     * DB2 ColumnEditor (T-003 commit-2). Wired to {@link DB2ColumnEditor}. See design.md §3.4 / §3.5.3
+     * and compat_risks.md compat-RISK-7.
      */
     @Override
     public DBTableColumnEditor buildForDB2() {
-        throw new UnsupportedOperationException("Not supported for DB2 yet");
+        return new DB2ColumnEditor();
     }
 
 }
