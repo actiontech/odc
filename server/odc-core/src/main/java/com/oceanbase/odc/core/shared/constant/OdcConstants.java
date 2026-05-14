@@ -101,6 +101,14 @@ public class OdcConstants {
      */
     public static final String DM_DRIVER_CLASS_NAME = "dm.jdbc.driver.DmDriver";
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
+    /**
+     * IBM DB2 driver class name (com.ibm.db2:jcc).
+     * <p>
+     * Loaded only when the connect-plugin-db2 jar and its jcc/jcc_license jars are present under
+     * {@code distribution/plugins/connect-plugin-db2/lib/}. See compat-RISK-6 (IPLA jar) and
+     * compat-RISK-8 (jcc dependency).
+     */
+    public static final String DB2_DRIVER_CLASS_NAME = "com.ibm.db2.jcc.DB2Driver";
 
     /**
      * Parameters name

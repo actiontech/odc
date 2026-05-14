@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2026 OceanBase.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>plugin-parent</artifactId>
+        <groupId>com.oceanbase</groupId>
+        <version>4.3.4-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>connect-plugin-db2</artifactId>
+
+    <!--
+      connect-plugin-db2 骨架（T-002）：
+        - DialectType.DB2 / ConnectType.DB2 已由 commit 1 引入；
+        - 本模块仅提供 pf4j 装载骨架与最小化 generateJdbcUrl/getDriverClassName 实现；
+        - Db2ConnectionExtension.test() 真实连通性由 T-003 完成；
+        - Db2SessionExtension SQL 由 T-003 完成；
+        - schema-plugin-db2 由 T-004 完成；
+        - compat-RISK-5（plugin 加载与 jcc 隔离）、compat-RISK-8（jcc 11.5.8.0 provided）。
+    -->
+
+    <properties>
+        <root-project.basedir>${project.parent.parent.basedir}</root-project.basedir>
+        <plugin.class>com.oceanbase.odc.plugin.connect.db2.Db2ConnectionPlugin</plugin.class>
+        <plugin.dependencies>connect-plugin-ob-mysql</plugin.dependencies>
+        <!--
+          IBM JCC 版本：与 distribution/plugins/connect-plugin-db2/lib/ 下手工放置的
+          db2jcc4.jar + db2jcc_license_cu.jar 保持一致；scope=provided 禁止打包
+          （IPLA 许可由部署侧用户接受，见 design.md §3.9）。
+        -->
+        <ibm.db2.jcc.version>11.5.8.0</ibm.db2.jcc.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.oceanbase</groupId>
+            <artifactId>connect-plugin-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.oceanbase</groupId>
+            <artifactId>connect-plugin-ob-mysql</artifactId>
+        </dependency>
+        <!--
+          compat-RISK-8: IBM JCC 11.5.8.0 - IPLA 许可
+          scope=provided 表示构建期编译可见、运行期由部署侧从 plugin/<id>/lib/ 提供，
+          maven-assembly-plugin 不会把它打入 plugin jar。
+        -->
+        <dependency>
+            <groupId>com.ibm.db2</groupId>
+            <artifactId>jcc</artifactId>
+            <version>${ibm.db2.jcc.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.oceanbase</groupId>
+            <artifactId>odc-test</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

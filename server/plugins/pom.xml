@@ -23,6 +23,7 @@
         <module>connect-plugin-postgres</module>
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
+        <module>connect-plugin-db2</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
         <module>schema-plugin-ob-oracle</module>
@@ -195,6 +196,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-dm</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-db2</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
