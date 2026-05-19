@@ -103,6 +103,9 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
     @Override
     public DBTableConstraintEditor buildForHive() {
         return new HiveConstraintEditor();
+
+    public DBTableConstraintEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

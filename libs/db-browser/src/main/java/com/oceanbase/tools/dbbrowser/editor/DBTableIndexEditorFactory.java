@@ -90,6 +90,9 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     @Override
     public DBTableIndexEditor buildForHive() {
         return new HiveIndexEditor();
+
+    public DBTableIndexEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

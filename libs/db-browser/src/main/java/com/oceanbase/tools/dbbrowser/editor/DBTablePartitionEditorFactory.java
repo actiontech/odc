@@ -109,6 +109,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
     @Override
     public DBTablePartitionEditor buildForHive() {
         return new HivePartitionEditor();
+
+    public DBTablePartitionEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

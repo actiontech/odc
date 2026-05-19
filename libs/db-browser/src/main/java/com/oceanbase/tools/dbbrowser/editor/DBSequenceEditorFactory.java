@@ -80,6 +80,9 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
     @Override
     public DBObjectEditor<DBSequence> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support sequences");
+
+    public DBObjectEditor<DBSequence> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

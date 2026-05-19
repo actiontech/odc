@@ -83,6 +83,9 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
     @Override
     public DBTableColumnEditor buildForHive() {
         return new HiveColumnEditor();
+
+    public DBTableColumnEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

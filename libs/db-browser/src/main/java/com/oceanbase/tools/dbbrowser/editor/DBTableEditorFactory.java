@@ -122,6 +122,9 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
                 getTableColumnEditor(),
                 getTableConstraintEditor(),
                 getTablePartitionEditor());
+
+    public DBTableEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
     private DBTableIndexEditor getTableIndexEditor() {

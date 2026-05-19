@@ -54,6 +54,9 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForHana();
             case HIVE:
                 return buildForHive();
+
+            case DB2:
+                return buildForDB2();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -82,5 +85,7 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForHana();
 
     public abstract T buildForHive();
+
+    public abstract T buildForDB2();
 
 }

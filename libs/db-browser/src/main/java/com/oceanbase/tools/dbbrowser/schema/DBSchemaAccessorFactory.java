@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.schema.db2.Db2SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.dm.DmSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.doris.DorisSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.hana.HanaSchemaAccessor;
@@ -188,6 +189,9 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     @Override
     public DBSchemaAccessor buildForHive() {
         return new HiveSchemaAccessor(getJdbcOperations());
+
+    public DBSchemaAccessor buildForDB2() {
+        return new Db2SchemaAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {

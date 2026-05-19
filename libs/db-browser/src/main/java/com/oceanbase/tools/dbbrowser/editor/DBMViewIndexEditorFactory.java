@@ -85,5 +85,8 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     @Override
     public DBTableIndexEditor buildForHive() {
         throw new UnsupportedOperationException("Hive does not support materialized view indexes");
+
+    public DBTableIndexEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 }

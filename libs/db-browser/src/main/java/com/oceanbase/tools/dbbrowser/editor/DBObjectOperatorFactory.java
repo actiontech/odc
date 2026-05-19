@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2ObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.dm.DmObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.hana.HanaObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.hive.HiveObjectOperator;
@@ -97,6 +98,9 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
     @Override
     public DBObjectOperator buildForHive() {
         return new HiveObjectOperator(getJdbcOperations());
+
+    public DBObjectOperator buildForDB2() {
+        return new Db2ObjectOperator(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {
