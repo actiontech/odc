@@ -59,16 +59,36 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>
  * 主用 SYSCAT.* 视图（DB2 11.5 默认）；仅实现本期需要的 6 类查询：列 schema / 列 table / 列 view / 列 column / 列 index / 列
- * constraint，详见 docs/spec/design.md §6。
+ * constraint，详见 docs/spec/design.md §6，外加 fix-H 补齐的 4 个聚合路径必经方法： {@link #getDatabase(String)} /
+ * {@link #listAllUserViews(String)} / {@link #listAllSystemViews(String)} /
+ * {@link #listTableColumns(String, java.util.List)}。
  *
  * <p>
- * 其余接口方法按现有同仓 PostgresSchemaAccessor 风格抛 {@link UnsupportedOperationException}， 不影响 ODC
- * 工作台基本能力（表浏览、列查看）。
+ * 其余接口方法在 fix-H 之前曾抛 {@code UnsupportedOperationException}，但被 ODC 上层
+ * (OBMySQLTableExtension.getDetail / DBMetadataController#listIdentities) 聚合调用时会折叠成整页 HTTP 500。
+ * fix-H 起改为返回空集合 / null / false（参见 case-2-3 / case-2-4 round-fix-G 复测证据，episodic
+ * {@code odc_db2_fixG_round_bugD_unsupported_methods_2026-05-19.md}）。 行为契约：空 List/Map 表示"该类对象在 DB2
+ * 暂不可见 "；null 仅用于单对象 getX，控制器层会将其映射为 404 而非 500。
  *
  * @since ODC_release_4.3.4 (Issue dms-ee#839)
  */
 @Slf4j
 public class Db2SchemaAccessor implements DBSchemaAccessor {
+
+    /**
+     * DB2 11.5 system-schema blacklist (12 entries, single source of truth). Used by both
+     * {@link #showDatabases()} (filters SYSCAT.SCHEMATA.SCHEMANAME) and the
+     * {@link #listAllUserViews(String)} / {@link #listAllSystemViews(String)} pair (filters
+     * SYSCAT.VIEWS.VIEWSCHEMA — DB2 system views always live in one of these schemas in 11.5).
+     *
+     * <p>
+     * fix-G bug C — must filter by SCHEMANAME / VIEWSCHEMA, never DEFINER: in DB2 11.5 several system
+     * schemas (NULLID, SQLJ, SYSTOOLS) are created by the instance owner (e.g. db2inst1) so a
+     * DEFINER-based filter leaks them into the user tree.
+     */
+    static final String SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL =
+            "'SYSIBM','SYSCAT','SYSIBMADM','SYSIBMINTERNAL','SYSIBMTS','SYSFUN','SYSPROC',"
+                    + "'SYSSTAT','SYSTOOLS','SYSPUBLIC','NULLID','SQLJ'";
 
     protected final JdbcOperations jdbcOperations;
 
@@ -78,25 +98,30 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<String> showDatabases() {
-        // fix-G bug C: design.md §6 prescribes an 11-entry system-schema blacklist
-        // (SYSCAT / SYSIBM / SYSIBMADM / SYSIBMINTERNAL / SYSIBMTS / SYSFUN / SYSPROC /
-        // SYSSTAT / SYSTOOLS / SYSPUBLIC / NULLID). The original implementation filtered by
+        // fix-G bug C: design.md §6 prescribes a 12-entry system-schema blacklist (see
+        // SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL). The original implementation filtered by
         // SYSCAT.SCHEMATA.DEFINER, but on DB2 11.5 several system schemas (NULLID, SQLJ,
         // SYSTOOLS) are *created* by the instance owner (e.g. db2inst1) rather than SYSIBM,
         // so DEFINER NOT IN(...) lets them slip through into the user schema list. The blacklist
-        // must therefore match SCHEMANAME directly. SQLJ is added to the list (DB2 JDBC stored
-        // procedures schema, meaningless to end users; see batch-3 round-2 evidence in
-        // case-2-1.md).
+        // must therefore match SCHEMANAME directly. See batch-3 round-2 evidence in case-2-1.md.
         String sql = "SELECT TRIM(SCHEMANAME) AS SCHEMA_NAME FROM SYSCAT.SCHEMATA "
-                + "WHERE SCHEMANAME NOT IN ('SYSIBM','SYSCAT','SYSIBMADM','SYSIBMINTERNAL',"
-                + "'SYSIBMTS','SYSFUN','SYSPROC','SYSSTAT','SYSTOOLS','SYSPUBLIC','NULLID','SQLJ') "
+                + "WHERE SCHEMANAME NOT IN (" + SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL + ") "
                 + "ORDER BY SCHEMANAME";
         return jdbcOperations.queryForList(sql, String.class);
     }
 
     @Override
     public DBDatabase getDatabase(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: ODC `DBTableController#getTable` -> `OBMySQLTableExtension.getDetail` aggregates
+        // multiple SchemaAccessor calls (incl. getDatabase) and any UnsupportedOperationException
+        // collapses the whole 5-tab table-detail page with HTTP 500. DB2 conceptually has only a single
+        // catalog per JDBC URL, so DB2 ≈ Oracle/PostgreSQL where "schema" is the database identity end
+        // users see. Return a minimal POJO with id=name=schemaName so the upstream aggregator can
+        // proceed; charset/collation/size are not surfaced in the DB2 schema page anyway.
+        DBDatabase database = new DBDatabase();
+        database.setId(schemaName);
+        database.setName(schemaName);
+        return database;
     }
 
     @Override
@@ -114,12 +139,18 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public void switchDatabase(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: void; ODC default catalog/schema is fixed at JDBC connect time for DB2 (set via
+        // `currentSchema` URL property by Db2ConnectionExtension). No-op here so that any upstream
+        // call from a generic flow doesn't 500 — the JDBC session is already on the desired schema.
+        // If a future flow truly needs schema switch mid-session, this can be replaced with
+        // `SET SCHEMA ?` (DB2 dialect).
     }
 
     @Override
     public List<DBObjectIdentity> listUsers() {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: ODC user-picker for "grant/revoke on object" is not exposed for DB2 in this
+        // release. Return empty so upstream UI shows "no users" rather than collapsing the page.
+        return Collections.emptyList();
     }
 
     @Override
@@ -172,7 +203,9 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public boolean syncExternalTableFiles(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: DB2 has no external-table sync. listExternalTables() already returns empty,
+        // so this should never be reachable in practice; return false defensively.
+        return false;
     }
 
     @Override
@@ -185,72 +218,123 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBObjectIdentity> listAllViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: union of user + system views — DBMetadataController#listIdentities?type=VIEW
+        // calls this method when ODC asks for all visible views across schemas.
+        List<DBObjectIdentity> result = new ArrayList<>();
+        result.addAll(listAllUserViews(viewNameLike));
+        result.addAll(listAllSystemViews(viewNameLike));
+        return result;
     }
 
     @Override
     public List<DBObjectIdentity> listAllUserViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: SQL autocomplete + cross-schema view picker call this on every prefix.
+        // Same SYSTEM-schema blacklist as showDatabases() (see SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL).
+        // VIEWSCHEMA is the column on SYSCAT.VIEWS; the column on SYSCAT.SCHEMATA is SCHEMANAME — the
+        // two are independent but the blacklist values match by design (DB2 system schemas always own
+        // their system views in DB2 11.5; see SYSCAT.VIEWS rows where VIEWSCHEMA='SYSCAT'/'SYSIBM').
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT VIEWSCHEMA, VIEWNAME FROM SYSCAT.VIEWS ");
+        sb.append("WHERE VIEWSCHEMA NOT IN (").append(SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL).append(") ");
+        Object[] args;
+        if (viewNameLike != null && !viewNameLike.isEmpty()) {
+            sb.append("AND VIEWNAME LIKE ? ");
+            args = new Object[] {viewNameLike};
+        } else {
+            args = new Object[] {};
+        }
+        sb.append("ORDER BY VIEWSCHEMA, VIEWNAME");
+        return jdbcOperations.query(sb.toString(), args,
+                (rs, rowNum) -> DBObjectIdentity.of(rs.getString(1).trim(), DBObjectType.VIEW,
+                        rs.getString(2).trim()));
     }
 
     @Override
     public List<DBObjectIdentity> listAllSystemViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: inverse of listAllUserViews — DBMetadataController surfaces system views in a
+        // separate node so users can read schema metadata directly. VIEWSCHEMA IN (...) is the inverse
+        // of the user-view filter; same 12-entry blacklist.
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT VIEWSCHEMA, VIEWNAME FROM SYSCAT.VIEWS ");
+        sb.append("WHERE VIEWSCHEMA IN (").append(SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL).append(") ");
+        Object[] args;
+        if (viewNameLike != null && !viewNameLike.isEmpty()) {
+            sb.append("AND VIEWNAME LIKE ? ");
+            args = new Object[] {viewNameLike};
+        } else {
+            args = new Object[] {};
+        }
+        sb.append("ORDER BY VIEWSCHEMA, VIEWNAME");
+        return jdbcOperations.query(sb.toString(), args,
+                (rs, rowNum) -> DBObjectIdentity.of(rs.getString(1).trim(), DBObjectType.VIEW,
+                        rs.getString(2).trim()));
     }
 
     @Override
     public List<String> showSystemViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: ODC autocomplete sometimes hits this single-schema variant. Return system-view
+        // names within the given schema only (DB2 system schemas like SYSCAT/SYSIBM own dozens).
+        String sql = "SELECT VIEWNAME FROM SYSCAT.VIEWS WHERE VIEWSCHEMA = ? ORDER BY VIEWNAME";
+        return jdbcOperations.queryForList(sql, String.class, schemaName);
     }
 
+    // fix-H bug D: DB2 11.5 has MQTs (materialized query tables) but the ODC MView UI surface is not
+    // wired up in this release (out of scope per design.md §6). Return empty / false rather than
+    // throwing so the materialized-view tree node, if ever rendered, simply shows nothing instead of
+    // collapsing the parent page with HTTP 500.
     @Override
     public List<DBObjectIdentity> listMViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBObjectIdentity> listAllMViewsLike(String mViewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Boolean refreshMVData(DBMViewRefreshParameter parameter) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Boolean.FALSE;
     }
 
     @Override
     public DBMaterializedView getMView(String schemaName, String mViewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // No DB2 materialized-view surface in this release; null is acceptable for object-detail
+        // endpoints — DBTableController shapes null as 404 rather than 500.
+        return null;
     }
 
     @Override
     public List<DBTableConstraint> listMViewConstraints(String schemaName, String mViewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBMViewRefreshRecord> listMViewRefreshRecords(DBMViewRefreshRecordParam param) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBTableIndex> listMViewIndexes(String schemaName, String mViewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
+    // fix-H bug D: DB2 11.5 exposes registry/session variables via SYSPROC.* but the ODC variables
+    // page is not wired for DB2 in this release. Return empty so the page (if reached) shows "no
+    // variables" rather than 500.
     @Override
     public List<DBVariable> showVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBVariable> showSessionVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBVariable> showGlobalVariables() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
@@ -263,49 +347,67 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
         return Collections.emptyList();
     }
 
+    // fix-H bug D: DB2 has functions/procedures/packages/triggers/types/sequences/synonyms via
+    // SYSCAT.ROUTINES / SYSCAT.TRIGGERS / SYSCAT.SEQUENCES / SYSCAT.PACKAGES — out of scope for this
+    // release (design.md §6 covers only schemas/tables/views/columns/indexes/constraints). Return
+    // empty so the corresponding "PL objects" tree nodes simply render no children rather than
+    // collapsing the parent resource tree with HTTP 500.
     @Override
     public List<DBPLObjectIdentity> listFunctions(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBPLObjectIdentity> listProcedures(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBPLObjectIdentity> listPackages(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBPLObjectIdentity> listPackageBodies(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBPLObjectIdentity> listTriggers(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBPLObjectIdentity> listTypes(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBObjectIdentity> listSequences(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBObjectIdentity> listSynonyms(String schemaName, DBSynonymType synonymType) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Map<String, List<DBTableColumn>> listTableColumns(String schemaName, List<String> tableNames) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: aggregator path (OBMySQLTableExtension.getDetail) calls this batch variant for
+        // every table-detail page render. Each unsupported call collapses the whole 5-tab page with
+        // HTTP 500. Loop over single-table variant — DB2 11.5 SYSCAT.COLUMNS lookup is index-backed and
+        // the typical "table tabs open" call set is N<=1 anyway. If a future caller passes a large list
+        // and profiling shows a hot spot, this can be rewritten to a single `WHERE TABNAME IN (?, ...)`
+        // round-trip without altering the contract.
+        Map<String, List<DBTableColumn>> result = new java.util.LinkedHashMap<>();
+        if (tableNames == null || tableNames.isEmpty()) {
+            return result;
+        }
+        for (String tableName : tableNames) {
+            result.put(tableName, listTableColumns(schemaName, tableName));
+        }
+        return result;
     }
 
     @Override
@@ -330,79 +432,88 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
         });
     }
 
+    // fix-H bug D: "Basic" column variants are an autocomplete/SQL-console optimization that returns a
+    // light-weight projection per schema. ODC falls back gracefully when these return empty (it uses
+    // the heavier per-table listTableColumns path), so empty is a safe degradation. Returning empty
+    // keeps the autocomplete dropdown free of DB2 columns rather than crashing the SQL console.
     @Override
     public Map<String, List<DBTableColumn>> listBasicTableColumns(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public List<DBTableColumn> listBasicTableColumns(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Map<String, List<DBTableColumn>> listBasicViewColumns(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public List<DBTableColumn> listBasicViewColumns(String schemaName, String viewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Map<String, List<DBTableColumn>> listBasicExternalTableColumns(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public List<DBTableColumn> listBasicExternalTableColumns(String schemaName, String externalTableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Map<String, List<DBTableColumn>> listBasicMViewColumns(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public List<DBTableColumn> listBasicMViewColumns(String schemaName, String externalTableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public Map<String, List<DBTableColumn>> listBasicColumnsInfo(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
+    // fix-H bug D: batch index/constraint/options/partition variants — ODC aggregator path uses these
+    // when caching schema-wide metadata. Per-table variants below are implemented; empty here means
+    // ODC will fall back to per-table lookups on demand (slower but correct).
     @Override
     public Map<String, List<DBTableIndex>> listTableIndexes(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public Map<String, List<DBTableConstraint>> listTableConstraints(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public Map<String, DBTableOptions> listTableOptions(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyMap();
     }
 
     @Override
     public Map<String, DBTablePartition> listTablePartitions(@NonNull String schemaName, List<String> tableNames) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // DB2 partitioned-table feature is out of scope; empty map indicates "no table has partitions"
+        // which is a safe truth for non-partitioned DB2 tables (and matches the common DB2 11.5 default).
+        return Collections.emptyMap();
     }
 
     @Override
     public List<DBTablePartition> listTableRangePartitionInfo(String tenantName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBTableSubpartitionDefinition> listSubpartitions(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
@@ -412,7 +523,8 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBObjectIdentity> listPartitionTables(String partitionMethod) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // DB2 partitioned tables out of scope; see listTablePartitions().
+        return Collections.emptyList();
     }
 
     @Override
@@ -450,7 +562,9 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public DBTablePartition getPartition(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // No partition for DB2 in this release; null tells the upstream "no partition info available"
+        // (DBTableService treats null partition as not-partitioned, not as an error).
+        return null;
     }
 
     @Override
@@ -471,66 +585,78 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public String getTableDDL(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: DB2 DDL extraction (db2look or SYSPROC.DB2LK_GENERATE_DDL) is out of scope for
+        // this release (design.md §6 excludes "DDL export"). Returning empty string instead of null
+        // because some callers do `.contains(...)` on the result.
+        return "";
     }
 
     @Override
     public DBTableOptions getTableOptions(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // ODC table-detail "Options" sub-tab tolerates null (treats it as "no options to display").
+        return null;
     }
 
     @Override
     public DBTableOptions getTableOptions(String schemaName, String tableName, String ddl) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public List<DBColumnGroupElement> listTableColumnGroups(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // DB2 doesn't have OB-style column groups; return empty.
+        return Collections.emptyList();
     }
 
+    // fix-H bug D: per-object getX methods — out of scope for current release. ODC controller layer
+    // shapes null as 404 (not 500), so returning null is the safe degradation that matches the empty
+    // list* contract above.
     @Override
     public DBView getView(String schemaName, String viewName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBFunction getFunction(String schemaName, String functionName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBProcedure getProcedure(String schemaName, String procedureName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBPackage getPackage(String schemaName, String packageName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBTrigger getTrigger(String schemaName, String packageName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBType getType(String schemaName, String typeName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBSequence getSequence(String schemaName, String sequenceName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public DBSynonym getSynonym(String schemaName, String synonymName, DBSynonymType synonymType) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return null;
     }
 
     @Override
     public Map<String, DBTable> getTables(String schemaName, List<String> tableNames) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // fix-H bug D: aggregator path. Per-table DBTable assembly for DB2 happens via the dedicated
+        // Db2TableExtension (schema-plugin-db2) which orchestrates columns + indexes + constraints
+        // calls on this accessor — the batch path here is not used by the DB2 plugin. Return empty
+        // map so upstream paths (if any) see "no preloaded tables" and fall back to per-table calls.
+        return Collections.emptyMap();
     }
 }
