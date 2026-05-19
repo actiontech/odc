@@ -98,6 +98,12 @@ public class TableDataService {
             } else if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
+            } else if (dialectType.isDb2()) {
+                // design.md §2.5: reuse MySQLDMLBuilder. DB2 and MySQL agree on basic
+                // UPDATE/INSERT/DELETE syntax; we deliberately avoid introducing a
+                // Db2DMLBuilder unless LOB/TIMESTAMP(6) binding turns out to require dialect
+                // specialisation (out of scope for this iteration).
+                dmlBuilder = new MySQLDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else {
                 throw new IllegalArgumentException("Illegal dialect type, " + dialectType);
             }

@@ -125,4 +125,21 @@ public class ConnectTypeTest {
     public void from_DialectTypeMYSQL_ReturnConnectTypeMYSQL_Unchanged() {
         Assert.assertEquals(ConnectType.MYSQL, ConnectType.from(DialectType.MYSQL));
     }
+
+    // ===== DB2 =====
+
+    @Test
+    public void getDialectType_DB2_ReturnDialectTypeDB2() {
+        Assert.assertEquals(DialectType.DB2, ConnectType.DB2.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeDB2_ReturnConnectTypeDB2() {
+        Assert.assertEquals(ConnectType.DB2, ConnectType.from(DialectType.DB2));
+    }
+
+    @Test
+    public void isCloud_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isCloud());
+    }
 }

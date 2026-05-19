@@ -105,6 +105,8 @@ public class ConnectTypeUtil {
                 return ConnectType.SQL_SERVER;
             case DM:
                 return ConnectType.DM;
+            case DB2:
+                return ConnectType.DB2;
         }
         return null;
     }

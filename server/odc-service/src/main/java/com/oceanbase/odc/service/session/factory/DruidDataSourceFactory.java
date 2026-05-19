@@ -122,14 +122,22 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
      * on the very first BACKEND_DS_KEY lookup (e.g. {@code DBTableService.listTables}). Route every
      * PG-family dialect through the portable {@code "select 1"}.
      * <p>
+     * DB2 enforces a {@code FROM} clause — use {@code SYSIBM.SYSDUMMY1} (B-24, design.md §2.5).
+     * <p>
      * Package-private static so {@code DruidDataSourceFactoryTest} can exercise the matrix without
      * instantiating the full {@link DruidDataSourceFactory} (which depends on the pf4j-loaded
      * {@code ConnectionPluginUtil}, not available in offline unit tests).
      */
     static String resolveValidationQuery(DialectType dialectType) {
+        if (dialectType == null) {
+            return "select 1 from dual";
+        }
         if (dialectType.isHana()) {
             // HANA does not support SELECT without FROM; use DUMMY pseudo-table
             return "select 1 from DUMMY";
+        }
+        if (dialectType.isDb2()) {
+            return "select 1 from SYSIBM.SYSDUMMY1";
         }
         if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
                 || dialectType.isPgFamily() || dialectType.isSqlServer() || dialectType.isHive()) {

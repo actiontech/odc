@@ -184,6 +184,10 @@ public class SqlCommentProcessor {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isHana()) {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isDb2()) {
+                    // DB2 shares MySQL semantics for `--` / `/* */` comments and `;` separators
+                    // (design.md §2.5 + plan.md B-23). Reuse the MySQL path; no separate parser.
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
                 }
