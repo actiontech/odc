@@ -64,9 +64,28 @@ public class Db2ConnectionExtension extends OBMySQLConnectionExtension {
      * <strong>end with {@code ;}</strong>; otherwise the driver reports {@code errorcode -4461}.
      *
      * <p>
-     * If {@link JdbcUrlProperty#getDefaultSchema()} is blank, we fall back to
-     * {@code user.toUpperCase()} (DB2 implicit schema convention) to align with B-20 default schema
-     * policy in {@link com.oceanbase.odc.service.connection.model.ConnectionConfig#getDefaultSchema}.
+     * Catalog (database) vs schema in DB2:
+     * <ul>
+     * <li>{@code <database>} in the JDBC URL maps to the DB2 catalog/database name (e.g.
+     * {@code testdb});
+     * <li>{@code currentSchema=} maps to the in-database schema (e.g. {@code DB2INST1}).
+     * </ul>
+     *
+     * <p>
+     * Upstream (DMS-EE buildDatasourceBaseInfo, compat-RISK-5 D-02) only carries the DB2 database name
+     * via the {@code defaultSchema} field of
+     * {@link com.oceanbase.odc.service.connection.model.ConnectionConfig} when the user does not also
+     * fill a separate {@code catalogName}. To keep that contract working without forcing a CE/EE schema
+     * change to the create-datasource request body, we fall back to
+     * {@link JdbcUrlProperty#getDefaultSchema()} when {@link JdbcUrlProperty#getCatalogName()} is
+     * blank.
+     *
+     * <p>
+     * When the resolved catalog and the {@code defaultSchema} reference the same string we omit the
+     * {@code currentSchema=} segment entirely; DB2 then defaults the schema to
+     * {@code user.toUpperCase()} (the DB2 implicit-schema convention) via the JDBC driver, which is
+     * exactly what {@link com.oceanbase.odc.service.connection.model.ConnectionConfig#getDefaultSchema}
+     * resolves to for DB2 (B-20).
      */
     @Override
     public String generateJdbcUrl(@NonNull JdbcUrlProperty properties) {
@@ -75,13 +94,22 @@ public class Db2ConnectionExtension extends OBMySQLConnectionExtension {
         Integer port = properties.getPort();
         Validate.notNull(port, "port can not be null");
         String catalogName = properties.getCatalogName();
-        Validate.notEmpty(catalogName, "catalog name can not be null");
+        String schema = properties.getDefaultSchema();
+        // Fallback chain: when an explicit catalog/database name is not provided by the caller,
+        // treat the defaultSchema field as the DB2 database name. This is the contract DMS-EE
+        // currently relies on (CreateDatasourceRequest carries only defaultSchema, not catalogName).
+        if (StringUtils.isEmpty(catalogName)) {
+            catalogName = schema;
+        }
+        Validate.notEmpty(catalogName,
+                "DB2 catalog (database name) can not be null; expected non-empty catalogName or defaultSchema");
 
         StringBuilder jdbcUrl = new StringBuilder();
         jdbcUrl.append("jdbc:db2://").append(host).append(":").append(port).append("/").append(catalogName);
 
-        String schema = properties.getDefaultSchema();
-        if (StringUtils.isNotBlank(schema)) {
+        if (StringUtils.isNotBlank(schema) && !schema.equalsIgnoreCase(catalogName)) {
+            // schema explicitly differs from the catalog (or the caller really meant a schema
+            // override); honour it. DB2 driver requires the property segment to end with ';'.
             jdbcUrl.append(":currentSchema=").append(schema.toUpperCase()).append(";");
         }
         return jdbcUrl.toString();

@@ -62,6 +62,21 @@ public class Db2ConnectionExtensionTest {
         cases.put("blank schema → URL has no currentSchema segment",
                 new Case("h", 50000, "testdb", "   ",
                         "jdbc:db2://h:50000/testdb"));
+        // Regression for fix-F (catalogName fallback to defaultSchema). Upstream DMS-EE
+        // currently only carries the DB2 database name via the defaultSchema field of
+        // CreateDatasourceRequest; the plugin must fall back rather than fail-fast.
+        cases.put("null catalog falls back to defaultSchema (DMS-EE contract)",
+                new Case("h", 50000, null, "testdb",
+                        "jdbc:db2://h:50000/testdb"));
+        cases.put("empty catalog falls back to defaultSchema",
+                new Case("h", 50000, "", "testdb",
+                        "jdbc:db2://h:50000/testdb"));
+        cases.put("catalog equals schema (case-insensitive) → no currentSchema segment",
+                new Case("h", 50000, "TESTDB", "testdb",
+                        "jdbc:db2://h:50000/TESTDB"));
+        cases.put("explicit catalog + distinct schema both honoured",
+                new Case("h", 50000, "PROD_DB", "ALICE",
+                        "jdbc:db2://h:50000/PROD_DB:currentSchema=ALICE;"));
 
         for (Map.Entry<String, Case> entry : cases.entrySet()) {
             Case c = entry.getValue();
@@ -72,10 +87,20 @@ public class Db2ConnectionExtensionTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void generateJdbcUrl_blankCatalog_throws() {
+    @Test(expected = NullPointerException.class)
+    public void generateJdbcUrl_bothCatalogAndSchemaNull_throws() {
+        // After fix-F: catalogName fallback only succeeds when defaultSchema is non-empty.
+        // Apache Commons Lang3 Validate.notEmpty(String) throws NPE for null and IAE for empty,
+        // both with the descriptive "DB2 catalog (database name) can not be null" message.
         JdbcUrlProperty property =
-                new JdbcUrlProperty("h", 50000, "DB2INST1", null, null, null, "");
+                new JdbcUrlProperty("h", 50000, null, null, null, null, null);
+        EXTENSION.generateJdbcUrl(property);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void generateJdbcUrl_bothCatalogAndSchemaEmpty_throws() {
+        JdbcUrlProperty property =
+                new JdbcUrlProperty("h", 50000, "", null, null, null, "");
         EXTENSION.generateJdbcUrl(property);
     }
 
