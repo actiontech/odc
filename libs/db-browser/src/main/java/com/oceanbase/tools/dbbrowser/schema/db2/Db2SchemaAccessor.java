@@ -210,7 +210,12 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBObjectIdentity> listViews(String schemaName) {
-        String sql = "SELECT VIEWSCHEMA, TABNAME FROM SYSCAT.VIEWS WHERE VIEWSCHEMA = ? ORDER BY TABNAME";
+        // fix-I: SYSCAT.VIEWS exposes the view name in column VIEWNAME, not TABNAME (TABNAME is the
+        // SYSCAT.TABLES column — both views inherit some columns but VIEWS does not surface TABNAME
+        // in DB2 11.5). The earlier "SELECT VIEWSCHEMA, TABNAME ..." form was inherited verbatim
+        // from a stale skeleton and produced SQLCODE=-206 (SQLERRMC=TABNAME) the moment the v1 view
+        // controller wired up through fix-I and tried to list views for the "视图" tree node.
+        String sql = "SELECT VIEWSCHEMA, VIEWNAME FROM SYSCAT.VIEWS WHERE VIEWSCHEMA = ? ORDER BY VIEWNAME";
         return jdbcOperations.query(sql, new Object[] {schemaName},
                 (rs, rowNum) -> DBObjectIdentity.of(rs.getString(1).trim(), DBObjectType.VIEW,
                         rs.getString(2).trim()));
