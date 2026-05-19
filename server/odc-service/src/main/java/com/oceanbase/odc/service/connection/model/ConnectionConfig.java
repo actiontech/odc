@@ -365,6 +365,16 @@ public class ConnectionConfig
         return Objects.nonNull(this.type) ? this.type.getDialectType() : DialectType.UNKNOWN;
     }
 
+    /**
+     * Returns the persisted {@code defaultSchema} field as-is, bypassing the dialect-specific
+     * resolution applied by {@link #getDefaultSchema()}. Useful for upstream adapters that need to tell
+     * apart "the user provided no schema" from "fallback resolution returned user.toUpperCase()".
+     */
+    @JsonIgnore
+    public String getRawDefaultSchema() {
+        return this.defaultSchema;
+    }
+
     public String getDefaultSchema() {
         DialectType dialectType = getDialectType();
         if (dialectType == null) {
