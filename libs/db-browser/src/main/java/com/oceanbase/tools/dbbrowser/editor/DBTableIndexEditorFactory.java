@@ -79,4 +79,9 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
         return buildForOracle();
     }
 
+    @Override
+    public DBTableIndexEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

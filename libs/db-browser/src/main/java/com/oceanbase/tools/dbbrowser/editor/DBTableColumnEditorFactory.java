@@ -72,4 +72,9 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
         return buildForOracle();
     }
 
+    @Override
+    public DBTableColumnEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

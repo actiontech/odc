@@ -84,6 +84,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectTemplate<DBPackage> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

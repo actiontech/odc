@@ -97,4 +97,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         return buildForOracle();
     }
 
+    @Override
+    public DBTablePartitionEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

@@ -102,6 +102,11 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
         return buildForOracle();
     }
 
+    @Override
+    public DBTableEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
     private DBTableIndexEditor getTableIndexEditor() {
         DBTableIndexEditorFactory indexFactory = new DBTableIndexEditorFactory();
         indexFactory.setType(this.type);

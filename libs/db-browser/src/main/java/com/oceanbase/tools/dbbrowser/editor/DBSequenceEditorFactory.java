@@ -72,4 +72,9 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectEditor<DBSequence> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

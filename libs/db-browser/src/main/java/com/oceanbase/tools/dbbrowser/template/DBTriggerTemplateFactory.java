@@ -72,4 +72,9 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

@@ -72,4 +72,9 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectEditor<DBSynonym> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }

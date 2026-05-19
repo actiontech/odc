@@ -92,4 +92,9 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
         return buildForOracle();
     }
 
+    @Override
+    public DBTableConstraintEditor buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
+    }
+
 }
