@@ -38,6 +38,7 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
+import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
@@ -251,6 +252,176 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals("PK_ORDERS", constraints.get(0).getName());
         Assert.assertEquals(DBConstraintType.UNIQUE_KEY, constraints.get(1).getType());
         Assert.assertEquals(DBConstraintType.FOREIGN_KEY, constraints.get(2).getType());
+    }
+
+    // -------------------- fix-H bug D regression: 4 core methods --------------------
+
+    /**
+     * fix-H bug D: {@link Db2SchemaAccessor#getDatabase(String)} previously threw
+     * UnsupportedOperationException, which collapsed the table-detail page (DBTableController#getTable
+     * -> OBMySQLTableExtension.getDetail aggregates this) with HTTP 500. Must return a minimal
+     * DBDatabase POJO with id=name=schemaName so the aggregator can proceed.
+     */
+    @Test
+    public void getDatabase_returnsMinimalPojoForDb2() {
+        DBDatabase db = accessor.getDatabase("DB2INST1");
+
+        Assert.assertNotNull("getDatabase must not throw or return null for DB2 — see fix-H bug D", db);
+        Assert.assertEquals("DB2INST1", db.getId());
+        Assert.assertEquals("DB2INST1", db.getName());
+    }
+
+    /**
+     * fix-H bug D: {@link Db2SchemaAccessor#listAllUserViews(String)} must filter by VIEWSCHEMA NOT IN
+     * (12-entry system-schema blacklist). This is the same blacklist as showDatabases() — single source
+     * of truth lives in SYSTEM_SCHEMA_BLACKLIST_SQL_LITERAL.
+     */
+    @Test
+    public void listAllUserViews_filtersBySystemSchemaBlacklist() throws SQLException {
+        Map<Integer, Object> r1 = new LinkedHashMap<>();
+        r1.put(1, "DB2INST1");
+        r1.put(2, "V_ORDER_SUMMARY");
+        stubQueryByIndex(Arrays.asList(r1));
+
+        List<DBObjectIdentity> views = accessor.listAllUserViews(null);
+
+        Assert.assertEquals(1, views.size());
+        Assert.assertEquals(DBObjectType.VIEW, views.get(0).getType());
+        Assert.assertEquals("V_ORDER_SUMMARY", views.get(0).getName());
+        Assert.assertEquals("DB2INST1", views.get(0).getSchemaName());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcOperations).query(sqlCaptor.capture(), any(Object[].class), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        Assert.assertTrue("must select from SYSCAT.VIEWS: " + sql, sql.contains("SYSCAT.VIEWS"));
+        Assert.assertTrue("must filter by VIEWSCHEMA NOT IN (...): " + sql,
+                sql.contains("VIEWSCHEMA NOT IN"));
+        // Spot-check the 3 most-leaked entries from batch-3 round-2 evidence.
+        Assert.assertTrue("blacklist must include NULLID: " + sql, sql.contains("'NULLID'"));
+        Assert.assertTrue("blacklist must include SYSTOOLS: " + sql, sql.contains("'SYSTOOLS'"));
+        Assert.assertTrue("blacklist must include SQLJ: " + sql, sql.contains("'SQLJ'"));
+    }
+
+    /**
+     * fix-H bug D: {@link Db2SchemaAccessor#listAllSystemViews(String)} is the inverse — VIEWSCHEMA IN
+     * (...) — to surface DB2 system views (SYSCAT.* / SYSIBM.*) under a dedicated tree node.
+     */
+    @Test
+    public void listAllSystemViews_filtersBySystemSchemaInclusion() throws SQLException {
+        Map<Integer, Object> r1 = new LinkedHashMap<>();
+        r1.put(1, "SYSCAT");
+        r1.put(2, "TABLES");
+        stubQueryByIndex(Arrays.asList(r1));
+
+        List<DBObjectIdentity> views = accessor.listAllSystemViews(null);
+
+        Assert.assertEquals(1, views.size());
+        Assert.assertEquals(DBObjectType.VIEW, views.get(0).getType());
+        Assert.assertEquals("TABLES", views.get(0).getName());
+        Assert.assertEquals("SYSCAT", views.get(0).getSchemaName());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcOperations).query(sqlCaptor.capture(), any(Object[].class), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        Assert.assertTrue("must be the inclusion variant (VIEWSCHEMA IN), not NOT IN: " + sql,
+                sql.contains("VIEWSCHEMA IN ("));
+        Assert.assertFalse("must NOT be the user-view variant (VIEWSCHEMA NOT IN): " + sql,
+                sql.contains("VIEWSCHEMA NOT IN"));
+    }
+
+    /**
+     * fix-H bug D: batch {@link Db2SchemaAccessor#listTableColumns(String, List)} previously threw and
+     * collapsed the aggregator path (OBMySQLTableExtension.getDetail). Must loop the per-table variant
+     * and return a Map keyed by table name. Empty/null input must return an empty Map, not throw.
+     */
+    @Test
+    public void listTableColumnsBatch_loopsPerTableAndKeysByName() throws SQLException {
+        // Stub the per-table query (called twice — once per requested table).
+        Map<String, Object> idCol = new LinkedHashMap<>();
+        idCol.put("COLNAME", "ID");
+        idCol.put("TYPENAME", "INTEGER");
+        idCol.put("LENGTH", 4L);
+        idCol.put("SCALE", 0);
+        idCol.put("NULLS", "N");
+        idCol.put("DEFAULT", null);
+        idCol.put("REMARKS", "");
+        idCol.put("COLNO", 0);
+        stubQueryByName(Arrays.asList(idCol));
+
+        Map<String, List<DBTableColumn>> result =
+                accessor.listTableColumns("DB2INST1", Arrays.asList("ORDERS", "USERS"));
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue("must contain key 'ORDERS'", result.containsKey("ORDERS"));
+        Assert.assertTrue("must contain key 'USERS'", result.containsKey("USERS"));
+        Assert.assertEquals(1, result.get("ORDERS").size());
+        Assert.assertEquals("ID", result.get("ORDERS").get(0).getName());
+    }
+
+    /**
+     * fix-H bug D: batch listTableColumns with empty / null input must return an empty Map (not throw)
+     * — ODC sometimes calls with an empty list when no tables are pre-selected.
+     */
+    @Test
+    public void listTableColumnsBatch_emptyInputReturnsEmptyMap() {
+        // Explicit List<String> typing required to disambiguate the (String, String) /
+        // (String, List<String>) overloads.
+        List<String> emptyTables = new ArrayList<>();
+        Map<String, List<DBTableColumn>> empty = accessor.listTableColumns("DB2INST1", emptyTables);
+        Assert.assertNotNull(empty);
+        Assert.assertTrue(empty.isEmpty());
+
+        Map<String, List<DBTableColumn>> nullIn =
+                accessor.listTableColumns("DB2INST1", (List<String>) null);
+        Assert.assertNotNull(nullIn);
+        Assert.assertTrue(nullIn.isEmpty());
+    }
+
+    /**
+     * fix-H bug D: regression guard — the previously-thrown placeholders that ODC aggregator paths call
+     * must now degrade to empty / false / null instead of UnsupportedOperationException. Spot-check the
+     * highest-impact entries (listMViews / listFunctions / listProcedures / listSequences /
+     * listSynonyms / showVariables / listBasicTableColumns(schema) / getTables(schema,list) /
+     * showSystemViews-via-schema).
+     */
+    @Test
+    public void unsupportedPlaceholders_degradeToEmptyInsteadOfThrowing() throws SQLException {
+        // showSystemViews single-schema variant is implemented as an actual SQL query, so stub it.
+        when(jdbcOperations.queryForList(anyString(), eq(String.class), eq("DB2INST1")))
+                .thenReturn(java.util.Collections.<String>emptyList());
+
+        // None of these calls should throw UnsupportedOperationException any more.
+        Assert.assertTrue(accessor.listMViews("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listAllMViewsLike("X%").isEmpty());
+        Assert.assertTrue(accessor.listFunctions("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listProcedures("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listPackages("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listTriggers("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listSequences("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listSynonyms("DB2INST1", null).isEmpty());
+        Assert.assertTrue(accessor.showVariables().isEmpty());
+        Assert.assertTrue(accessor.listBasicTableColumns("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.getTables("DB2INST1", java.util.Collections.<String>emptyList())
+                .isEmpty());
+        Assert.assertTrue(accessor.listTableIndexes("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listTableConstraints("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listTableOptions("DB2INST1").isEmpty());
+        Assert.assertTrue(accessor.listSubpartitions("DB2INST1", "ORDERS").isEmpty());
+        Assert.assertTrue(accessor.showSystemViews("DB2INST1").isEmpty());
+
+        // Single-object getX must return null (controller maps null -> 404, not 500).
+        Assert.assertNull(accessor.getView("DB2INST1", "V"));
+        Assert.assertNull(accessor.getFunction("DB2INST1", "F"));
+        Assert.assertNull(accessor.getProcedure("DB2INST1", "P"));
+        Assert.assertNull(accessor.getSequence("DB2INST1", "S"));
+        Assert.assertNull(accessor.getPartition("DB2INST1", "T"));
+
+        // Booleans / primitives.
+        Assert.assertEquals(Boolean.FALSE, accessor.refreshMVData(null));
+        Assert.assertFalse(accessor.syncExternalTableFiles("DB2INST1", "EXT"));
+
+        // switchDatabase is void; just verify it doesn't throw.
+        accessor.switchDatabase("DB2INST1");
     }
 
     // -------------------- Helpers --------------------
