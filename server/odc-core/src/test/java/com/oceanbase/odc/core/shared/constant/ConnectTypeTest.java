@@ -62,4 +62,19 @@ public class ConnectTypeTest {
     public void isCloud_TIDB_ReturnFalse() {
         Assert.assertFalse(ConnectType.TIDB.isCloud());
     }
+
+    @Test
+    public void getDialectType_DB2_ReturnDialectTypeDB2() {
+        Assert.assertEquals(DialectType.DB2, ConnectType.DB2.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeDB2_ReturnConnectTypeDB2() {
+        Assert.assertEquals(ConnectType.DB2, ConnectType.from(DialectType.DB2));
+    }
+
+    @Test
+    public void isCloud_DB2_ReturnFalse() {
+        Assert.assertFalse(ConnectType.DB2.isCloud());
+    }
 }

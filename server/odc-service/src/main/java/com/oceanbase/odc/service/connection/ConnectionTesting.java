@@ -163,6 +163,10 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isDb2()) {
+                // DB2 default schema falls back to USER.toUpperCase() inside
+                // OBConsoleDataSourceFactory.getDefaultSchema (case DB2 below); see B-20 / B-19.
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }

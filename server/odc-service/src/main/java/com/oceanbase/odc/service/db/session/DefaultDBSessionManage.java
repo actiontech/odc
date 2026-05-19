@@ -211,6 +211,15 @@ public class DefaultDBSessionManage implements DBSessionManageFacade {
                 .collect(Collectors.toList()));
         if (session.getDialectType().isOceanbase()) {
             jdbcGeneralResults = additionalKillIfNecessary(session, jdbcGeneralResults, sqlTupleSessionIds);
+        } else if (session.getDialectType().isDb2()) {
+            // DB2 path: routing is handled by ConnectionPluginUtil.getSessionExtension(DB2)
+            // -> Db2SessionExtension.getKillSessionSql, which issues
+            // CALL SYSPROC.ADMIN_CMD('FORCE APPLICATION (<id>)').
+            // We deliberately do NOT invoke OB-flavored additionalKillIfNecessary (KILL
+            // / anonymous PL/SQL block / observer-direct fallback) — those are OB-only
+            // primitives that would error against a DB2 server. B-S2 / design.md §2.3.
+            log.debug("DB2 kill session path uses SYSPROC.ADMIN_CMD via plugin routing; "
+                    + "skipping OceanBase additional kill fallbacks.");
         }
         return jdbcGeneralResults.stream()
                 .map(res -> new KillResult(res, sqlId2SessionId.get(res.getSqlTuple().getSqlId())))

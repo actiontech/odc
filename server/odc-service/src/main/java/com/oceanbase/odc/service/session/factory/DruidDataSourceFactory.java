@@ -30,6 +30,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.oceanbase.odc.core.datasource.CloneableDataSourceFactory;
 import com.oceanbase.odc.core.datasource.ConnectionInitializer;
 import com.oceanbase.odc.core.datasource.DataSourceFactory;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.JdbcUrlParser;
 import com.oceanbase.odc.plugin.connect.model.ConnectionPropertiesBuilder;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
@@ -76,13 +77,7 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
     }
 
     private void init(DruidDataSource dataSource) {
-        String validationQuery =
-                getConnectType().getDialectType().isMysql() || getConnectType().getDialectType().isDoris()
-                        || getConnectType().getDialectType().isTidb()
-                        || getConnectType().getDialectType().isPostgreSql()
-                        || getConnectType().getDialectType().isSqlServer()
-                                ? "select 1"
-                                : "select 1 from dual";
+        String validationQuery = validationQueryFor(getConnectType().getDialectType());
         dataSource.setValidationQuery(validationQuery);
         dataSource.setTestWhileIdle(true);
         dataSource.setTimeBetweenEvictionRunsMillis(30000);
@@ -114,6 +109,33 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
         } catch (Exception e) {
             // eat exception
         }
+    }
+
+    /**
+     * Validation query selection by dialect.
+     *
+     * <ul>
+     * <li>MySQL family / Doris / TiDB / PostgreSQL / SQL Server — bare {@code SELECT 1}</li>
+     * <li>DB2 — {@code SELECT 1 FROM SYSIBM.SYSDUMMY1} (B-24, design.md §2.5: DB2 enforces a
+     * {@code FROM} clause and a bare {@code SELECT 1} would fail)</li>
+     * <li>Default (Oracle / DM / OB-Oracle / OceanBase MySQL...) — {@code SELECT 1 FROM DUAL}</li>
+     * </ul>
+     *
+     * Extracted to a static method so unit tests can validate dialect routing without a real Druid
+     * pool.
+     */
+    static String validationQueryFor(DialectType dialectType) {
+        if (dialectType == null) {
+            return "select 1 from dual";
+        }
+        if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
+                || dialectType.isPostgreSql() || dialectType.isSqlServer()) {
+            return "select 1";
+        }
+        if (dialectType.isDb2()) {
+            return "select 1 from SYSIBM.SYSDUMMY1";
+        }
+        return "select 1 from dual";
     }
 
     @Override

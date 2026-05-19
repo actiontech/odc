@@ -375,6 +375,15 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(getDbUser(connectionConfig), connectionConfig.getDialectType());
+            case DB2:
+                // DB2 implicit schema = USER.toUpperCase(). When ConnectionConfig.defaultSchema is
+                // blank we fall back to the connect user; Db2ConnectionExtension.generateJdbcUrl
+                // also upper-cases the schema segment defensively.
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return defaultSchema.toUpperCase();
+                }
+                String db2User = getDbUser(connectionConfig);
+                return db2User == null ? null : db2User.toUpperCase();
             default:
                 return null;
         }

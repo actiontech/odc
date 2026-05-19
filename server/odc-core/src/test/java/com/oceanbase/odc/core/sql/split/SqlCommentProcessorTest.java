@@ -180,4 +180,33 @@ public class SqlCommentProcessorTest {
         return YamlUtils.fromYamlList(fileName, OffsetString.class);
     }
 
+    /**
+     * B-23: DB2 SQL splitting should match the MySQL path (line comments {@code --} and block comments
+     * share semantics with MySQL, and {@code ;} acts as the statement separator). Mirrors
+     * {@code addLineMysql} dispatch.
+     */
+    @Test
+    public void split_db2Dialect_reusesMysqlPath() {
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.DB2, false, false, false);
+        StringBuffer buffer = new StringBuffer();
+        List<OffsetString> actual = processor.split(buffer,
+                "-- leading line comment\nSELECT 1 FROM SYSIBM.SYSDUMMY1;\nSELECT 2 FROM SYSIBM.SYSDUMMY1;\n");
+        Assert.assertEquals(2, actual.size());
+        Assert.assertEquals("SELECT 1 FROM SYSIBM.SYSDUMMY1", actual.get(0).getStr().trim()
+                .replaceAll(";\\s*$", "").trim());
+        Assert.assertEquals("SELECT 2 FROM SYSIBM.SYSDUMMY1", actual.get(1).getStr().trim()
+                .replaceAll(";\\s*$", "").trim());
+    }
+
+    @Test
+    public void split_db2DialectWithBlockComment_reusesMysqlPath() {
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.DB2, false, false, false);
+        StringBuffer buffer = new StringBuffer();
+        List<OffsetString> actual = processor.split(buffer,
+                "/* header */\nSELECT 'a' FROM SYSIBM.SYSDUMMY1;\n");
+        Assert.assertEquals(1, actual.size());
+        Assert.assertEquals("SELECT 'a' FROM SYSIBM.SYSDUMMY1", actual.get(0).getStr().trim()
+                .replaceAll(";\\s*$", "").trim());
+    }
+
 }
