@@ -177,12 +177,19 @@ public class Db2SchemaAccessorTest {
 
     /**
      * Case listViews_returnsViewIdentities: 模拟 SYSCAT.VIEWS 1 行，期望 type=VIEW，schema/name 正确。
+     *
+     * <p>
+     * fix-I: also pin the SQL text to use {@code VIEWNAME} (not {@code TABNAME}). The earlier skeleton
+     * selected {@code TABNAME} from {@code SYSCAT.VIEWS} which produces SQLCODE=-206/SQLERRMC=TABNAME
+     * at runtime — the column simply does not exist on the {@code SYSCAT.VIEWS} catalog view in DB2
+     * 11.5.
      */
     @Test
     public void listViews_returnsViewIdentities() throws SQLException {
         Map<Integer, Object> r1 = new LinkedHashMap<>();
         r1.put(1, "DB2INST1");
         r1.put(2, "V_ORDER_SUMMARY");
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
         stubQueryByIndex(Arrays.asList(r1));
 
         List<DBObjectIdentity> views = accessor.listViews("DB2INST1");
@@ -191,6 +198,13 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals(DBObjectType.VIEW, views.get(0).getType());
         Assert.assertEquals("V_ORDER_SUMMARY", views.get(0).getName());
         Assert.assertEquals("DB2INST1", views.get(0).getSchemaName());
+
+        verify(jdbcOperations).query(sqlCaptor.capture(), any(Object[].class), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        Assert.assertTrue("SQL must query SYSCAT.VIEWS by VIEWNAME (not TABNAME)",
+                sql.contains("VIEWNAME") && sql.contains("SYSCAT.VIEWS"));
+        Assert.assertFalse("SQL must not select TABNAME (column does not exist on SYSCAT.VIEWS)",
+                sql.toUpperCase().contains("TABNAME"));
     }
 
     /**

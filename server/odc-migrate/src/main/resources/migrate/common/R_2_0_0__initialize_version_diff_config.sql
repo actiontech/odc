@@ -276,3 +276,12 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_procedure','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_function','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- support DB2 datasource (fix-I, Issue dms-ee#839)
+-- enableView is the front-end gate for the "视图" tree node under each DB2 schema (case 2.4).
+-- Without this row VersionDiffConfigService#getSupportFeatures returns an empty supports[] for
+-- the DB2 ConnectType and the odc-client resource tree silently omits the view category even
+-- after the ViewExtensionPoint is registered in schema-plugin-db2. min_version='0' mirrors the
+-- SQL_SERVER pattern (always-on) — DB2 view metadata lives in SYSCAT.VIEWS across all DB2 11.5+
+-- builds we support.
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
