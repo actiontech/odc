@@ -101,6 +101,15 @@ public class OdcConstants {
      */
     public static final String DM_DRIVER_CLASS_NAME = "dm.jdbc.driver.DmDriver";
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
+    /**
+     * IBM DB2 driver class name
+     */
+    public static final String DB2_DRIVER_CLASS_NAME = "com.ibm.db2.jcc.DB2Driver";
+    /**
+     * DB2 default schema placeholder; the real value is resolved from ConnectionConfig.getDefaultSchema
+     * (username.toUpperCase()) in commit-C (B-20).
+     */
+    public static final String DB2_DEFAULT_SCHEMA = "";
 
     /**
      * Parameters name

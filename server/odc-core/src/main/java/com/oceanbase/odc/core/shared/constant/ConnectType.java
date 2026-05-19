@@ -34,6 +34,7 @@ public enum ConnectType {
     POSTGRESQL(DialectType.POSTGRESQL),
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
+    DB2(DialectType.DB2),
 
     // reserved for future version
     ODP_SHARDING_OB_ORACLE(DialectType.OB_ORACLE),
