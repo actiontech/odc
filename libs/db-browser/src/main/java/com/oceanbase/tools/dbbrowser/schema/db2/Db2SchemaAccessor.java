@@ -78,9 +78,18 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<String> showDatabases() {
+        // fix-G bug C: design.md §6 prescribes an 11-entry system-schema blacklist
+        // (SYSCAT / SYSIBM / SYSIBMADM / SYSIBMINTERNAL / SYSIBMTS / SYSFUN / SYSPROC /
+        // SYSSTAT / SYSTOOLS / SYSPUBLIC / NULLID). The original implementation filtered by
+        // SYSCAT.SCHEMATA.DEFINER, but on DB2 11.5 several system schemas (NULLID, SQLJ,
+        // SYSTOOLS) are *created* by the instance owner (e.g. db2inst1) rather than SYSIBM,
+        // so DEFINER NOT IN(...) lets them slip through into the user schema list. The blacklist
+        // must therefore match SCHEMANAME directly. SQLJ is added to the list (DB2 JDBC stored
+        // procedures schema, meaningless to end users; see batch-3 round-2 evidence in
+        // case-2-1.md).
         String sql = "SELECT TRIM(SCHEMANAME) AS SCHEMA_NAME FROM SYSCAT.SCHEMATA "
-                + "WHERE DEFINER NOT IN ('SYSIBM','SYSCAT','SYSIBMADM','SYSIBMINTERNAL',"
-                + "'SYSIBMTS','SYSFUN','SYSPROC','SYSSTAT','SYSTOOLS','SYSPUBLIC','NULLID') "
+                + "WHERE SCHEMANAME NOT IN ('SYSIBM','SYSCAT','SYSIBMADM','SYSIBMINTERNAL',"
+                + "'SYSIBMTS','SYSFUN','SYSPROC','SYSSTAT','SYSTOOLS','SYSPUBLIC','NULLID','SQLJ') "
                 + "ORDER BY SCHEMANAME";
         return jdbcOperations.queryForList(sql, String.class);
     }
