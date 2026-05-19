@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.ResultSet;
@@ -32,6 +33,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -81,6 +83,39 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals(2, result.size());
         Assert.assertTrue(result.contains("DB2INST1"));
         Assert.assertTrue(result.contains("MY_APP"));
+    }
+
+    /**
+     * fix-G bug C regression: design.md §6 mandates filtering by SCHEMANAME (not DEFINER) and lists 12
+     * system schemas (the original 11 plus SQLJ). Before fix-G the SQL filtered by
+     * {@code DEFINER NOT IN ('SYSIBM','SYSCAT',...)} which let NULLID / SYSTOOLS / SQLJ leak into the
+     * user tree because their DEFINER is the instance owner (e.g. db2inst1), not SYSIBM. The SQL is the
+     * single source of truth for this filter — this test pins the expected predicate shape so anyone
+     * refactoring the accessor can't silently regress to DEFINER-based filtering.
+     */
+    @Test
+    public void showDatabases_sqlFiltersBySchemaNameWithFullBlacklist() {
+        when(jdbcOperations.queryForList(anyString(), eq(String.class)))
+                .thenReturn(Arrays.asList("DB2INST1"));
+
+        accessor.showDatabases();
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcOperations).queryForList(sqlCaptor.capture(), eq(String.class));
+        String sql = sqlCaptor.getValue();
+
+        // Filter dimension must be SCHEMANAME, not DEFINER (the bug C regression).
+        Assert.assertTrue("SQL should filter by SCHEMANAME, was: " + sql,
+                sql.contains("SCHEMANAME NOT IN"));
+        Assert.assertFalse("SQL must not filter by DEFINER (would leak NULLID/SYSTOOLS): " + sql,
+                sql.contains("DEFINER NOT IN"));
+        // Every entry in the design.md blacklist must appear in the SQL.
+        String[] blacklist = {"SYSIBM", "SYSCAT", "SYSIBMADM", "SYSIBMINTERNAL", "SYSIBMTS",
+                "SYSFUN", "SYSPROC", "SYSSTAT", "SYSTOOLS", "SYSPUBLIC", "NULLID", "SQLJ"};
+        for (String name : blacklist) {
+            Assert.assertTrue("blacklist entry '" + name + "' missing in SQL: " + sql,
+                    sql.contains("'" + name + "'"));
+        }
     }
 
     /**
