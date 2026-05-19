@@ -172,6 +172,14 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
             sqlBuilder = new SqlServerSqlBuilder();
+        } else if (dialectType.isDb2()) {
+            // fix-I bug F: DB2 11.5 uses ANSI-style identifier quoting (double quotes), exactly the
+            // same as Oracle. The MySQLSqlBuilder.identifier(...) emits backtick-quoted names which
+            // DB2 jcc rejects with SQLCODE=-104 (unexpected token); reuse OracleSqlBuilder so the
+            // identifier() / schemaPrefixIfNotBlank() paths produce {@code "DB2INST1"."TEST_ORDERS"}
+            // — a valid DB2 SELECT. Without this branch the request 400s with "Unsupported dialect
+            // type, DB2" and the data tab spinner never resolves.
+            sqlBuilder = new OracleSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
@@ -197,6 +205,12 @@ public class ConnectConsoleService {
         } else if (DialectType.ORACLE == connectionSession.getDialectType()
                 || DialectType.DM == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
+        } else if (connectionSession.getDialectType().isDb2()) {
+            // fix-I bug F: DB2 uses ANSI {@code FETCH FIRST n ROWS ONLY}, not MySQL-style LIMIT.
+            // Although DB2 11.x has a sql_compat MYSQL mode that accepts LIMIT, the default DB2
+            // grammar rejects it with SQLCODE=-104 SQLSTATE=42601. The FETCH FIRST form is portable
+            // across DB2 versions and matches what we test against (11.5).
+            sqlBuilder.append(" FETCH FIRST ").append(queryLimit.toString()).append(" ROWS ONLY");
         } else if (DialectType.SQL_SERVER != connectionSession.getDialectType()) {
             // SQL Server already uses TOP clause, skip LIMIT
             sqlBuilder.append(" LIMIT ").append(queryLimit.toString());
