@@ -50,6 +50,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForSqlServer();
             case DM:
                 return buildForDm();
+            case HIVE:
+                return buildForHive();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -74,5 +76,14 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForSqlServer();
 
     public abstract T buildForDm();
+
+    /**
+     * Default Hive implementation. Subclasses that ship a Hive-aware implementation should override
+     * this (典型路径：schema-plugin-hive 在 batch 2B 接入)；本批次先抛 {@link UnsupportedOperationException} 占位，避免
+     * {@code default} 分支抛 {@link IllegalStateException} 阻断 plugin 加载。
+     */
+    public T buildForHive() {
+        throw new UnsupportedOperationException("Hive is not supported by " + getClass().getSimpleName());
+    }
 
 }

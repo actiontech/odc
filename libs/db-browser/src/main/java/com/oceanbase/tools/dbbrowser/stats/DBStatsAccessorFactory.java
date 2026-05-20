@@ -128,6 +128,12 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
         return new DmStatsAccessor(getJdbcOperations());
     }
 
+    @Override
+    public DBStatsAccessor buildForHive() {
+        // Hive 没有等价的会话级 stats 查询能力（无 information_schema.PROCESSLIST / V$SESSION）
+        throw new UnsupportedOperationException("Hive does not support stats accessor");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

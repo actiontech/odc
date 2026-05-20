@@ -178,6 +178,14 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
         return new DmSchemaAccessor(getJdbcOperations());
     }
 
+    @Override
+    public DBSchemaAccessor buildForHive() {
+        // 本批次（2A）先抛 UnsupportedOperationException 占位；具体能力将在 batch 2B 由 schema-plugin-hive 提供
+        // pf4j 加载入口的 case HIVE 已在 AbstractDBBrowserFactory 接管，避免落入 default 抛 IllegalStateException
+        throw new UnsupportedOperationException(
+                "Hive schema accessor is not implemented yet; pending schema-plugin-hive (batch 2B)");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;
