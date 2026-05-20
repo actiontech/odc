@@ -20,6 +20,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Enumeration;
 
+import com.oceanbase.odc.core.datasource.PluginDriverShim;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.BaseConnectionPlugin;
 
@@ -31,15 +32,17 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>
  * On {@link #start()} the plugin loads {@code org.apache.hive.jdbc.HiveDriver} through the plugin
- * classloader and registers a host-visible {@link HiveDriverShim} into the global
- * {@link DriverManager}. This is required because {@code DriverManager.getConnection(url,...)}
- * resolves drivers from the registry that was populated once at JVM startup via the system
- * classloader, and the system classloader cannot see drivers living inside a pf4j plugin jar. See
- * {@link HiveDriverShim} for the long-form explanation.
+ * classloader and registers a host-visible {@link PluginDriverShim} into the global
+ * {@link DriverManager}. {@link PluginDriverShim} itself lives in {@code odc-core}, i.e. the host
+ * classloader, which is critical: {@link DriverManager} segregates its registered driver list by
+ * caller classloader, and a {@code Driver} whose own class was loaded by the pf4j
+ * {@code PluginClassLoader} is invisible to the host classloader on subsequent {@code getDrivers()}
+ * calls. Wrapping the plugin-local driver in a host-visible shim lets ODC's sync / data source
+ * factories see the registration. See {@link PluginDriverShim} for the long-form explanation.
  *
  * <p>
- * On {@link #stop()} every registered {@link HiveDriverShim} is removed from {@link DriverManager}
- * to avoid leaking driver references when the plugin is hot-reloaded.
+ * On {@link #stop()} every registered {@link PluginDriverShim} whose delegate is the Hive driver is
+ * removed from {@link DriverManager} to avoid leaking driver references on plugin hot-reload.
  *
  * @since ODC_release_4.3.4
  */
@@ -66,15 +69,15 @@ public class HiveConnectionPlugin extends BaseConnectionPlugin {
             ClassLoader pluginClassLoader = this.getClass().getClassLoader();
             Driver hiveDriver = (Driver) Class.forName(HIVE_DRIVER_CLASS_NAME, true, pluginClassLoader)
                     .getDeclaredConstructor().newInstance();
-            HiveDriverShim shim = new HiveDriverShim(hiveDriver);
+            PluginDriverShim shim = new PluginDriverShim(hiveDriver, HIVE_DRIVER_CLASS_NAME);
             DriverManager.registerDriver(shim);
-            log.info("HiveDriverShim registered to DriverManager, delegate={}, shim={}",
+            log.info("PluginDriverShim registered to DriverManager for Hive, delegate={}, shim={}",
                     hiveDriver.getClass().getName(), shim);
         } catch (Exception e) {
             // Do not throw - keeping the plugin "started" allows the rest of ODC to boot, and
             // any later JDBC call will surface its own clear error. Throwing here would abort
             // plugin startup and hide the root cause behind an opaque pf4j load failure.
-            log.error("Failed to register HiveDriverShim to DriverManager", e);
+            log.error("Failed to register Hive PluginDriverShim to DriverManager", e);
         }
     }
 
@@ -84,12 +87,14 @@ public class HiveConnectionPlugin extends BaseConnectionPlugin {
             Enumeration<Driver> drivers = DriverManager.getDrivers();
             while (drivers.hasMoreElements()) {
                 Driver driver = drivers.nextElement();
-                if (driver instanceof HiveDriverShim) {
+                if (driver instanceof PluginDriverShim
+                        && HIVE_DRIVER_CLASS_NAME.equals(((PluginDriverShim) driver).getDelegateClassName())) {
                     try {
                         DriverManager.deregisterDriver(driver);
-                        log.info("HiveDriverShim deregistered from DriverManager, shim={}", driver);
+                        log.info("PluginDriverShim for Hive deregistered from DriverManager, shim={}", driver);
                     } catch (SQLException ex) {
-                        log.warn("Failed to deregister HiveDriverShim from DriverManager, shim={}", driver, ex);
+                        log.warn("Failed to deregister PluginDriverShim for Hive from DriverManager, shim={}", driver,
+                                ex);
                     }
                 }
             }

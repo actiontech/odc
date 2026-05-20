@@ -80,10 +80,13 @@ public class HiveJdbcUrlParserTest {
     @Test
     public void build_mapCaseTable() {
         List<BuildCase> cases = Arrays.asList(
+                // Hive 2 requires a trailing '/' even when no database is supplied; otherwise
+                // hive-jdbc throws JdbcUriParseException at connect time. The build path always
+                // emits the slash to keep the produced URL parseable by Apache HiveDriver.
                 new BuildCase("base_hostPortOnly", "10.0.0.1", 10000, null, null,
-                        "jdbc:hive2://10.0.0.1:10000"),
+                        "jdbc:hive2://10.0.0.1:10000/"),
                 new BuildCase("base_hostPortEmptySchema", "10.0.0.1", 10000, "", null,
-                        "jdbc:hive2://10.0.0.1:10000"),
+                        "jdbc:hive2://10.0.0.1:10000/"),
                 new BuildCase("withSchema", "10.0.0.1", 10000, "default", null,
                         "jdbc:hive2://10.0.0.1:10000/default"),
                 new BuildCase("withAuthNosasl", "10.0.0.1", 10000, "default", kv("auth", "NOSASL"),

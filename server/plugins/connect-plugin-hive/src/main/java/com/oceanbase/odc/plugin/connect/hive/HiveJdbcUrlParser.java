@@ -102,8 +102,13 @@ public class HiveJdbcUrlParser implements JdbcUrlParser {
         }
         StringBuilder url = new StringBuilder(URL_PREFIX);
         url.append(properties.getHost()).append(':').append(properties.getPort());
+        // Hive 2 requires a trailing slash after host:port even when no database is supplied,
+        // otherwise the driver throws JdbcUriParseException("Bad URL format... Are you missing
+        // a '/' after the hostname ?") because session-conf key=value pairs are placed after
+        // the slash, not directly after the port (see hive-jdbc URL grammar).
+        url.append('/');
         if (properties.getDefaultSchema() != null && !properties.getDefaultSchema().isEmpty()) {
-            url.append('/').append(properties.getDefaultSchema());
+            url.append(properties.getDefaultSchema());
         }
         Map<String, String> kv = properties.getJdbcParameters();
         if (kv != null && !kv.isEmpty()) {
