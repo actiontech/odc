@@ -15,19 +15,86 @@
  */
 package com.oceanbase.odc.plugin.connect.hive;
 
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Enumeration;
+
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.BaseConnectionPlugin;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * pf4j plugin entry for Hive datasource. Returns {@link DialectType#HIVE} so that ODC plugin
  * manager binds all Hive extensions in this jar to the HIVE dialect.
  *
+ * <p>
+ * On {@link #start()} the plugin loads {@code org.apache.hive.jdbc.HiveDriver} through the plugin
+ * classloader and registers a host-visible {@link HiveDriverShim} into the global
+ * {@link DriverManager}. This is required because {@code DriverManager.getConnection(url,...)}
+ * resolves drivers from the registry that was populated once at JVM startup via the system
+ * classloader, and the system classloader cannot see drivers living inside a pf4j plugin jar. See
+ * {@link HiveDriverShim} for the long-form explanation.
+ *
+ * <p>
+ * On {@link #stop()} every registered {@link HiveDriverShim} is removed from {@link DriverManager}
+ * to avoid leaking driver references when the plugin is hot-reloaded.
+ *
  * @since ODC_release_4.3.4
  */
+@Slf4j
 public class HiveConnectionPlugin extends BaseConnectionPlugin {
+
+    private static final String HIVE_DRIVER_CLASS_NAME = "org.apache.hive.jdbc.HiveDriver";
 
     @Override
     public DialectType getDialectType() {
         return DialectType.HIVE;
+    }
+
+    @Override
+    public void start() {
+        super.start();
+        try {
+            // The plugin class itself is loaded by the pf4j PluginClassLoader, so its own
+            // class loader is exactly the plugin classloader that owns HiveDriver and the
+            // META-INF/services/java.sql.Driver SPI. Using getWrapper().getPluginClassLoader()
+            // would be equivalent but pf4j only injects the wrapper when the plugin declares a
+            // (PluginWrapper) constructor; here we rely on this.getClass().getClassLoader()
+            // to keep the no-arg constructor path safe.
+            ClassLoader pluginClassLoader = this.getClass().getClassLoader();
+            Driver hiveDriver = (Driver) Class.forName(HIVE_DRIVER_CLASS_NAME, true, pluginClassLoader)
+                    .getDeclaredConstructor().newInstance();
+            HiveDriverShim shim = new HiveDriverShim(hiveDriver);
+            DriverManager.registerDriver(shim);
+            log.info("HiveDriverShim registered to DriverManager, delegate={}, shim={}",
+                    hiveDriver.getClass().getName(), shim);
+        } catch (Exception e) {
+            // Do not throw - keeping the plugin "started" allows the rest of ODC to boot, and
+            // any later JDBC call will surface its own clear error. Throwing here would abort
+            // plugin startup and hide the root cause behind an opaque pf4j load failure.
+            log.error("Failed to register HiveDriverShim to DriverManager", e);
+        }
+    }
+
+    @Override
+    public void stop() {
+        try {
+            Enumeration<Driver> drivers = DriverManager.getDrivers();
+            while (drivers.hasMoreElements()) {
+                Driver driver = drivers.nextElement();
+                if (driver instanceof HiveDriverShim) {
+                    try {
+                        DriverManager.deregisterDriver(driver);
+                        log.info("HiveDriverShim deregistered from DriverManager, shim={}", driver);
+                    } catch (SQLException ex) {
+                        log.warn("Failed to deregister HiveDriverShim from DriverManager, shim={}", driver, ex);
+                    }
+                }
+            }
+        } finally {
+            super.stop();
+        }
     }
 }
