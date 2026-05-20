@@ -285,3 +285,14 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 -- SQL_SERVER pattern (always-on) — DB2 view metadata lives in SYSCAT.VIEWS across all DB2 11.5+
 -- builds we support.
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- support DB2 session kill (fix-N, Issue dms-ee#839)
+-- support_kill_session / support_kill_query gate the "Kill / Kill Query" UI affordances
+-- in the ODC session management panel (case 6.2). Without these rows the front-end's
+-- supportFeature.enableKillSession / enableKillQuery stay false and the row-action
+-- buttons are hidden / disabled even though fix-M already wired Db2StatsAccessor +
+-- Db2SessionExtension to issue `FORCE APPLICATION (handle)` against DB2 11.5 LUW.
+-- min_version='0' mirrors the SQL_SERVER / DORIS always-on pattern — DB2 ADMIN_CMD
+-- 'FORCE APPLICATION' is available on every DB2 11.5+ build we support.
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_session','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_query','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
