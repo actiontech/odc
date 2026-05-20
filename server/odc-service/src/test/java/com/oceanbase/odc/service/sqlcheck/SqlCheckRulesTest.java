@@ -120,4 +120,33 @@ public class SqlCheckRulesTest {
         return rule;
     }
 
+    // ---------- Hive short-circuit (compat-RISK R-4.3 / design §2.3 decision 3) ----------
+    // ODC sql-check pipeline must return Collections.emptyList() for HIVE rather than
+    // throwing IllegalStateException downstream. The two assertions below pin both the
+    // factory-level (getAllFactories) and the rule-level (getAllDefaultRules) entry points.
+
+    @Test
+    public void getAllFactories_hive_returnsEmptyList() {
+        List<SqlCheckRuleFactory> factories = SqlCheckRules.getAllFactories(DialectType.HIVE, null);
+        Assert.assertNotNull(factories);
+        Assert.assertTrue("Hive must return empty factory list", factories.isEmpty());
+    }
+
+    @Test
+    public void getAllDefaultRules_hive_returnsEmptyList() {
+        List<SqlCheckRule> rules = SqlCheckRules.getAllDefaultRules(null, defaulDbVersionSupplier, DialectType.HIVE);
+        Assert.assertNotNull(rules);
+        Assert.assertTrue("Hive must produce no default rules", rules.isEmpty());
+    }
+
+    @Test
+    public void getAllFactories_nonHive_keepsNonEmpty() {
+        // Sanity / regression: non-Hive dialects continue to load the full rule set.
+        // Without this assertion a future refactor could accidentally short-circuit
+        // every dialect and pass the Hive-only check above.
+        Assert.assertFalse(SqlCheckRules.getAllFactories(DialectType.OB_MYSQL, null).isEmpty());
+        Assert.assertFalse(SqlCheckRules.getAllFactories(DialectType.MYSQL, null).isEmpty());
+        Assert.assertFalse(SqlCheckRules.getAllFactories(DialectType.OB_ORACLE, null).isEmpty());
+    }
+
 }
