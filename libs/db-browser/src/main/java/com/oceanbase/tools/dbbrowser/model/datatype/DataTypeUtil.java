@@ -36,6 +36,9 @@ public class DataTypeUtil {
             "blob",
             "clob",
             "nclob",
+            // fix-K: DB2 double-byte character LOB; treated as a LOB so the cached
+            // virtual element factory streams it instead of calling getString().
+            "dbclob",
             "raw",
             "longblob",
             "mediumblob",
