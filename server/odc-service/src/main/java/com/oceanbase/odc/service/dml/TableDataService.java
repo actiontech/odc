@@ -99,11 +99,11 @@ public class TableDataService {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else if (dialectType.isDb2()) {
-                // design.md §2.5: reuse MySQLDMLBuilder. DB2 and MySQL agree on basic
-                // UPDATE/INSERT/DELETE syntax; we deliberately avoid introducing a
-                // Db2DMLBuilder unless LOB/TIMESTAMP(6) binding turns out to require dialect
-                // specialisation (out of scope for this iteration).
-                dmlBuilder = new MySQLDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
+                // fix-L commit-2 (Issue dms-ee#839, bug N2): DB2 now has its own DML builder that
+                // emits ANSI double-quoted identifiers (DB2 native) instead of MySQL backticks.
+                // Previously DB2 was routed through MySQLDMLBuilder which produced backtick SQL
+                // (`SCHEMA`.`TABLE`) that DB2 rejects with SQLCODE=-7 / SQLSTATE=42601.
+                dmlBuilder = new Db2DMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else {
                 throw new IllegalArgumentException("Illegal dialect type, " + dialectType);
             }
