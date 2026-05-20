@@ -32,6 +32,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -58,6 +59,31 @@ public class Db2StatsAccessorTest {
     }
 
     // --------------------------- listAllSessions ---------------------------
+
+    /**
+     * Case listAllSessions_sqlShape: fix-M（dms-ee#839）回归——验证 SQL 文本不再带 {@code SYSIBMADM.} 限定符、不再用 DB2
+     * 不存在的 {@code APPL_STATUS} 列，并改用 {@code WORKLOAD_OCCURRENCE_STATE} + COALESCE CLIENT_HOSTNAME /
+     * CLIENT_IPADDR；防止未来 refactor 静默回归到 SQLCODE=-440 / -206。
+     */
+    @Test
+    public void listAllSessions_sqlShape() throws SQLException {
+        mockQueryWithoutArgs(Collections.emptyList());
+        accessor.listAllSessions();
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(jdbcOperations).query(sqlCaptor.capture(), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        Assert.assertFalse("listAllSessions SQL must NOT contain SYSIBMADM.MON_GET_CONNECTION (SQLCODE=-440)",
+                sql.contains("SYSIBMADM.MON_GET_CONNECTION"));
+        Assert.assertFalse(
+                "listAllSessions SQL must NOT reference APPL_STATUS (SQLCODE=-206, column not in MON_GET_CONNECTION)",
+                sql.contains("APPL_STATUS"));
+        Assert.assertTrue("listAllSessions SQL must use TABLE(MON_GET_CONNECTION(NULL,-2))",
+                sql.contains("TABLE(MON_GET_CONNECTION(NULL,-2))"));
+        Assert.assertTrue("listAllSessions SQL must select WORKLOAD_OCCURRENCE_STATE AS state",
+                sql.contains("WORKLOAD_OCCURRENCE_STATE AS state"));
+        Assert.assertTrue("listAllSessions SQL must COALESCE host across CLIENT_HOSTNAME / CLIENT_IPADDR",
+                sql.contains("COALESCE(CLIENT_HOSTNAME, CLIENT_IPADDR) AS host"));
+    }
 
     /**
      * Case listAllSessions_mapsMonGetConnectionRows: 模拟 MON_GET_CONNECTION 返回 3 行， 期望 size==3、字段
@@ -108,6 +134,75 @@ public class Db2StatsAccessorTest {
         List<DBSession> sessions = accessor.listAllSessions();
         Assert.assertNotNull(sessions);
         Assert.assertTrue(sessions.isEmpty());
+    }
+
+    // --------------------------- currentSession ---------------------------
+
+    /**
+     * Case currentSession_sqlShape: fix-M 回归——验证 currentSession SQL 不带 {@code SYSIBMADM.} 限定符、不再用
+     * {@code CONNECTION_HANDLE()}（在 DB2 v11.5 不存在，SQLCODE=-440），改用 {@code MON_GET_APPLICATION_HANDLE()}
+     * 标量函数定位当前句柄；不引用 {@code APPL_STATUS}。
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void currentSession_sqlShape() throws SQLException {
+        when(jdbcOperations.queryForObject(anyString(), any(RowMapper.class))).thenReturn(new DBSession());
+        accessor.currentSession();
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(jdbcOperations).queryForObject(sqlCaptor.capture(), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        Assert.assertFalse("currentSession SQL must NOT contain SYSIBMADM.MON_GET_CONNECTION",
+                sql.contains("SYSIBMADM.MON_GET_CONNECTION"));
+        Assert.assertFalse(
+                "currentSession SQL must NOT reference CONNECTION_HANDLE() (function not exists, SQLCODE=-440)",
+                sql.contains("CONNECTION_HANDLE()"));
+        Assert.assertFalse("currentSession SQL must NOT reference APPL_STATUS",
+                sql.contains("APPL_STATUS"));
+        Assert.assertTrue("currentSession SQL must use MON_GET_APPLICATION_HANDLE() for current handle",
+                sql.contains("MON_GET_APPLICATION_HANDLE()"));
+        Assert.assertTrue("currentSession SQL must use TABLE(MON_GET_CONNECTION(MON_GET_APPLICATION_HANDLE(),-2))",
+                sql.contains("TABLE(MON_GET_CONNECTION(MON_GET_APPLICATION_HANDLE(),-2))"));
+        Assert.assertTrue("currentSession SQL must limit to 1 row",
+                sql.contains("FETCH FIRST 1 ROWS ONLY"));
+    }
+
+    /**
+     * Case currentSession_mapsRow: 模拟 1 行返回，验证 RowMapper 字段映射与 ms→s 换算。
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void currentSession_mapsRow() throws SQLException {
+        Map<String, Object> row = sessionRow(909L, "DB2INST1", "10.0.0.9", "ODC", "UOWEXEC", 3500L);
+        when(jdbcOperations.queryForObject(anyString(), any(RowMapper.class))).thenAnswer(invocation -> {
+            RowMapper mapper = invocation.getArgument(1);
+            ResultSet rs = mockResultSet(row);
+            return mapper.mapRow(rs, 0);
+        });
+
+        DBSession s = accessor.currentSession();
+        Assert.assertNotNull(s);
+        Assert.assertEquals("909", s.getId());
+        Assert.assertEquals("DB2INST1", s.getUsername());
+        Assert.assertEquals("10.0.0.9", s.getHost());
+        Assert.assertEquals("ODC", s.getCommand());
+        Assert.assertEquals("UOWEXEC", s.getState());
+        // 3500ms / 1000 = 3s
+        Assert.assertEquals(Integer.valueOf(3), s.getExecuteTime());
+    }
+
+    /**
+     * Case currentSession_returnsEmptyOnException: 任何 JDBC 异常按 SqlServerStatsAccessor 模式返回空
+     * DBSession，不冒泡。
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void currentSession_returnsEmptyOnException() {
+        when(jdbcOperations.queryForObject(anyString(), any(RowMapper.class)))
+                .thenThrow(new RuntimeException("DB2 SQL error"));
+        DBSession s = accessor.currentSession();
+        Assert.assertNotNull(s);
+        Assert.assertNull(s.getId());
+        Assert.assertNull(s.getUsername());
     }
 
     // --------------------------- getTableStats ---------------------------
