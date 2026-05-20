@@ -23,6 +23,7 @@
         <module>connect-plugin-postgres</module>
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
+        <module>connect-plugin-hive</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
         <module>schema-plugin-ob-oracle</module>
@@ -33,6 +34,7 @@
         <module>schema-plugin-postgres</module>
         <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-dm</module>
+        <module>schema-plugin-hive</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
         <module>task-plugin-api</module>
         <module>task-plugin-mysql</module>
