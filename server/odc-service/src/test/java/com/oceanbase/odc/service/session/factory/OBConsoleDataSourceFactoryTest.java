@@ -28,17 +28,12 @@ import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 import sun.misc.Unsafe;
 
 /**
- * Unit tests for {@link OBConsoleDataSourceFactory#getSchema(String, DialectType)} and
- * {@link OBConsoleDataSourceFactory#getDefaultSchema(ConnectionConfig)}.
- * <p>
- * Covers compat_risks CR-4d (GAUSSDB default schema fallback) and pins the POSTGRESQL / OB_MYSQL
- * paths as regression baselines.
+ * Unit tests for {@link OBConsoleDataSourceFactory}.
  */
 public class OBConsoleDataSourceFactoryTest {
 
     private ConnectionConfig newConfig(DialectType dialectType, String defaultSchema) {
         ConnectionConfig config = new ConnectionConfig();
-        // ConnectionConfig#getDialectType() is derived from #type; populate via setType(ConnectType).
         config.setType(ConnectType.from(dialectType));
         config.setDefaultSchema(defaultSchema);
         return config;
@@ -118,5 +113,89 @@ public class OBConsoleDataSourceFactoryTest {
         String keepAliveSql = (String) method.invoke(factory, DialectType.MONGODB);
 
         Assert.assertEquals("db.runCommand({ ping: 1 })", keepAliveSql);
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_ExplicitCatalog_PostgreSQL_returnsAsIs() {
+        Assert.assertEquals("mydb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "mydb", "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_ExplicitCatalog_MySQL_returnsAsIs() {
+        Assert.assertEquals("mydb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.MYSQL, "mydb",
+                        "information_schema"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_publicSchema_fallsBackToPostgresDb() {
+        // 复现 issue #850 现场：DMS 创建 PG 数据源仅传 default_schema=public，catalog 为 null
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_publicSchemaCaseInsensitive_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "Public"));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "PUBLIC"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_emptyCatalog_publicSchema_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", "public"));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "  ", "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_customSchema_usesSchemaAsCatalog() {
+        // 兼容用户在 default_schema 字段中实际填了 database 名的场景
+        Assert.assertEquals("testdb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "testdb"));
+        Assert.assertEquals("appdb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", "appdb"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_nullSchema_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, null));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", ""));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_MySQL_nullCatalog_doesNotFallback() {
+        // 不能影响其他数据源类型——MySQL 不强校验 catalog
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.MYSQL, null, "information_schema"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_Oracle_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.ORACLE, null, "ORCL"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_OBMySQL_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.OB_MYSQL, null, "test"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_SqlServer_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.SQL_SERVER, null, "master"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_NullDialect_emptyCatalog_returnsEmpty() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(null, null, "any"));
     }
 }

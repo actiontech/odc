@@ -122,7 +122,59 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
 
     private JdbcUrlProperty getJdbcUrlProperties() {
         return new JdbcUrlProperty(this.host, this.port, this.defaultSchema, this.parameters, this.sid,
-                this.serviceName, this.catalogName);
+                this.serviceName, resolveEffectiveCatalogName(
+                        connectionConfig.getDialectType(), this.catalogName, this.defaultSchema));
+    }
+
+    /**
+     * 获取生成 JDBC URL 时实际要使用的 catalog 名称。
+     *
+     * <p>
+     * 仅对 PostgreSQL 做 catalog 兜底：PG 的 JDBC URL 形如
+     * {@code jdbc:postgresql://host:port/<catalog>?currentSchema=<schema>}，{@code catalog} 必须非空， 而上游（如
+     * DMS）创建 PG 数据源时往往只提供 default_schema（典型值 {@code public}），未显式传入 catalog/database， 导致
+     * {@link com.oceanbase.odc.plugin.connect.postgres.PostgresConnectionExtension#generateJdbcUrl} 的
+     * {@code Validate.notEmpty(catalogName, "catalog name can not be null")} 校验失败，进而触发
+     * {@code DatabaseService.syncDataSourceSchemas} 100% 失败、前端资源树无法展开。
+     *
+     * <p>
+     * 兜底策略（仅当 dialectType=POSTGRESQL 且 {@code catalogName} 为空时生效）：
+     * <ol>
+     * <li>若 {@code defaultSchema} 非空且不等于 PG 内置默认 schema
+     * {@value com.oceanbase.odc.core.shared.constant.OdcConstants#POSTGRESQL_DEFAULT_SCHEMA} （兼容用户在
+     * default_schema 字段中实际填了 database 名的场景），则用 {@code defaultSchema} 作为 catalog 兜底；</li>
+     * <li>否则使用 PG 标准内置数据库
+     * {@value com.oceanbase.odc.core.shared.constant.OdcConstants#POSTGRESQL_DEFAULT_DATABASE}， 该库在所有
+     * PG 标准安装中默认存在，确保 schema 列表查询（{@code information_schema.schemata}）能够走通。</li>
+     * </ol>
+     *
+     * <p>
+     * 不直接用 {@code defaultSchema=public} 作 catalog 兜底，因为 PG 中 {@code public} 是 schema 名而不是 database 名，
+     * 几乎不会有名为 {@code public} 的 database，强行用之会抛 {@code FATAL: database "public" does not exist}。
+     *
+     * <p>
+     * 对其他数据源类型（MySQL/Oracle/SQLServer/OceanBase 等）保持原行为不变，{@code catalogName} 原样透传， 不影响其既有 JDBC URL
+     * 生成逻辑（这些 dialect 的 ConnectionExtension 未对 catalogName 做非空校验）。
+     *
+     * @param dialectType 数据源类型
+     * @param catalogName 用户配置的 catalog（可空）
+     * @param defaultSchema 经过 {@link #getDefaultSchema(ConnectionConfig)} 处理后的默认 schema
+     * @return 实际用于 JDBC URL 的 catalog 名称
+     * @since 4.3.4 (issue #850)
+     */
+    public static String resolveEffectiveCatalogName(DialectType dialectType, String catalogName,
+            String defaultSchema) {
+        if (StringUtils.isNotBlank(catalogName)) {
+            return catalogName;
+        }
+        if (DialectType.POSTGRESQL == dialectType) {
+            if (StringUtils.isNotBlank(defaultSchema)
+                    && !OdcConstants.POSTGRESQL_DEFAULT_SCHEMA.equalsIgnoreCase(defaultSchema)) {
+                return defaultSchema;
+            }
+            return OdcConstants.POSTGRESQL_DEFAULT_DATABASE;
+        }
+        return catalogName;
     }
 
     public static String getUsername(@NonNull ConnectionConfig connectionConfig) {
