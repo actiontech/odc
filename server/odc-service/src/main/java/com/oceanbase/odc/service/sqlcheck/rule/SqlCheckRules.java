@@ -17,6 +17,7 @@ package com.oceanbase.odc.service.sqlcheck.rule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -104,6 +105,11 @@ import lombok.NonNull;
 public class SqlCheckRules {
 
     public static List<SqlCheckRuleFactory> getAllFactories(DialectType dialectType, JdbcOperations jdbc) {
+        // Hive 走 ODC 自带 sqlcheck，本期不提供任何内置规则（design §2.3 决策 3 / §4.1.6）
+        // 显式返回空规则集，避免后续按 dialect 分发的 factory 反复走 default 分支或意外抛 IllegalStateException
+        if (dialectType != null && dialectType.isHive()) {
+            return Collections.emptyList();
+        }
         Supplier<String> schemaSupplier = new SchemaSupplier(dialectType, jdbc);
         List<SqlCheckRuleFactory> rules = new ArrayList<>();
         rules.add(new ColumnCalculationFactory());

@@ -98,6 +98,10 @@ public class TableDataService {
             } else if (dialectType.isOracle() || dialectType.isDm()) {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
+            } else if (dialectType.isHive()) {
+                throw new UnsupportedOperationException(
+                        "Hive table data is read-only in this release. "
+                                + "See requirements 3.3 / design 2.3 decision 1.");
             } else {
                 throw new IllegalArgumentException("Illegal dialect type, " + dialectType);
             }

@@ -53,6 +53,18 @@ public class ConnectTypeUtil {
     public static final String[] CLOUD_SUFFIX = new String[] {"oceanbase.aliyuncs.com", "oceanbase.cloud"};
     public static final Integer REACHABLE_TIMEOUT_MILLIS = 10000;
 
+    /**
+     * Hive 在该探测路径上没有 {@code ob_compatibility_mode} 变量；调用方在持有 {@link DialectType} 时优先使用本重载，对 Hive 直接快速返回
+     * {@link ConnectType#HIVE}， 跳过 OceanBase 特有的方言探测 SQL。其他类型仍走原有探测逻辑。
+     */
+    public static ConnectType getConnectType(@NonNull String jdbcUrl, @NonNull Properties properties, int queryTimeout,
+            DialectType dialectType) throws SQLException {
+        if (dialectType != null && dialectType.isHive()) {
+            return ConnectType.HIVE;
+        }
+        return getConnectType(jdbcUrl, properties, queryTimeout);
+    }
+
     public static ConnectType getConnectType(@NonNull String jdbcUrl, @NonNull Properties properties, int queryTimeout)
             throws SQLException {
         /**
@@ -105,6 +117,8 @@ public class ConnectTypeUtil {
                 return ConnectType.SQL_SERVER;
             case DM:
                 return ConnectType.DM;
+            case HIVE:
+                return ConnectType.HIVE;
         }
         return null;
     }

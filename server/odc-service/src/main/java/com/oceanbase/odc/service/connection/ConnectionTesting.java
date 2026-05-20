@@ -163,6 +163,8 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isHive()) {
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }
@@ -203,7 +205,8 @@ public class ConnectionTesting {
             }
             ConnectType connectType = ConnectTypeUtil.getConnectType(
                     connectionExtensionPoint.generateJdbcUrl(jdbcUrlProperties),
-                    testConnectionProperties, queryTimeoutSeconds);
+                    testConnectionProperties, queryTimeoutSeconds,
+                    (type != null) ? type.getDialectType() : null);
             ConnectionTestResult testResult = new ConnectionTestResult(result, connectType);
             if (type != null && connectType != null && !Objects.equals(connectType, type)) {
                 return ConnectionTestResult.connectTypeMismatch(connectType);
