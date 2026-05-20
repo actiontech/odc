@@ -17,6 +17,9 @@ package com.oceanbase.odc.core.sql.execute.tool;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.SQLException;
 
 import com.oceanbase.tools.dbbrowser.model.datatype.DataType;
 
@@ -24,20 +27,46 @@ import lombok.NonNull;
 
 public class LobCellData extends TestCellData {
 
-    private final int streamSize;
+    private final long streamSize;
+    /**
+     * fix-K: lets unit tests decide whether the driver hands out a {@link Blob}/{@link Clob} handle
+     * (cheap length lookup) or only an {@link InputStream}. DB2 jcc returns a real {@link Clob} for
+     * CLOB / DBCLOB columns; MySQL / OB return {@link Blob} for binary LOBs.
+     */
+    private final boolean lobHandleAvailable;
 
     public LobCellData(int streamSize, @NonNull DataType dataType) {
-        super(dataType);
-        this.streamSize = streamSize;
+        this(streamSize, dataType, false);
     }
 
+    public LobCellData(long streamSize, @NonNull DataType dataType, boolean lobHandleAvailable) {
+        super(dataType);
+        this.streamSize = streamSize;
+        this.lobHandleAvailable = lobHandleAvailable;
+    }
+
+    @Override
     public InputStream getBinaryStream() {
         if (streamSize <= 0) {
             return null;
         }
-        return new ByteArrayInputStream(new byte[streamSize]);
+        return new ByteArrayInputStream(new byte[(int) streamSize]);
+    }
+
+    @Override
+    public Blob getBlob() throws SQLException {
+        if (!lobHandleAvailable || streamSize <= 0) {
+            return null;
+        }
+        return new TestBlob(streamSize);
+    }
+
+    @Override
+    public Clob getClob() throws SQLException {
+        if (streamSize < 0) {
+            return null;
+        }
+        return new TestClob(streamSize);
     }
 
 }
-
-

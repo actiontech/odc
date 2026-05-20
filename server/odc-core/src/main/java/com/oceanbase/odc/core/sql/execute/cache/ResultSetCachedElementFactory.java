@@ -107,9 +107,16 @@ public class ResultSetCachedElementFactory implements VirtualElementFactory {
         if (StringUtils.isBlank(dataType) || dialectType == null) {
             return false;
         }
+        String upperType = dataType.toUpperCase();
         if (dialectType.isOracle() || dialectType == DialectType.OB_ORACLE) {
-            String upperType = dataType.toUpperCase();
             return upperType.contains("CLOB");
+        }
+        if (dialectType.isDb2()) {
+            // fix-K: DB2 character LOB columns must be read via getCharacterStream.
+            // jcc rejects getBinaryStream() on CLOB / DBCLOB / NCLOB with
+            // ERRORCODE=-4461 (SQLSTATE=42815, "result column type wrong").
+            return upperType.equals("CLOB") || upperType.equals("DBCLOB")
+                    || upperType.equals("NCLOB");
         }
         return false;
     }
