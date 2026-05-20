@@ -108,10 +108,15 @@ public class DataSourceInfoMapper {
     }
 
     private static String getJdbcUrl(ConnectionConfig connectionConfig) {
+        // 对 PG 类型做 catalog 兜底，避免 PostgresConnectionExtension 抛 "catalog name can not be null"
+        // 详见 OBConsoleDataSourceFactory#resolveEffectiveCatalogName（issue #850）
+        String effectiveCatalogName = OBConsoleDataSourceFactory.resolveEffectiveCatalogName(
+                connectionConfig.getDialectType(), connectionConfig.getCatalogName(),
+                connectionConfig.getDefaultSchema());
         JdbcUrlProperty jdbcUrlProperty = new JdbcUrlProperty(connectionConfig.getHost(), connectionConfig.getPort(),
                 connectionConfig.getDefaultSchema(), Collections.emptyMap(),
                 connectionConfig.getSid(),
-                connectionConfig.getServiceName(), connectionConfig.getCatalogName());
+                connectionConfig.getServiceName(), effectiveCatalogName);
         return ConnectionPluginUtil.getConnectionExtension(connectionConfig.getDialectType())
                 .generateJdbcUrl(jdbcUrlProperty);
     }
