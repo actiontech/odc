@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.oceanbase</groupId>
+        <artifactId>plugin-parent</artifactId>
+        <version>4.3.4-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>connect-plugin-hive</artifactId>
+    <properties>
+        <root-project.basedir>${project.parent.parent.basedir}</root-project.basedir>
+        <plugin.class>com.oceanbase.odc.plugin.connect.hive.HiveConnectionPlugin</plugin.class>
+        <hive-jdbc.version>4.0.1</hive-jdbc.version>
+        <maven-shade-plugin.version>3.5.3</maven-shade-plugin.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.oceanbase</groupId>
+            <artifactId>connect-plugin-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- slf4j-api 是 ODC 主进程已有依赖；plugin 编译需要符号但运行时由 host classloader 提供 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- commons-collections4 同上：odc-core 已传递引入，plugin 仅编译期需要 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <!--
+          hive-jdbc:standalone classifier 是 Apache 官方发布的 uber jar（约 43 MB），自带 hadoop-common /
+          thrift / commons 等运行时依赖（Apache 内部已 shaded 处理）。这样 plugin 不必单独管理
+          ~30 个 hadoop / yarn / hdfs 传递依赖；fat jar 体积可控、依赖图可审计。
+          shade plugin 的 relocate 规则仍保留，作为对 standalone uber jar 内未完全 relocate 类的兜底
+          （R-1.4 / R-6.2 兼容层）。
+         -->
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-jdbc</artifactId>
+            <version>${hive-jdbc.version}</version>
+            <classifier>standalone</classifier>
+            <scope>runtime</scope>
+            <exclusions>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-mapreduce-client-app</artifactId></exclusion>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-mapreduce-client-core</artifactId></exclusion>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-yarn-api</artifactId></exclusion>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-yarn-common</artifactId></exclusion>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-yarn-server-resourcemanager</artifactId></exclusion>
+                <exclusion><groupId>org.apache.hadoop</groupId><artifactId>hadoop-hdfs</artifactId></exclusion>
+                <exclusion><groupId>org.eclipse.jetty</groupId><artifactId>*</artifactId></exclusion>
+                <exclusion><groupId>org.slf4j</groupId><artifactId>slf4j-log4j12</artifactId></exclusion>
+                <exclusion><groupId>log4j</groupId><artifactId>log4j</artifactId></exclusion>
+            </exclusions>
+        </dependency>
+        <dependency><groupId>junit</groupId><artifactId>junit</artifactId></dependency>
+        <dependency><groupId>com.oceanbase</groupId><artifactId>odc-test</artifactId></dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions><execution><id>make-assembly</id><phase>none</phase></execution></executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>hive-shade</id>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <outputFile>${project.parent.parent.basedir}/distribution/plugins/${project.artifactId}-${project.version}.jar</outputFile>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Plugin-Id>${plugin.id}</Plugin-Id>
+                                        <Plugin-Version>${project.version}</Plugin-Version>
+                                        <Plugin-Provider>${plugin.provider}</Plugin-Provider>
+                                        <Plugin-Class>${plugin.class}</Plugin-Class>
+                                        <Plugin-Dependencies>${plugin.dependencies}</Plugin-Dependencies>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <relocations>
+                                <relocation><pattern>org.apache.hadoop</pattern><shadedPattern>com.oceanbase.odc.plugin.connect.hive.shaded.hadoop</shadedPattern></relocation>
+                                <relocation><pattern>com.google.common</pattern><shadedPattern>com.oceanbase.odc.plugin.connect.hive.shaded.guava</shadedPattern></relocation>
+                            </relocations>
+                            <filters>
+                                <filter><artifact>*:*</artifact><excludes><exclude>META-INF/*.SF</exclude><exclude>META-INF/*.DSA</exclude><exclude>META-INF/*.RSA</exclude></excludes></filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
