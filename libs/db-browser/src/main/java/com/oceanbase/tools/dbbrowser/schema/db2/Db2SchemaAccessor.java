@@ -534,17 +534,73 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableConstraint> listTableConstraints(String schemaName, String tableName) {
+        // fix-L (Issue dms-ee#839, bug N1): the previous implementation only filled
+        // schema/name/type from SYSCAT.TABCONST and left columnNames=null, which made
+        // BaseDMLBuilder.getPrimaryConstraint NPE (`for (String col : constraint.getColumnNames())`)
+        // for every DB2 table that actually has a PK/UK — i.e. all editable tables.
+        //
+        // SYSCAT.KEYCOLUSE is DB2's canonical per-constraint column list (mirrors what MySQL exposes
+        // via INFORMATION_SCHEMA.KEY_COLUMN_USAGE and Oracle exposes via ALL_CONS_COLUMNS). COLSEQ
+        // is 1-based and orders the columns inside a composite key.
+        //
+        // For foreign keys we additionally read SYSCAT.REFERENCES to fill referenceSchemaName /
+        // referenceTableName / referenceColumnNames so downstream DDL / lineage views aren't broken.
+        // CHECK constraints have no participating columns; they keep columnNames=[] and are not
+        // exercised by the DML builder path.
         String sql = "SELECT TABSCHEMA, TABNAME, CONSTNAME, TYPE FROM SYSCAT.TABCONST "
                 + "WHERE TABSCHEMA = ? AND TABNAME = ? ORDER BY CONSTNAME";
-        return jdbcOperations.query(sql, new Object[] {schemaName, tableName}, (rs, rowNum) -> {
-            DBTableConstraint constraint = new DBTableConstraint();
-            constraint.setSchemaName(rs.getString("TABSCHEMA"));
-            constraint.setTableName(rs.getString("TABNAME"));
-            constraint.setName(rs.getString("CONSTNAME"));
-            String type = rs.getString("TYPE");
-            constraint.setType(mapDb2ConstraintType(type));
-            return constraint;
-        });
+        List<DBTableConstraint> constraints = jdbcOperations.query(sql,
+                new Object[] {schemaName, tableName}, (rs, rowNum) -> {
+                    DBTableConstraint constraint = new DBTableConstraint();
+                    constraint.setSchemaName(rs.getString("TABSCHEMA"));
+                    constraint.setTableName(rs.getString("TABNAME"));
+                    constraint.setName(rs.getString("CONSTNAME"));
+                    String type = rs.getString("TYPE");
+                    constraint.setType(mapDb2ConstraintType(type));
+                    return constraint;
+                });
+        if (constraints == null || constraints.isEmpty()) {
+            return constraints == null ? new ArrayList<>() : constraints;
+        }
+        // Back-fill columnNames per constraint via SYSCAT.KEYCOLUSE (covers PK / UK / FK).
+        String colSql = "SELECT COLNAME FROM SYSCAT.KEYCOLUSE "
+                + "WHERE TABSCHEMA = ? AND TABNAME = ? AND CONSTNAME = ? ORDER BY COLSEQ";
+        for (DBTableConstraint c : constraints) {
+            // CHECK constraints have no rows in SYSCAT.KEYCOLUSE — query returns empty list, not null.
+            List<String> cols = jdbcOperations.query(colSql,
+                    new Object[] {c.getSchemaName(), c.getTableName(), c.getName()},
+                    (rs, rowNum) -> rs.getString("COLNAME"));
+            c.setColumnNames(cols == null ? new ArrayList<>() : cols);
+            if (c.getType() == DBConstraintType.FOREIGN_KEY) {
+                fillForeignKeyReference(c);
+            }
+        }
+        return constraints;
+    }
+
+    private void fillForeignKeyReference(DBTableConstraint constraint) {
+        String refSql = "SELECT REFTABSCHEMA, REFTABNAME, REFKEYNAME FROM SYSCAT.REFERENCES "
+                + "WHERE TABSCHEMA = ? AND TABNAME = ? AND CONSTNAME = ?";
+        List<String[]> refs = jdbcOperations.query(refSql,
+                new Object[] {constraint.getSchemaName(), constraint.getTableName(), constraint.getName()},
+                (rs, rowNum) -> new String[] {
+                        rs.getString("REFTABSCHEMA"),
+                        rs.getString("REFTABNAME"),
+                        rs.getString("REFKEYNAME")
+                });
+        if (refs == null || refs.isEmpty()) {
+            return;
+        }
+        String[] ref = refs.get(0);
+        constraint.setReferenceSchemaName(ref[0]);
+        constraint.setReferenceTableName(ref[1]);
+        // Look up parent-side columns by joining SYSCAT.KEYCOLUSE on the referenced PK/UK constraint.
+        String refColSql = "SELECT COLNAME FROM SYSCAT.KEYCOLUSE "
+                + "WHERE TABSCHEMA = ? AND TABNAME = ? AND CONSTNAME = ? ORDER BY COLSEQ";
+        List<String> refCols = jdbcOperations.query(refColSql,
+                new Object[] {ref[0], ref[1], ref[2]},
+                (rs, rowNum) -> rs.getString("COLNAME"));
+        constraint.setReferenceColumnNames(refCols == null ? new ArrayList<>() : refCols);
     }
 
     private DBConstraintType mapDb2ConstraintType(String db2Type) {

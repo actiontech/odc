@@ -239,6 +239,13 @@ public class Db2SchemaAccessorTest {
     /**
      * Case listTableConstraints_typeMapping: 模拟 SYSCAT.TABCONST 3 行 TYPE='P'/'U'/'F'， 期望分别映射为
      * PRIMARY_KEY / UNIQUE_KEY / FOREIGN_KEY。
+     *
+     * <p>
+     * fix-L bug N1 regression: listTableConstraints now performs N+1 queries (TABCONST + per-constraint
+     * KEYCOLUSE join + REFERENCES for FK). This test focuses on the TABCONST row -> type mapping; the
+     * KEYCOLUSE / REFERENCES branches return empty lists under the simplified stub. The
+     * columnNames-back-fill behavior is verified explicitly in
+     * {@link #listTableConstraints_backFillsColumnNamesFromKeyColUse()}.
      */
     @Test
     public void listTableConstraints_typeMapping() throws SQLException {
@@ -266,6 +273,42 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals("PK_ORDERS", constraints.get(0).getName());
         Assert.assertEquals(DBConstraintType.UNIQUE_KEY, constraints.get(1).getType());
         Assert.assertEquals(DBConstraintType.FOREIGN_KEY, constraints.get(2).getType());
+    }
+
+    /**
+     * fix-L bug N1 regression: every constraint returned by listTableConstraints must have columnNames
+     * populated (no null), otherwise BaseDMLBuilder.getPrimaryConstraint NPEs at `for (String col :
+     * constraint.getColumnNames())`.
+     *
+     * <p>
+     * Stubbing strategy: route the TABCONST query (3 args: schema,table) to a 1-row PK result, and the
+     * KEYCOLUSE query (3 args: schema,table,constname) to a 2-row column list. The stubs distinguish
+     * the two calls by inspecting the SQL string captured at invocation time.
+     */
+    @Test
+    public void listTableConstraints_backFillsColumnNamesFromKeyColUse() throws SQLException {
+        Map<String, Object> tabconstRow = new LinkedHashMap<>();
+        tabconstRow.put("TABSCHEMA", "DB2INST1");
+        tabconstRow.put("TABNAME", "ORDERS");
+        tabconstRow.put("CONSTNAME", "PK_ORDERS");
+        tabconstRow.put("TYPE", "P");
+        Map<String, Object> keyColUseRow1 = new LinkedHashMap<>();
+        keyColUseRow1.put("COLNAME", "ID");
+        Map<String, Object> keyColUseRow2 = new LinkedHashMap<>();
+        keyColUseRow2.put("COLNAME", "ORDER_NO");
+        stubQueryBySqlContains("SYSCAT.TABCONST", Arrays.asList(tabconstRow));
+        stubQueryBySqlContains("SYSCAT.KEYCOLUSE", Arrays.asList(keyColUseRow1, keyColUseRow2));
+
+        List<DBTableConstraint> constraints = accessor.listTableConstraints("DB2INST1", "ORDERS");
+
+        Assert.assertEquals(1, constraints.size());
+        DBTableConstraint pk = constraints.get(0);
+        Assert.assertEquals(DBConstraintType.PRIMARY_KEY, pk.getType());
+        Assert.assertNotNull("columnNames must be filled, not null — see fix-L bug N1",
+                pk.getColumnNames());
+        Assert.assertEquals(2, pk.getColumnNames().size());
+        Assert.assertEquals("ID", pk.getColumnNames().get(0));
+        Assert.assertEquals("ORDER_NO", pk.getColumnNames().get(1));
     }
 
     // -------------------- fix-H bug D regression: 4 core methods --------------------
@@ -439,6 +482,25 @@ public class Db2SchemaAccessorTest {
     }
 
     // -------------------- Helpers --------------------
+
+    /**
+     * 桩 {@code query(String sql, ...)} 按 SQL 关键字分发不同的结果集。 fix-L bug N1 测试需要：同一调用链里 TABCONST
+     * 查询返回约束列表，KEYCOLUSE 查询返回列名列表。
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void stubQueryBySqlContains(String sqlKeyword, List<Map<String, Object>> rows) throws SQLException {
+        when(jdbcOperations.query(org.mockito.ArgumentMatchers.contains(sqlKeyword),
+                any(Object[].class), any(RowMapper.class)))
+                        .thenAnswer(invocation -> {
+                            RowMapper mapper = invocation.getArgument(2);
+                            List<Object> out = new ArrayList<>(rows.size());
+                            for (int i = 0; i < rows.size(); i++) {
+                                ResultSet rs = mockResultSetByName(rows.get(i));
+                                out.add(mapper.mapRow(rs, i));
+                            }
+                            return out;
+                        });
+    }
 
     /**
      * 桩 {@code query(String sql, Object[] args, RowMapper)}（与 SqlServerSchemaAccessorTest 同模式）。
