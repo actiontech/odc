@@ -101,7 +101,34 @@
                                 <relocation><pattern>com.google.common</pattern><shadedPattern>com.oceanbase.odc.plugin.connect.hive.shaded.guava</shadedPattern></relocation>
                             </relocations>
                             <filters>
-                                <filter><artifact>*:*</artifact><excludes><exclude>META-INF/*.SF</exclude><exclude>META-INF/*.DSA</exclude><exclude>META-INF/*.RSA</exclude></excludes></filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <!--
+                                          hive-jdbc-4.0.1-standalone uber jar 自带 slf4j 1.7.x impl
+                                          类（org/slf4j/event/*、org/slf4j/helpers/*、org/slf4j/spi/*
+                                          及顶层 LoggerFactory/Logger/MDC 等共 38 个 2019-12-16 构建
+                                          的 class）。pf4j PluginClassLoader 默认 child-first：
+                                          plugin 加载 org.slf4j.* 时优先命中这些 1.7.x impl，与 ODC
+                                          主进程已有的 slf4j 2.0.6 API 二进制不兼容，导致
+                                          LoggerFactory.<clinit> 抛 ExceptionInInitializerError →
+                                          HiveConnectionExtension.<clinit> 失败 →
+                                          NoClassDefFoundError: Could not initialize class
+                                          com.oceanbase.odc.plugin.connect.hive.HiveConnectionExtension。
+                                          排除掉这些 slf4j class 后，plugin classloader 通过
+                                          parent-first 回退到 host classloader（slf4j 2.0.6 API+impl），
+                                          完全消除冲突。同时清掉 META-INF/services/org.slf4j.* 避免
+                                          ServiceLoader 二次命中 1.7.x provider。
+                                          相关测试现象：T-Env02 对象树永久 loading-3-quarters，
+                                          /odc_query/api/v2/database/databases?dataSourceId=1 返回 500。
+                                         -->
+                                        <exclude>org/slf4j/**</exclude>
+                                        <exclude>META-INF/services/org.slf4j.*</exclude>
+                                    </excludes>
+                                </filter>
                             </filters>
                         </configuration>
                     </execution>
