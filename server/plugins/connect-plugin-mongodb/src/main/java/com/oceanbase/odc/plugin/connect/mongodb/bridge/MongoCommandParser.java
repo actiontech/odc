@@ -1,0 +1,115 @@
+/*
+ * Copyright (c) 2023 OceanBase.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.oceanbase.odc.plugin.connect.mongodb.bridge;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.bson.Document;
+import org.bson.conversions.Bson;
+
+public class MongoCommandParser {
+    private static final Pattern COMMAND =
+            Pattern.compile("^db(?:\\.([a-zA-Z0-9_\\-]+))?\\.([a-zA-Z]+)\\((.*)\\)\\s*;?$", Pattern.DOTALL);
+
+    public MongoParsedCommand parse(String sql) {
+        String normalized = sql == null ? "" : sql.trim();
+        Matcher matcher = COMMAND.matcher(normalized);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Unsupported MongoDB command");
+        }
+        String collection = matcher.group(1);
+        String method = matcher.group(2);
+        String args = matcher.group(3) == null ? "" : matcher.group(3).trim();
+        if ("runCommand".equals(method)) {
+            return MongoParsedCommand.runCommand(parseDocument(args));
+        }
+        if (collection == null) {
+            throw new IllegalArgumentException("Collection name is required for MongoDB command");
+        }
+        switch (method) {
+            case "find":
+                return MongoParsedCommand.find(collection, args.isEmpty() ? new Document() : parseDocument(args));
+            case "aggregate":
+                return MongoParsedCommand.aggregate(collection, parsePipeline(args));
+            case "insertOne":
+                return MongoParsedCommand.insertOne(collection, parseDocument(args));
+            case "insertMany":
+                return MongoParsedCommand.insertMany(collection, parseDocumentList(args));
+            case "updateOne":
+            case "updateMany":
+                return MongoParsedCommand.update(collection, method, splitTopLevelArgs(args));
+            case "deleteOne":
+            case "deleteMany":
+                return MongoParsedCommand.delete(collection, method,
+                        args.isEmpty() ? new Document() : parseDocument(args));
+            default:
+                throw new IllegalArgumentException("Unsupported MongoDB command: " + method);
+        }
+    }
+
+    private Document parseDocument(String raw) {
+        String json = toJson(raw.trim());
+        return Document.parse(json);
+    }
+
+    private List<Bson> parsePipeline(String raw) {
+        String json = toJson(raw.trim());
+        List<Object> values = Document.parse("{\"pipeline\":" + json + "}").getList("pipeline", Object.class);
+        List<Bson> pipeline = new ArrayList<>();
+        for (Object value : values) {
+            pipeline.add(Document.parse(value.toString()));
+        }
+        return pipeline;
+    }
+
+    private List<Document> parseDocumentList(String raw) {
+        String json = toJson(raw.trim());
+        List<Object> values = Document.parse("{\"items\":" + json + "}").getList("items", Object.class);
+        List<Document> documents = new ArrayList<>();
+        for (Object value : values) {
+            documents.add(Document.parse(value.toString()));
+        }
+        return documents;
+    }
+
+    private List<String> splitTopLevelArgs(String args) {
+        List<String> result = new ArrayList<>();
+        int depth = 0;
+        int start = 0;
+        for (int i = 0; i < args.length(); i++) {
+            char current = args.charAt(i);
+            if (current == '{' || current == '[' || current == '(') {
+                depth++;
+            } else if (current == '}' || current == ']' || current == ')') {
+                depth--;
+            } else if (current == ',' && depth == 0) {
+                result.add(args.substring(start, i).trim());
+                start = i + 1;
+            }
+        }
+        result.add(args.substring(start).trim());
+        return result;
+    }
+
+    private String toJson(String value) {
+        String json = value.replace('\'', '"');
+        json = json.replaceAll("([\\{,]\\s*)([A-Za-z_\\$][A-Za-z0-9_\\$]*)\\s*:", "$1\"$2\":");
+        return json;
+    }
+}

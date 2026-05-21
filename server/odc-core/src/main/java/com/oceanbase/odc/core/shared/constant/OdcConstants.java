@@ -100,6 +100,10 @@ public class OdcConstants {
      * DM (达梦) driver class name
      */
     public static final String DM_DRIVER_CLASS_NAME = "dm.jdbc.driver.DmDriver";
+    /**
+     * MongoDB bridge driver class name
+     */
+    public static final String MONGODB_DRIVER_CLASS_NAME = "com.oceanbase.odc.plugin.connect.mongodb.MongoJdbcDriver";
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
 
     /**
