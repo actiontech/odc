@@ -33,6 +33,7 @@ public enum DialectType {
     GAUSSDB,
     SQL_SERVER,
     DM,
+    MONGODB,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -96,6 +97,10 @@ public enum DialectType {
 
     public boolean isDm() {
         return DM == this;
+    }
+
+    public boolean isMongoDB() {
+        return MONGODB == this;
     }
 
 }
