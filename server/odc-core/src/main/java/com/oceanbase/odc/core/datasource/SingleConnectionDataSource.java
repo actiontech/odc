@@ -359,11 +359,16 @@ public class SingleConnectionDataSource extends BaseClassBasedDataSource impleme
             } else if ("hashCode".equals(method.getName())) {
                 return System.identityHashCode(proxy);
             } else if ("unwrap".equals(method.getName())) {
-                if (((Class<?>) args[0]).isInstance(proxy)) {
+                Class<?> iface = (Class<?>) args[0];
+                if (iface.isInstance(this.target)) {
+                    return this.target;
+                }
+                if (iface.isInstance(proxy)) {
                     return proxy;
                 }
             } else if ("isWrapperFor".equals(method.getName())) {
-                if (((Class<?>) args[0]).isInstance(proxy)) {
+                Class<?> iface = (Class<?>) args[0];
+                if (iface.isInstance(this.target) || iface.isInstance(proxy)) {
                     return true;
                 }
             } else if ("close".equals(method.getName())) {
@@ -382,4 +387,3 @@ public class SingleConnectionDataSource extends BaseClassBasedDataSource impleme
     }
 
 }
-

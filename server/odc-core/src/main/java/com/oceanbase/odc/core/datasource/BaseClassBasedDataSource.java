@@ -38,19 +38,24 @@ public abstract class BaseClassBasedDataSource extends BaseDriverBasedDataSource
      * The default driver class name is the driver of oceanbase
      */
     private String driverClassName = DEFAULT_DRIVER_CLASS_NAME;
+    private ClassLoader driverClassLoader = BaseClassBasedDataSource.class.getClassLoader();
 
     public void setDriverClassName(@NonNull String driverClassName) {
         try {
-            Class.forName(driverClassName);
+            loadDriverClass(driverClassName);
             this.driverClassName = driverClassName;
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
     }
 
+    public void setDriverClassLoader(ClassLoader driverClassLoader) {
+        this.driverClassLoader = driverClassLoader;
+    }
+
     @Override
     protected Driver getDriver() throws ClassNotFoundException {
-        Class<?> clazz = Class.forName(this.driverClassName);
+        Class<?> clazz = loadDriverClass(this.driverClassName);
         try {
             return (Driver) clazz.newInstance();
         } catch (Exception e) {
@@ -58,5 +63,12 @@ public abstract class BaseClassBasedDataSource extends BaseDriverBasedDataSource
         }
     }
 
-}
+    private Class<?> loadDriverClass(String driverClassName) throws ClassNotFoundException {
+        ClassLoader classLoader = this.driverClassLoader;
+        if (classLoader != null) {
+            return Class.forName(driverClassName, true, classLoader);
+        }
+        return Class.forName(driverClassName);
+    }
 
+}

@@ -33,6 +33,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.oceanbase.odc.ServiceTestEnv;
 import com.oceanbase.odc.common.crypto.TextEncryptor;
+import com.oceanbase.odc.core.shared.constant.ConnectType;
 import com.oceanbase.odc.core.shared.constant.ConnectionStatus;
 import com.oceanbase.odc.core.shared.constant.ConnectionVisibleScope;
 import com.oceanbase.odc.service.common.SystemTimeService;
@@ -108,6 +109,23 @@ public class ConnectionStatusManagerTest extends ServiceTestEnv {
 
         CheckState checkState = statusManager.getAndRefreshStatus(connection);
         Assert.assertEquals(ConnectionStatus.INACTIVE, checkState.getStatus());
+    }
+
+    @Test
+    public void getAndRefreshStatus_MongoConnection_UsesSavedPasswordAndReturnsImmediately() {
+        when(connectionTesting.test(any(TestConnectionReq.class))).thenAnswer(invocation -> {
+            TestConnectionReq req = invocation.getArgument(0);
+            Assert.assertEquals(ConnectType.MONGODB, req.getType());
+            Assert.assertEquals("pwd", req.getPassword());
+            return ConnectionTestResult.success(ConnectType.MONGODB);
+        });
+
+        ConnectionConfig connection = newConnection();
+        connection.setType(ConnectType.MONGODB);
+
+        CheckState checkState = statusManager.getAndRefreshStatus(connection);
+        Assert.assertEquals(ConnectionStatus.ACTIVE, checkState.getStatus());
+        Assert.assertEquals(ConnectType.MONGODB, checkState.getType());
     }
 
     private ConnectionConfig newConnection() {

@@ -49,6 +49,15 @@ class MongoStatementHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String name = method.getName();
+        if ("hashCode".equals(name)) {
+            return System.identityHashCode(proxy);
+        }
+        if ("equals".equals(name)) {
+            return proxy == args[0];
+        }
+        if ("toString".equals(name)) {
+            return "MongoJdbcStatement[" + context.getConnectionId() + "]";
+        }
         if ("execute".equals(name)) {
             return execute((String) args[0]);
         }
