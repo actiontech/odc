@@ -15,6 +15,7 @@
  */
 package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -24,8 +25,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.sql.rowset.CachedRowSet;
 import javax.sql.rowset.RowSetMetaDataImpl;
@@ -47,13 +50,12 @@ public final class MongoBridgeUtil {
     }
 
     public static MongoSessionContext requireContext(Connection connection) {
-        synchronized (CONTEXTS) {
-            MongoSessionContext context = CONTEXTS.get(connection);
-            if (context == null) {
-                throw new IllegalStateException("MongoDB session context not found");
-            }
-            return context;
+        MongoSessionContext context =
+                findContext(connection, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+        if (context == null) {
+            throw new IllegalStateException("MongoDB session context not found");
         }
+        return context;
     }
 
     static Statement newStatement(Connection connection, MongoSessionContext context) {
@@ -98,6 +100,15 @@ public final class MongoBridgeUtil {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             String name = method.getName();
+            if ("hashCode".equals(name)) {
+                return System.identityHashCode(proxy);
+            }
+            if ("equals".equals(name)) {
+                return proxy == args[0];
+            }
+            if ("toString".equals(name)) {
+                return "MongoJdbcConnection[" + context.getConnectionId() + "]";
+            }
             if ("createStatement".equals(name)) {
                 return newStatement((Connection) proxy, context);
             }
@@ -107,6 +118,9 @@ public final class MongoBridgeUtil {
             }
             if ("isClosed".equals(name)) {
                 return closed;
+            }
+            if ("isValid".equals(name)) {
+                return !closed;
             }
             if ("getAutoCommit".equals(name)) {
                 return autoCommit;
@@ -167,6 +181,73 @@ public final class MongoBridgeUtil {
         }
         if (type == char.class) {
             return '\0';
+        }
+        return null;
+    }
+
+    private static MongoSessionContext findContext(Connection connection, Set<Object> visited) {
+        if (connection == null || !visited.add(connection)) {
+            return null;
+        }
+        synchronized (CONTEXTS) {
+            MongoSessionContext context = CONTEXTS.get(connection);
+            if (context != null) {
+                return context;
+            }
+        }
+        try {
+            if (connection.isWrapperFor(Connection.class)) {
+                Connection unwrapped = connection.unwrap(Connection.class);
+                if (unwrapped != connection) {
+                    MongoSessionContext context = findContext(unwrapped, visited);
+                    if (context != null) {
+                        return context;
+                    }
+                }
+            }
+        } catch (SQLException ignore) {
+            // Ignore and continue probing nested wrappers below.
+        }
+        if (Proxy.isProxyClass(connection.getClass())) {
+            MongoSessionContext context = findContext(Proxy.getInvocationHandler(connection), visited);
+            if (context != null) {
+                return context;
+            }
+        }
+        return findContext((Object) connection, visited);
+    }
+
+    private static MongoSessionContext findContext(Object candidate, Set<Object> visited) {
+        if (candidate == null || !visited.add(candidate)) {
+            return null;
+        }
+        if (candidate instanceof Connection) {
+            visited.remove(candidate);
+            return findContext((Connection) candidate, visited);
+        }
+        if (candidate instanceof InvocationHandler) {
+            for (Class<?> type = candidate.getClass(); type != null && type != Object.class; type =
+                    type.getSuperclass()) {
+                for (Field field : type.getDeclaredFields()) {
+                    MongoSessionContext context = findContext(field, candidate, visited);
+                    if (context != null) {
+                        return context;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static MongoSessionContext findContext(Field field, Object owner, Set<Object> visited) {
+        try {
+            field.setAccessible(true);
+            Object value = field.get(owner);
+            if (value instanceof Connection || value instanceof InvocationHandler) {
+                return findContext(value, visited);
+            }
+        } catch (IllegalAccessException ignore) {
+            // Ignore inaccessible wrappers and continue probing.
         }
         return null;
     }

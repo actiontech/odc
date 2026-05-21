@@ -217,13 +217,7 @@ public class ConnectSessionService {
 
     public CreateSessionResp createByDataSourceId(@NotNull Long dataSourceId) {
         ConnectionSession session = create(dataSourceId, null);
-        return CreateSessionResp.builder()
-                .sessionId(session.getId())
-                .supports(configService.getSupportFeatures(session))
-                .dataTypeUnits(configService.getDatatypeList(session))
-                .charsets(charsetService.listCharset(session))
-                .collations(charsetService.listCollation(session))
-                .build();
+        return buildCreateSessionResp(session);
     }
 
     @SkipAuthorize("check permission internally")
@@ -236,24 +230,12 @@ public class ConnectSessionService {
             ConnectionSessionFactory sessionFactory = new DefaultConnectSessionFactory(connection);
             ConnectionSession physicalSession = sessionFactory.generateSession();
             try {
-                return CreateSessionResp.builder()
-                        .sessionId(session.getId())
-                        .supports(configService.getSupportFeatures(physicalSession))
-                        .dataTypeUnits(configService.getDatatypeList(physicalSession))
-                        .charsets(charsetService.listCharset(physicalSession))
-                        .collations(charsetService.listCollation(physicalSession))
-                        .build();
+                return buildCreateSessionResp(session.getId(), physicalSession);
             } finally {
                 physicalSession.expire();
             }
         }
-        return CreateSessionResp.builder()
-                .sessionId(session.getId())
-                .supports(configService.getSupportFeatures(session))
-                .dataTypeUnits(configService.getDatatypeList(session))
-                .charsets(charsetService.listCharset(session))
-                .collations(charsetService.listCollation(session))
-                .build();
+        return buildCreateSessionResp(session);
     }
 
     @SkipAuthorize("check permission internally")
@@ -557,6 +539,22 @@ public class ConnectSessionService {
             return "ON".equalsIgnoreCase(userConfigFacade.getOracleAutoCommitMode());
         }
         return "ON".equalsIgnoreCase(userConfigFacade.getMysqlAutoCommitMode());
+    }
+
+    private CreateSessionResp buildCreateSessionResp(ConnectionSession session) {
+        return buildCreateSessionResp(session.getId(), session);
+    }
+
+    private CreateSessionResp buildCreateSessionResp(String sessionId, ConnectionSession session) {
+        CreateSessionResp.CreateSessionRespBuilder builder = CreateSessionResp.builder()
+                .sessionId(sessionId)
+                .supports(configService.getSupportFeatures(session))
+                .dataTypeUnits(configService.getDatatypeList(session));
+        if (!session.getDialectType().isMongoDB()) {
+            builder.charsets(charsetService.listCharset(session))
+                    .collations(charsetService.listCollation(session));
+        }
+        return builder.build();
     }
 
     private void initSession(ConnectionSession connectionSession, DialectType dialectType, Long envId) {

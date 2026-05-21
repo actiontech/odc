@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.pf4j.ExtensionPoint;
 import org.pf4j.PluginManager;
+import org.pf4j.PluginWrapper;
 
 import com.oceanbase.odc.core.shared.exception.UnsupportedException;
 
@@ -50,6 +51,15 @@ public class OdcPluginManager<V> {
 
     public <T extends ExtensionPoint> T getSingletonExtension(@NonNull V object, @NonNull Class<T> type) {
         return getSingleton(getExtensions(object, type), object);
+    }
+
+    public ClassLoader getPluginClassLoader(@NonNull V object) {
+        String pluginId = pluginFinder.findPluginIdBy(object);
+        PluginWrapper pluginWrapper = pluginManager.getPlugin(pluginId);
+        if (pluginWrapper == null) {
+            throw new UnsupportedException(String.format("Feature plugin is not supported for %s", object));
+        }
+        return pluginWrapper.getPluginClassLoader();
     }
 
     private <T extends ExtensionPoint> T getSingleton(List<T> collection, V object) {

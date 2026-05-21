@@ -35,6 +35,7 @@ import com.oceanbase.odc.core.shared.Verify;
 import com.oceanbase.odc.core.shared.constant.ConnectType;
 import com.oceanbase.odc.core.shared.constant.ConnectionAccountType;
 import com.oceanbase.odc.core.shared.constant.ConnectionStatus;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.shared.constant.ErrorCode;
 import com.oceanbase.odc.plugin.connect.api.TestResult;
 import com.oceanbase.odc.service.common.SystemTimeService;
@@ -90,6 +91,11 @@ public class ConnectionStatusManager {
         PreConditions.notNull(connection, "connection");
         if (Objects.nonNull(connection.getEnabled()) && !connection.getEnabled()) {
             return CheckState.of(ConnectionStatus.DISABLED);
+        }
+        if (Objects.nonNull(connection.getType()) && connection.getType().getDialectType() == DialectType.MONGODB) {
+            CheckState checkState = new CheckState();
+            checkState.refresh(connectionTesting.test(buildTestConnectionReq(connection)));
+            return checkState;
         }
         CheckKey checkKey = new CheckKey(connection);
         CheckState checkState = connect2State.computeIfAbsent(checkKey, t -> new CheckState());
@@ -195,17 +201,8 @@ public class ConnectionStatusManager {
         final User user;
 
         CheckTask(ConnectionConfig connection, CheckState checkState) {
-            this.testConnectionReq = TestConnectionReq.fromConnection(connection, ConnectionAccountType.MAIN);
+            this.testConnectionReq = buildTestConnectionReq(connection);
             this.user = authenticationFacade.currentUser();
-            if (Objects.isNull(connection.getPassword())) {
-                try {
-                    TextEncryptor encryptor = connectionEncryption.getEncryptor(connection);
-                    this.testConnectionReq.setPassword(encryptor.decrypt(connection.getPasswordEncrypted()));
-                } catch (Exception e) {
-                    log.warn("Test connection decrypt password failed, connectionId={}, reason={}",
-                            connection.getId(), e.getMessage());
-                }
-            }
             this.checkState = checkState;
         }
 
@@ -227,5 +224,19 @@ public class ConnectionStatusManager {
             this.checkState.refresh(result);
             return result;
         }
+    }
+
+    private TestConnectionReq buildTestConnectionReq(ConnectionConfig connection) {
+        TestConnectionReq testConnectionReq = TestConnectionReq.fromConnection(connection, ConnectionAccountType.MAIN);
+        if (Objects.isNull(connection.getPassword())) {
+            try {
+                TextEncryptor encryptor = connectionEncryption.getEncryptor(connection);
+                testConnectionReq.setPassword(encryptor.decrypt(connection.getPasswordEncrypted()));
+            } catch (Exception e) {
+                log.warn("Test connection decrypt password failed, connectionId={}, reason={}",
+                        connection.getId(), e.getMessage());
+            }
+        }
+        return testConnectionReq;
     }
 }

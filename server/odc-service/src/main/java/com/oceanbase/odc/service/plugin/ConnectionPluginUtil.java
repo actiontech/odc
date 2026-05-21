@@ -41,6 +41,10 @@ public class ConnectionPluginUtil {
         return getSingletonExtension(dialectType, ConnectionExtensionPoint.class);
     }
 
+    public static ClassLoader getPluginClassLoader(DialectType dialectType) {
+        return getOdcPluginManager().getPluginClassLoader(dialectType);
+    }
+
     public static SessionExtensionPoint getSessionExtension(DialectType dialectType) {
         return getSingletonExtension(dialectType, SessionExtensionPoint.class);
     }

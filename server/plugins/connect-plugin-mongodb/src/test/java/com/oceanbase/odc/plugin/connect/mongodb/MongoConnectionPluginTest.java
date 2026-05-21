@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.oceanbase.odc.core.shared.constant.DialectType;
+import com.oceanbase.odc.core.shared.constant.OdcConstants;
 import com.oceanbase.odc.plugin.connect.model.JdbcUrlProperty;
 
 public class MongoConnectionPluginTest {
@@ -36,5 +37,22 @@ public class MongoConnectionPluginTest {
         params.put("authSource", "admin");
         String actual = extension.generateJdbcUrl(new JdbcUrlProperty("127.0.0.1", 27017, "appdb", params));
         Assert.assertEquals("jdbc:mongodb://127.0.0.1:27017/appdb?authSource=admin&appName=odc-mongodb", actual);
+    }
+
+    @Test
+    public void generateJdbcUrl_withoutSchemaButWithParameters_addsTrailingSlash() {
+        MongoConnectionExtension extension = new MongoConnectionExtension();
+        HashMap<String, String> params = new HashMap<>();
+        params.put("authSource", "admin");
+        String actual = extension.generateJdbcUrl(new JdbcUrlProperty("127.0.0.1", 27017, null, params));
+        Assert.assertEquals("jdbc:mongodb://127.0.0.1:27017/?authSource=admin&appName=odc-mongodb", actual);
+    }
+
+    @Test
+    public void getDriverClassName_returnsBridgeDriver() {
+        MongoConnectionExtension extension = new MongoConnectionExtension();
+        Assert.assertEquals(OdcConstants.MONGODB_DRIVER_CLASS_NAME, extension.getDriverClassName());
+        Assert.assertEquals("com.oceanbase.odc.plugin.connect.mongodb.bridge.MongoJdbcDriver",
+                extension.getDriverClassName());
     }
 }

@@ -71,6 +71,7 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
         if (Objects.nonNull(this.userRole)) {
             dataSource.setConnectProperties(ConnectionPropertiesBuilder.getBuilder().userRole(this.userRole).build());
         }
+        dataSource.setDriverClassLoader(ConnectionPluginUtil.getPluginClassLoader(connectionConfig.getDialectType()));
         dataSource.setDriverClassName(connectionExtensionPoint.getDriverClassName());
         init(dataSource);
         return dataSource;

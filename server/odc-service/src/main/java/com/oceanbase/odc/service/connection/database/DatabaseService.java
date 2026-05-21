@@ -319,8 +319,11 @@ public class DatabaseService {
         Specification<DatabaseEntity> specs = DatabaseSpecs
                 .connectionIdEquals(id)
                 .and(DatabaseSpecs.existedEquals(existed))
-                .and(DatabaseSpecs.projectIdNotNull(belongsToProject))
                 .and(DatabaseSpecs.nameLike(name));
+        if (!(Boolean.TRUE.equals(belongsToProject)
+                && authenticationFacade.currentUser().getOrganizationType() == OrganizationType.INDIVIDUAL)) {
+            specs = specs.and(DatabaseSpecs.projectIdNotNull(belongsToProject));
+        }
         Page<DatabaseEntity> entities = databaseRepository.findAll(specs, pageable);
         Page<Database> databases = entitiesToModels(entities, false);
         horizontalDataPermissionValidator.checkCurrentOrganization(databases.getContent());

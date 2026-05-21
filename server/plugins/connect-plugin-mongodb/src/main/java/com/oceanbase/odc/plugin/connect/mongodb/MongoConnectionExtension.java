@@ -35,7 +35,6 @@ import com.mongodb.client.MongoClients;
 import com.oceanbase.odc.common.util.ExceptionUtils;
 import com.oceanbase.odc.common.util.StringUtils;
 import com.oceanbase.odc.core.datasource.ConnectionInitializer;
-import com.oceanbase.odc.core.shared.constant.OdcConstants;
 import com.oceanbase.odc.plugin.connect.api.ConnectionExtensionPoint;
 import com.oceanbase.odc.plugin.connect.api.JdbcUrlParser;
 import com.oceanbase.odc.plugin.connect.api.TestResult;
@@ -60,6 +59,9 @@ public class MongoConnectionExtension implements ConnectionExtensionPoint {
         }
         Map<String, String> parameters = appendDefaultJdbcUrlParameters(properties.getJdbcParameters());
         if (!parameters.isEmpty()) {
+            if (StringUtils.isBlank(properties.getDefaultSchema())) {
+                builder.append("/");
+            }
             builder.append("?");
             boolean first = true;
             for (Map.Entry<String, String> entry : parameters.entrySet()) {
@@ -81,7 +83,7 @@ public class MongoConnectionExtension implements ConnectionExtensionPoint {
 
     @Override
     public String getDriverClassName() {
-        return OdcConstants.MONGODB_DRIVER_CLASS_NAME;
+        return "com.oceanbase.odc.plugin.connect.mongodb.bridge.MongoJdbcDriver";
     }
 
     @Override

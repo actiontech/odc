@@ -226,6 +226,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             properties.put(ConnectionPropertiesBuilder.USER_ROLE, this.userRole.name());
             dataSource.setConnectionProperties(properties);
         }
+        dataSource.setDriverClassLoader(ConnectionPluginUtil.getPluginClassLoader(connectionConfig.getDialectType()));
         // Set datasource driver class
         dataSource.setDriverClassName(connectionExtensionPoint.getDriverClassName());
         // fix arbitrary file reading vulnerability
