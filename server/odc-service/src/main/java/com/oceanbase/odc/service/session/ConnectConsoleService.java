@@ -107,11 +107,9 @@ import com.oceanbase.odc.service.session.util.SqlRewriteUtil;
 import com.oceanbase.tools.dbbrowser.parser.result.BasicResult;
 import com.oceanbase.tools.dbbrowser.parser.result.ParseSqlResult;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
-import com.oceanbase.tools.dbbrowser.util.DmSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
-import com.oceanbase.tools.dbbrowser.util.SqlServerSqlBuilder;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -165,13 +163,15 @@ public class ConnectConsoleService {
         } else if (dialectType.isOracle()) {
             sqlBuilder = new OracleSqlBuilder();
         } else if (dialectType.isDm()) {
-            sqlBuilder = new DmSqlBuilder();
+            throw new UnsupportedOperationException(
+                    "db-browser:1.2.3 lacks DmSqlBuilder; DM dialect SQL builder is not available in this version");
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isTidb()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
-            sqlBuilder = new SqlServerSqlBuilder();
+            throw new UnsupportedOperationException(
+                    "db-browser:1.2.3 lacks SqlServerSqlBuilder; SqlServer dialect SQL builder is not available in this version");
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
