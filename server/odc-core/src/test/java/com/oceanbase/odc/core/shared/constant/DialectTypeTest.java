@@ -202,4 +202,120 @@ public class DialectTypeTest {
             }
         }
     }
+
+    // ===== GaussDB (Issue #865) =====
+
+    @Test
+    public void valueOf_GAUSSDB_Success() {
+        Assert.assertEquals(DialectType.GAUSSDB, DialectType.valueOf("GAUSSDB"));
+    }
+
+    @Test
+    public void fromValue_GAUSSDB_ReturnDialectTypeGAUSSDB() {
+        Assert.assertEquals(DialectType.GAUSSDB, DialectType.fromValue("GAUSSDB"));
+    }
+
+    @Test
+    public void name_GAUSSDB_ReturnGAUSSDB() {
+        Assert.assertEquals("GAUSSDB", DialectType.GAUSSDB.name());
+    }
+
+    @Test
+    public void getDBBrowserDialectTypeName_GAUSSDB_ReturnGAUSSDB() {
+        Assert.assertEquals("GAUSSDB", DialectType.GAUSSDB.getDBBrowserDialectTypeName());
+    }
+
+    @Test
+    public void isGaussDB_GAUSSDB_ReturnTrue() {
+        Assert.assertTrue(DialectType.GAUSSDB.isGaussDB());
+    }
+
+    @Test
+    public void isGaussDB_OtherTypes_ReturnFalse() {
+        Map<DialectType, Boolean> testCases = new LinkedHashMap<>();
+        testCases.put(DialectType.MYSQL, false);
+        testCases.put(DialectType.ORACLE, false);
+        testCases.put(DialectType.OB_MYSQL, false);
+        testCases.put(DialectType.OB_ORACLE, false);
+        testCases.put(DialectType.SQL_SERVER, false);
+        testCases.put(DialectType.POSTGRESQL, false);
+        testCases.put(DialectType.DORIS, false);
+        testCases.put(DialectType.TIDB, false);
+        testCases.put(DialectType.DM, false);
+        testCases.put(DialectType.UNKNOWN, false);
+
+        for (Map.Entry<DialectType, Boolean> entry : testCases.entrySet()) {
+            Assert.assertEquals("isGaussDB() should return false for " + entry.getKey(),
+                    entry.getValue().booleanValue(), entry.getKey().isGaussDB());
+        }
+    }
+
+    @Test
+    public void isPgFamily_GAUSSDB_ReturnTrue() {
+        Assert.assertTrue(DialectType.GAUSSDB.isPgFamily());
+    }
+
+    @Test
+    public void isPgFamily_POSTGRESQL_ReturnTrue() {
+        Assert.assertTrue(DialectType.POSTGRESQL.isPgFamily());
+    }
+
+    @Test
+    public void isPgFamily_NonPgFamily_ReturnFalse() {
+        Map<DialectType, Boolean> testCases = new LinkedHashMap<>();
+        testCases.put(DialectType.MYSQL, false);
+        testCases.put(DialectType.ORACLE, false);
+        testCases.put(DialectType.OB_MYSQL, false);
+        testCases.put(DialectType.OB_ORACLE, false);
+        testCases.put(DialectType.SQL_SERVER, false);
+        testCases.put(DialectType.DORIS, false);
+        testCases.put(DialectType.TIDB, false);
+        testCases.put(DialectType.DM, false);
+        testCases.put(DialectType.UNKNOWN, false);
+
+        for (Map.Entry<DialectType, Boolean> entry : testCases.entrySet()) {
+            Assert.assertEquals("isPgFamily() should return false for " + entry.getKey(),
+                    entry.getValue().booleanValue(), entry.getKey().isPgFamily());
+        }
+    }
+
+    @Test
+    public void isPostgreSql_GAUSSDB_ReturnFalse() {
+        // GAUSSDB intentionally NOT classified as PostgreSQL to keep the PG-only business path
+        // untouched (zero PG regression). Use isPgFamily() for protocol-family-wide checks.
+        Assert.assertFalse(DialectType.GAUSSDB.isPostgreSql());
+    }
+
+    @Test
+    public void isPostgreSql_POSTGRESQL_ReturnTrue() {
+        Assert.assertTrue(DialectType.POSTGRESQL.isPostgreSql());
+    }
+
+    @Test
+    public void isMysql_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.GAUSSDB.isMysql());
+    }
+
+    @Test
+    public void isOracle_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.GAUSSDB.isOracle());
+    }
+
+    @Test
+    public void isOceanbase_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(DialectType.GAUSSDB.isOceanbase());
+    }
+
+    @Test
+    public void valueOf_LegacyValues_StillWork() {
+        // Regression: pre-existing enum values must remain deserializable after GAUSSDB is added.
+        String[] legacy = {"MYSQL", "OB_MYSQL", "OB_ORACLE", "ORACLE",
+                "ODP_SHARDING_OB_MYSQL", "POSTGRESQL", "SQL_SERVER", "DM",
+                "DORIS", "TIDB", "FILE_SYSTEM", "UNKNOWN"};
+        for (String name : legacy) {
+            DialectType type = DialectType.valueOf(name);
+            Assert.assertNotNull("valueOf(" + name + ") must not return null", type);
+            Assert.assertEquals(name, type.name());
+        }
+    }
 }

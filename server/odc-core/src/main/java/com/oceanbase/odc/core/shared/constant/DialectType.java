@@ -30,6 +30,7 @@ public enum DialectType {
     DORIS,
     TIDB,
     POSTGRESQL,
+    GAUSSDB,
     SQL_SERVER,
     DM,
     FILE_SYSTEM,
@@ -73,6 +74,20 @@ public enum DialectType {
 
     public boolean isPostgreSql() {
         return POSTGRESQL == this;
+    }
+
+    public boolean isGaussDB() {
+        return GAUSSDB == this;
+    }
+
+    /**
+     * Returns true when the dialect belongs to the PG protocol family (PostgreSQL or GaussDB /
+     * openGauss). Intended for shared SQL pre-check / schema introspection paths. Note that
+     * {@link #isPostgreSql()} intentionally still returns false for GAUSSDB to keep the PG-only
+     * business path untouched (zero PG regression).
+     */
+    public boolean isPgFamily() {
+        return POSTGRESQL == this || GAUSSDB == this;
     }
 
     public boolean isSqlServer() {

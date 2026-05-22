@@ -32,6 +32,7 @@ public enum ConnectType {
     DORIS(DialectType.DORIS),
     TIDB(DialectType.TIDB),
     POSTGRESQL(DialectType.POSTGRESQL),
+    GAUSSDB(DialectType.GAUSSDB),
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
 

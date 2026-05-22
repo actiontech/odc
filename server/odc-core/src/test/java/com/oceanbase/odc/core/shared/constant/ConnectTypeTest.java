@@ -62,4 +62,67 @@ public class ConnectTypeTest {
     public void isCloud_TIDB_ReturnFalse() {
         Assert.assertFalse(ConnectType.TIDB.isCloud());
     }
+
+    // ===== GaussDB (Issue #865) =====
+
+    @Test
+    public void getDialectType_GAUSSDB_ReturnDialectTypeGAUSSDB() {
+        Assert.assertEquals(DialectType.GAUSSDB, ConnectType.GAUSSDB.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeGAUSSDB_ReturnConnectTypeGAUSSDB() {
+        Assert.assertEquals(ConnectType.GAUSSDB, ConnectType.from(DialectType.GAUSSDB));
+    }
+
+    @Test
+    public void valueOf_GAUSSDB_Success() {
+        Assert.assertEquals(ConnectType.GAUSSDB, ConnectType.valueOf("GAUSSDB"));
+    }
+
+    @Test
+    public void isODPSharding_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.GAUSSDB.isODPSharding());
+    }
+
+    @Test
+    public void isFileSystem_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.GAUSSDB.isFileSystem());
+    }
+
+    @Test
+    public void isCloud_GAUSSDB_ReturnFalse() {
+        Assert.assertFalse(ConnectType.GAUSSDB.isCloud());
+    }
+
+    @Test
+    public void isDefaultSchemaRequired_GAUSSDB_ReturnFalse() {
+        // GaussDB uses SET search_path semantics (PG family), not ODP sharding's explicit default
+        // schema. Keep consistent with POSTGRESQL.
+        Assert.assertFalse(ConnectType.GAUSSDB.isDefaultSchemaRequired());
+    }
+
+    // ===== PG regression =====
+
+    @Test
+    public void getDialectType_POSTGRESQL_ReturnDialectTypePOSTGRESQL_Unchanged() {
+        Assert.assertEquals(DialectType.POSTGRESQL, ConnectType.POSTGRESQL.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypePOSTGRESQL_ReturnConnectTypePOSTGRESQL_Unchanged() {
+        Assert.assertEquals(ConnectType.POSTGRESQL, ConnectType.from(DialectType.POSTGRESQL));
+    }
+
+    // ===== MYSQL regression =====
+
+    @Test
+    public void getDialectType_MYSQL_ReturnDialectTypeMYSQL_Unchanged() {
+        Assert.assertEquals(DialectType.MYSQL, ConnectType.MYSQL.getDialectType());
+    }
+
+    @Test
+    public void from_DialectTypeMYSQL_ReturnConnectTypeMYSQL_Unchanged() {
+        Assert.assertEquals(ConnectType.MYSQL, ConnectType.from(DialectType.MYSQL));
+    }
 }

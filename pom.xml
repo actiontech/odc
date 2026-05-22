@@ -145,6 +145,7 @@
         <mysql.jdbc.version>8.0.30</mysql.jdbc.version>
         <oracle.jdbc.version>21.1.0.0</oracle.jdbc.version>
         <postgres.jdbc.version>42.7.3</postgres.jdbc.version>
+        <opengauss.jdbc.version>6.0.0-og</opengauss.jdbc.version>
         <mssql.jdbc.version>12.8.2.jre8</mssql.jdbc.version>
 
         <micrometer-core.version>1.8.0</micrometer-core.version>
@@ -1223,6 +1224,11 @@
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${postgres.jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.opengauss</groupId>
+                <artifactId>opengauss-jdbc</artifactId>
+                <version>${opengauss.jdbc.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.microsoft.sqlserver</groupId>

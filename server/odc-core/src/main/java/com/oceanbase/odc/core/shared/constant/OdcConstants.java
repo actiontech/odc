@@ -70,6 +70,15 @@ public class OdcConstants {
 
     public static final String MYSQL_DEFAULT_SCHEMA = "information_schema";
     public static final String POSTGRESQL_DEFAULT_SCHEMA = "public";
+    /**
+     * Default schema for GaussDB (Huawei Cloud GaussDB commercial edition + openGauss open source).
+     * <p>
+     * Same literal value as {@link #POSTGRESQL_DEFAULT_SCHEMA} ("public"), but intentionally kept as an
+     * independent constant so that future GaussDB-specific divergence (e.g. default schema differences
+     * between openGauss B-compat mode and PG) can be evolved without touching the PG path. Do NOT
+     * collapse this back into POSTGRESQL_DEFAULT_SCHEMA.
+     */
+    public static final String GAUSSDB_DEFAULT_SCHEMA = "public";
     public static final String SQL_SERVER_DEFAULT_SCHEMA = "master";
     public static final String ODC_BACK_URL_PARAM = "odc_back_url";
 
@@ -92,6 +101,15 @@ public class OdcConstants {
      * postgreSql driver class name
      */
     public static final String POSTGRES_DRIVER_CLASS_NAME = "org.postgresql.Driver";
+    /**
+     * GaussDB / openGauss driver class name.
+     * <p>
+     * Provided by {@code org.opengauss:opengauss-jdbc} (BSD-2-Clause). One driver covers both Huawei
+     * Cloud GaussDB commercial edition (RFC5802 SHA-256 / SM3 SASL) and openGauss open-source edition
+     * (SCRAM-SHA-256). Independent from {@link #POSTGRES_DRIVER_CLASS_NAME} to keep the PG plugin path
+     * untouched (zero PG regression).
+     */
+    public static final String GAUSSDB_DRIVER_CLASS_NAME = "org.opengauss.Driver";
     /**
      * SQL Server driver class name
      */
