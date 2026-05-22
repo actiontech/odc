@@ -26,6 +26,7 @@ import com.oceanbase.odc.core.session.ConnectionSessionConstants;
 import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.constant.ConnectType;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.sql.execute.SyncJdbcExecutor;
 import com.oceanbase.tools.dbbrowser.DBBrowser;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
@@ -76,8 +77,39 @@ public class DBSchemaAccessors {
                 .setProperties(properties)
                 .setDbVersion(dbVersion)
                 .setJdbcOperations(syncJdbcExecutor)
-                .setType(connectType.getDialectType().getDBBrowserDialectTypeName())
+                .setType(toDbBrowserType(connectType.getDialectType()))
                 .create();
+    }
+
+    /**
+     * Resolve the dialect string consumed by {@code db-browser:1.2.3}'s
+     * {@code AbstractDBBrowserFactory#create} switch table, which only recognises a fixed set of 10
+     * strings (ORACLE / MYSQL / DORIS / TIDB / OB_ORACLE / OB_MYSQL / ODP_SHARDING_OB_MYSQL /
+     * POSTGRESQL / SQL_SERVER / DM). The raw {@link DialectType#name()} for GAUSSDB is not in that set
+     * and triggers {@code IllegalStateException: "Not supported for the type, GAUSSDB"} at
+     * {@code AbstractDBBrowserFactory.java:54}.
+     * <p>
+     * GaussDB and openGauss both speak the PG wire protocol and the
+     * {@link com.oceanbase.tools.dbbrowser.schema.postgre.PostgresSchemaAccessor} only uses standard
+     * {@code information_schema} / {@code pg_catalog} queries that have been verified to work on both
+     * products (see gsclient probes on 122.9.71.90:8000 GaussDB commercial and 10.186.16.126:5432
+     * openGauss in docs/test/screenshots/task-004-fix-2/). We therefore route GAUSSDB to the POSTGRESQL
+     * branch here, keeping {@link DialectType#getDBBrowserDialectTypeName} itself unchanged (so plugin
+     * routing / extension registry / existing DialectTypeTest assertions are not affected).
+     * <p>
+     * Scope of this hack is the SchemaAccessor only because case 2.2.1 / 2.2.2 of Task-004-FIX-2
+     * unblocks tables view by routing this single factory; the other seven db-browser factory facades
+     * ({@code DBTableEditors}, {@code DBTableColumnEditors}, {@code DBTableIndexEditors},
+     * {@code DBTableConstraintEditors}, {@code DBObjectOperators}, {@code DBStatsAccessors},
+     * {@code DBTableService}) still pass GAUSSDB through and will surface as feature-scope
+     * UnsupportedOperationException at the time the corresponding REQ-3 / REQ-4 cases are exercised.
+     * Add identical routing helpers when those paths become blockers.
+     */
+    private static String toDbBrowserType(DialectType dialectType) {
+        if (dialectType == DialectType.GAUSSDB) {
+            return DialectType.POSTGRESQL.getDBBrowserDialectTypeName();
+        }
+        return dialectType.getDBBrowserDialectTypeName();
     }
 
 }

@@ -30,6 +30,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.oceanbase.odc.core.datasource.CloneableDataSourceFactory;
 import com.oceanbase.odc.core.datasource.ConnectionInitializer;
 import com.oceanbase.odc.core.datasource.DataSourceFactory;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.plugin.connect.api.JdbcUrlParser;
 import com.oceanbase.odc.plugin.connect.model.ConnectionPropertiesBuilder;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
@@ -76,14 +77,7 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
     }
 
     private void init(DruidDataSource dataSource) {
-        String validationQuery =
-                getConnectType().getDialectType().isMysql() || getConnectType().getDialectType().isDoris()
-                        || getConnectType().getDialectType().isTidb()
-                        || getConnectType().getDialectType().isPostgreSql()
-                        || getConnectType().getDialectType().isSqlServer()
-                                ? "select 1"
-                                : "select 1 from dual";
-        dataSource.setValidationQuery(validationQuery);
+        dataSource.setValidationQuery(resolveValidationQuery(getConnectType().getDialectType()));
         dataSource.setTestWhileIdle(true);
         dataSource.setTimeBetweenEvictionRunsMillis(30000);
         dataSource.setDefaultAutoCommit(true);
@@ -114,6 +108,29 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
         } catch (Exception e) {
             // eat exception
         }
+    }
+
+    /**
+     * Resolve the Druid pool {@code validationQuery} for a given dialect.
+     * <p>
+     * GAUSSDB (GaussDB commercial + openGauss) speaks the PG wire protocol. GaussDB 商业版
+     * ({@code 122.9.71.90:8000}) honours Oracle-style {@code "select 1 from dual"} as a vendor
+     * extension, but open-source openGauss ({@code 10.186.16.126:5432}) rejects it with
+     * {@code ERROR: relation "dual" does not exist on gaussdb (SQLSTATE 42P01)}, crashing the Druid
+     * pool's {@code CreateConnectionThread} and surfacing as {@code CannotGetJdbcConnectionException}
+     * on the very first BACKEND_DS_KEY lookup (e.g. {@code DBTableService.listTables}). Route every
+     * PG-family dialect through the portable {@code "select 1"}.
+     * <p>
+     * Package-private static so {@code DruidDataSourceFactoryTest} can exercise the matrix without
+     * instantiating the full {@link DruidDataSourceFactory} (which depends on the pf4j-loaded
+     * {@code ConnectionPluginUtil}, not available in offline unit tests).
+     */
+    static String resolveValidationQuery(DialectType dialectType) {
+        if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
+                || dialectType.isPgFamily() || dialectType.isSqlServer()) {
+            return "select 1";
+        }
+        return "select 1 from dual";
     }
 
     @Override
