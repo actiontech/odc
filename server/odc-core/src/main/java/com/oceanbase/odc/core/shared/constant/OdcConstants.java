@@ -79,6 +79,16 @@ public class OdcConstants {
      * collapse this back into POSTGRESQL_DEFAULT_SCHEMA.
      */
     public static final String GAUSSDB_DEFAULT_SCHEMA = "public";
+    /**
+     * Default database (a.k.a. JDBC catalog) for GaussDB-family instances (Huawei Cloud GaussDB
+     * commercial + openGauss). Both ship a bootstrap database named "postgres" out of the box, and
+     * DMS-managed data sources currently do not let the user pick a custom database name; the GaussDB
+     * connect plugin uses this constant as the catalog fallback when the upstream
+     * {@code ConnectionConfig.catalogName} is null/blank so that
+     * {@link com.oceanbase.odc.plugin.connect.gaussdb.GaussDBConnectionExtension#generateJdbcUrl} does
+     * not blow up with {@code catalog name can not be null} during schema sync.
+     */
+    public static final String GAUSSDB_DEFAULT_CATALOG = "postgres";
     public static final String SQL_SERVER_DEFAULT_SCHEMA = "master";
     public static final String ODC_BACK_URL_PARAM = "odc_back_url";
 

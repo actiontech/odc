@@ -83,4 +83,56 @@ public class GaussDBConnectionExtensionTest {
         String url = extension.generateJdbcUrl(props);
         Assert.assertEquals("jdbc:opengauss://example.com:5433/prod_db", url);
     }
+
+    /**
+     * Regression for Task-003-FIX: DMS-managed GaussDB / openGauss data sources do not surface a
+     * separate catalog input, so {@code ConnectionConfig.catalogName} is persisted as {@code NULL} and
+     * arrives blank in {@link JdbcUrlProperty#getCatalogName()}. The previous implementation called
+     * {@code Validate.notEmpty(catalogName, "catalog name can not be null")} and crashed the periodic
+     * schema-sync loop, completely blocking the ODC workbench main path. The plugin must fall back to
+     * the GaussDB-family bootstrap database ({@code postgres}) rather than throw — see CR-1, REQ-1 ~
+     * REQ-6 downstream blockage.
+     */
+    @Test
+    public void testGenerateJdbcUrl_null_catalog_falls_back_to_postgres_database() {
+        JdbcUrlProperty props = new JdbcUrlProperty(
+                "h", 5432, null, null, null, null, null);
+        String url = extension.generateJdbcUrl(props);
+        Assert.assertEquals("jdbc:opengauss://h:5432/postgres", url);
+    }
+
+    @Test
+    public void testGenerateJdbcUrl_blank_catalog_falls_back_to_postgres_database() {
+        JdbcUrlProperty props = new JdbcUrlProperty(
+                "h", 5432, null, null, null, null, "");
+        String url = extension.generateJdbcUrl(props);
+        Assert.assertEquals("jdbc:opengauss://h:5432/postgres", url);
+    }
+
+    @Test
+    public void testGenerateJdbcUrl_null_catalog_with_schema_keeps_postgres_database_and_appends_schema() {
+        // Schema "public" must NOT be promoted to the catalog position — that would
+        // resolve to a non-existent database. Catalog falls back to "postgres", schema
+        // is still appended as ?currentSchema=public.
+        JdbcUrlProperty props = new JdbcUrlProperty(
+                "h", 5432, "public", null, null, null, null);
+        String url = extension.generateJdbcUrl(props);
+        Assert.assertEquals("jdbc:opengauss://h:5432/postgres?currentSchema=public", url);
+    }
+
+    @Test
+    public void testGenerateJdbcUrl_explicit_catalog_postgres_is_preserved() {
+        JdbcUrlProperty props = new JdbcUrlProperty(
+                "h", 5432, "public", null, null, null, "postgres");
+        String url = extension.generateJdbcUrl(props);
+        Assert.assertEquals("jdbc:opengauss://h:5432/postgres?currentSchema=public", url);
+    }
+
+    @Test
+    public void testGenerateJdbcUrl_explicit_custom_catalog_is_preserved() {
+        JdbcUrlProperty props = new JdbcUrlProperty(
+                "h", 5432, "myschema", null, null, null, "my_business_db");
+        String url = extension.generateJdbcUrl(props);
+        Assert.assertEquals("jdbc:opengauss://h:5432/my_business_db?currentSchema=myschema", url);
+    }
 }

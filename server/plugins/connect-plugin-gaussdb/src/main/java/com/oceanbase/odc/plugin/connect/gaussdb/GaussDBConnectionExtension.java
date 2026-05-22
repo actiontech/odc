@@ -54,9 +54,31 @@ public class GaussDBConnectionExtension extends OBMySQLConnectionExtension {
         Validate.notEmpty(host, "host can not be null");
         Integer port = properties.getPort();
         Validate.notNull(port, "port can not be null");
-        String catalogName = properties.getCatalogName();
-        Validate.notEmpty(catalogName, "catalog name can not be null");
         String schema = properties.getDefaultSchema();
+        /*
+         * Resolve the JDBC catalog (a.k.a. database name in PG/GaussDB).
+         *
+         * Upstream {@link com.oceanbase.odc.service.session.factory.OBConsoleDataSourceFactory} forwards
+         * {@code ConnectionConfig.getCatalogName()} unchanged, which is sourced from the dedicated
+         * PG-mode-only {@code connect_connection.catalog_name} column. DMS-managed GaussDB / openGauss data
+         * sources surface a single "default schema" field (no separate catalog input), so that column is
+         * persisted as {@code NULL} and the upstream {@link JdbcUrlProperty#getCatalogName()} arrives
+         * blank. Without a fallback, the previous {@code Validate.notEmpty(catalogName, ...)} blew up the
+         * periodic schema-sync loop with {@code Sync database failed: catalog name can not be null} for
+         * every GaussDB-family data source, completely blocking the ODC workbench main path (CR-1, REQ-1 ~
+         * REQ-6 downstream).
+         *
+         * Resolution order: 1. explicit {@code catalogName} when the operator supplied one; 2. {@link
+         * OdcConstants#GAUSSDB_DEFAULT_CATALOG} ({@code postgres}) as the bootstrap database that ships
+         * with every GaussDB-family instance out of the box. We must NOT fall back to {@code defaultSchema}
+         * here, because schema (e.g. {@code public}) is a logical namespace inside a database, not a
+         * database itself — routing the JDBC URL to {@code /public} would fail with {@code database
+         * "public" does not exist}.
+         */
+        String catalogName = properties.getCatalogName();
+        if (StringUtils.isBlank(catalogName)) {
+            catalogName = OdcConstants.GAUSSDB_DEFAULT_CATALOG;
+        }
 
         StringBuilder jdbcUrl = new StringBuilder();
         jdbcUrl.append("jdbc:opengauss://").append(host).append(":").append(port).append("/").append(catalogName);
