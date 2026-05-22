@@ -26,9 +26,14 @@ import org.bson.conversions.Bson;
 public class MongoCommandParser {
     private static final Pattern COMMAND =
             Pattern.compile("^db(?:\\.([a-zA-Z0-9_\\-]+))?\\.([a-zA-Z]+)\\((.*)\\)\\s*;?$", Pattern.DOTALL);
+    private static final Pattern KEEP_ALIVE =
+            Pattern.compile("^select\\s+1(?:\\s+from\\s+dual)?\\s*;?$", Pattern.CASE_INSENSITIVE);
 
     public MongoParsedCommand parse(String sql) {
-        String normalized = sql == null ? "" : sql.trim();
+        String normalized = normalize(sql);
+        if (KEEP_ALIVE.matcher(normalized).matches()) {
+            return MongoParsedCommand.runCommand(new Document("ping", 1));
+        }
         Matcher matcher = COMMAND.matcher(normalized);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Unsupported MongoDB command");
@@ -36,7 +41,7 @@ public class MongoCommandParser {
         String collection = matcher.group(1);
         String method = matcher.group(2);
         String args = matcher.group(3) == null ? "" : matcher.group(3).trim();
-        if ("runCommand".equals(method)) {
+        if ("runCommand".equals(method) || "adminCommand".equals(method)) {
             return MongoParsedCommand.runCommand(parseDocument(args));
         }
         if (collection == null) {
@@ -111,5 +116,43 @@ public class MongoCommandParser {
         String json = value.replace('\'', '"');
         json = json.replaceAll("([\\{,]\\s*)([A-Za-z_\\$][A-Za-z0-9_\\$]*)\\s*:", "$1\"$2\":");
         return json;
+    }
+
+    private String normalize(String sql) {
+        String normalized = sql == null ? "" : sql.trim();
+        while (normalized.startsWith("/*")) {
+            int end = normalized.indexOf("*/");
+            if (end < 0) {
+                break;
+            }
+            normalized = normalized.substring(end + 2).trim();
+        }
+        while (normalized.startsWith("--") || normalized.startsWith("#")) {
+            int end = normalized.indexOf('\n');
+            if (end < 0) {
+                return "";
+            }
+            normalized = normalized.substring(end + 1).trim();
+        }
+        while (normalized.endsWith("*/")) {
+            int begin = normalized.lastIndexOf("/*");
+            if (begin < 0) {
+                break;
+            }
+            normalized = normalized.substring(0, begin).trim();
+        }
+        while (normalized.contains("\n")) {
+            int lineComment = Math.max(normalized.lastIndexOf("--"), normalized.lastIndexOf("#"));
+            if (lineComment < 0) {
+                break;
+            }
+            int nextLine = normalized.indexOf('\n', lineComment);
+            if (nextLine >= 0 && nextLine == normalized.length() - 1) {
+                normalized = normalized.substring(0, lineComment).trim();
+                continue;
+            }
+            break;
+        }
+        return normalized;
     }
 }

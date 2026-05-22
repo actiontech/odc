@@ -250,7 +250,9 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
     }
 
     private String getKeepAliveSql(DialectType dialectType) {
-        if (dialectType.isOracle()) {
+        if (dialectType.isMongoDB()) {
+            return "db.runCommand({ ping: 1 })";
+        } else if (dialectType.isOracle()) {
             // Oracle and OceanBase Oracle support DUAL table
             return "SELECT 1 FROM DUAL";
         } else {

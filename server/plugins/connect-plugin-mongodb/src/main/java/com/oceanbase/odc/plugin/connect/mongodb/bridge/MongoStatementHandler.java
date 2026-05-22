@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.bson.Document;
 
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.result.DeleteResult;
@@ -32,6 +33,9 @@ import com.mongodb.client.result.InsertManyResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 class MongoStatementHandler implements InvocationHandler {
     private final Connection connection;
     private final MongoSessionContext context;
@@ -40,6 +44,7 @@ class MongoStatementHandler implements InvocationHandler {
     private ResultSet currentResultSet;
     private int updateCount = -1;
     private int queryTimeout;
+    private int maxRows;
 
     MongoStatementHandler(Connection connection, MongoSessionContext context) {
         this.connection = connection;
@@ -77,6 +82,13 @@ class MongoStatementHandler implements InvocationHandler {
         if ("getQueryTimeout".equals(name)) {
             return queryTimeout;
         }
+        if ("setMaxRows".equals(name)) {
+            maxRows = (Integer) args[0];
+            return null;
+        }
+        if ("getMaxRows".equals(name)) {
+            return maxRows;
+        }
         if ("getConnection".equals(name)) {
             return connection;
         }
@@ -100,7 +112,15 @@ class MongoStatementHandler implements InvocationHandler {
     }
 
     private boolean execute(String sql) throws SQLException {
-        MongoParsedCommand command = parser.parse(sql);
+        MongoParsedCommand command;
+        try {
+            command = parser.parse(sql);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Mongo statement handler failed to parse sql, rawSql={}", sql, ex);
+            throw ex;
+        }
+        log.info("Mongo statement handler executing, sql={}, type={}, collection={}",
+                sql, command.getType(), command.getCollection());
         switch (command.getType()) {
             case FIND:
                 return setQueryResult(find(command));
@@ -138,7 +158,11 @@ class MongoStatementHandler implements InvocationHandler {
     private MongoTabularResult find(MongoParsedCommand command) {
         List<Document> rows = new ArrayList<>();
         MongoCollection<Document> collection = context.getDatabase().getCollection(command.getCollection());
-        try (MongoCursor<Document> cursor = collection.find(command.getDocument()).iterator()) {
+        FindIterable<Document> iterable = collection.find(command.getDocument());
+        if (maxRows > 0) {
+            iterable = iterable.limit(maxRows);
+        }
+        try (MongoCursor<Document> cursor = iterable.iterator()) {
             while (cursor.hasNext()) {
                 rows.add(cursor.next());
             }
@@ -149,9 +173,14 @@ class MongoStatementHandler implements InvocationHandler {
     private MongoTabularResult aggregate(MongoParsedCommand command) {
         List<Document> rows = new ArrayList<>();
         MongoCollection<Document> collection = context.getDatabase().getCollection(command.getCollection());
-        try (MongoCursor<Document> cursor = collection.aggregate(command.getPipeline()).iterator()) {
-            while (cursor.hasNext()) {
-                rows.add(cursor.next());
+        List<org.bson.conversions.Bson> pipeline = new ArrayList<>(command.getPipeline());
+        if (maxRows > 0) {
+            pipeline.add(new Document("$limit", maxRows));
+        }
+        MongoCursor<Document> cursor = collection.aggregate(pipeline).iterator();
+        try (MongoCursor<Document> closable = cursor) {
+            while (closable.hasNext()) {
+                rows.add(closable.next());
             }
         }
         return resultMapper.mapDocuments(rows);

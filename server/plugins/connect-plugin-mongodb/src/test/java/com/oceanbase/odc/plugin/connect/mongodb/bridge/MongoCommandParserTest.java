@@ -33,4 +33,25 @@ public class MongoCommandParserTest {
         Assert.assertEquals(MongoParsedCommand.Type.RUN_COMMAND, command.getType());
         Assert.assertEquals(1, command.getDocument().getInteger("ping").intValue());
     }
+
+    @Test
+    public void parseKeepAliveSelect_returnsPingDocument() {
+        MongoParsedCommand command = new MongoCommandParser().parse("SELECT 1");
+        Assert.assertEquals(MongoParsedCommand.Type.RUN_COMMAND, command.getType());
+        Assert.assertEquals(1, command.getDocument().getInteger("ping").intValue());
+    }
+
+    @Test
+    public void parseCommentPrefixedRunCommand_returnsPingDocument() {
+        MongoParsedCommand command = new MongoCommandParser().parse("/* keepalive */ db.runCommand({ ping: 1 });");
+        Assert.assertEquals(MongoParsedCommand.Type.RUN_COMMAND, command.getType());
+        Assert.assertEquals(1, command.getDocument().getInteger("ping").intValue());
+    }
+
+    @Test
+    public void parseCommentSuffixedRunCommand_returnsPingDocument() {
+        MongoParsedCommand command = new MongoCommandParser().parse("db.runCommand({ ping: 1 }); /* keepalive */");
+        Assert.assertEquals(MongoParsedCommand.Type.RUN_COMMAND, command.getType());
+        Assert.assertEquals(1, command.getDocument().getInteger("ping").intValue());
+    }
 }
