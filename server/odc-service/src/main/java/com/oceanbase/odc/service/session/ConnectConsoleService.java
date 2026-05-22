@@ -582,7 +582,7 @@ public class ConnectConsoleService {
         SqlExecuteResult result = new SqlExecuteResult(generalResult);
         TraceWatch watch = generalResult.getSqlTuple().getSqlWatch();
         OdcTable resultTable = null;
-        DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);
+        DBSchemaAccessor schemaAccessor = null;
         try (TraceStage s = watch.start(SqlExecuteStages.INIT_SQL_TYPE)) {
             result.initSqlType(connectionSession.getDialectType());
         } catch (Exception e) {
@@ -601,7 +601,10 @@ public class ConnectConsoleService {
         }
         if (Boolean.TRUE.equals(cxt.get(SHOW_TABLE_COLUMN_INFO))) {
             try (TraceStage s = watch.start(SqlExecuteStages.INIT_COLUMN_INFO)) {
-                result.initColumnInfo(connectionSession, resultTable, schemaAccessor);
+                if (connectionSession.getDialectType() != DialectType.MONGODB) {
+                    schemaAccessor = DBSchemaAccessors.create(connectionSession);
+                    result.initColumnInfo(connectionSession, resultTable, schemaAccessor);
+                }
             } catch (Exception e) {
                 log.warn("Failed to init column comment, reason={}", ExceptionUtils.getSimpleReason(e));
             }
