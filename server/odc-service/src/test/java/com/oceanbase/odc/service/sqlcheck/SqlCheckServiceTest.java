@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,28 +75,29 @@ public class SqlCheckServiceTest {
         // invoked for GAUSSDB, otherwise we would risk loading the PG rule pack
         // and producing false-positive blocks for valid GaussDB DDL.
         try (MockedStatic<SqlCheckRules> ms = mockStatic(SqlCheckRules.class)) {
-            List<com.oceanbase.odc.service.sqlcheck.api.SqlCheckRule> result =
+            List<SqlCheckRule> result =
                     service.getRules(oneEnabledRule(), dbVersionSupplier, DialectType.GAUSSDB, jdbc);
 
             Assert.assertNotNull(result);
             Assert.assertTrue("GAUSSDB must yield empty rule list, got: " + result, result.isEmpty());
-            ms.verify(() -> SqlCheckRules.getAllFactories(any(), any()), never());
+            ms.verify(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)),
+                    never());
         }
     }
 
     @Test
     public void testSqlCheck_POSTGRESQL_dialect_unchanged() {
-        // PG 0-regression: behavior must match the legacy code path - the
-        // factory lookup is still invoked once and the result list is returned
-        // verbatim. We stub the factory candidates to an empty list so the
-        // downstream createByRule path is exercised but yields nothing.
+        // PG 0-regression: the factory lookup is still invoked exactly once and
+        // the resulting list is propagated. We stub getAllFactories to an empty
+        // list so the createByRule path below is exercised but the IllegalArg
+        // branch nulls each rule, leaving an empty result. The key assertion is
+        // that getAllFactories(POSTGRESQL, jdbc) IS invoked (whereas GAUSSDB
+        // must skip it entirely).
         try (MockedStatic<SqlCheckRules> ms = mockStatic(SqlCheckRules.class)) {
-            ms.when(() -> SqlCheckRules.getAllFactories(any(), any()))
+            ms.when(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)))
                     .thenReturn(Collections.emptyList());
-            ms.when(() -> SqlCheckRules.createByRule(any(), any(), any(), any()))
-                    .thenReturn(null);
 
-            List<com.oceanbase.odc.service.sqlcheck.api.SqlCheckRule> result =
+            List<SqlCheckRule> result =
                     service.getRules(oneEnabledRule(), dbVersionSupplier, DialectType.POSTGRESQL, jdbc);
 
             Assert.assertNotNull(result);
@@ -110,12 +110,10 @@ public class SqlCheckServiceTest {
         // MYSQL 0-regression: same expectation as PG; factory lookup is hit
         // and the GAUSSDB short-circuit must NOT activate for MYSQL.
         try (MockedStatic<SqlCheckRules> ms = mockStatic(SqlCheckRules.class)) {
-            ms.when(() -> SqlCheckRules.getAllFactories(any(), any()))
+            ms.when(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)))
                     .thenReturn(Collections.emptyList());
-            ms.when(() -> SqlCheckRules.createByRule(any(), any(), any(), any()))
-                    .thenReturn(null);
 
-            List<com.oceanbase.odc.service.sqlcheck.api.SqlCheckRule> result =
+            List<SqlCheckRule> result =
                     service.getRules(oneEnabledRule(), dbVersionSupplier, DialectType.MYSQL, jdbc);
 
             Assert.assertNotNull(result);
@@ -129,12 +127,13 @@ public class SqlCheckServiceTest {
         // must execute BEFORE the GAUSSDB short-circuit, matching design.md
         // §3.2.4 ordering.
         try (MockedStatic<SqlCheckRules> ms = mockStatic(SqlCheckRules.class)) {
-            List<com.oceanbase.odc.service.sqlcheck.api.SqlCheckRule> result =
+            List<SqlCheckRule> result =
                     service.getRules(Arrays.asList(), dbVersionSupplier, DialectType.MYSQL, jdbc);
 
             Assert.assertNotNull(result);
             Assert.assertTrue(result.isEmpty());
-            ms.verify(() -> SqlCheckRules.getAllFactories(any(), any()), never());
+            ms.verify(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)),
+                    never());
         }
     }
 
@@ -152,11 +151,11 @@ public class SqlCheckServiceTest {
         // generic fallback for other dialects is deferred to the fix-phase
         // follow-up (tracked under CR-5a in docs/dev/compat_risks.md).
         try (MockedStatic<SqlCheckRules> ms = mockStatic(SqlCheckRules.class)) {
-            ms.when(() -> SqlCheckRules.getAllFactories(any(), any()))
+            ms.when(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)))
                     .thenThrow(new RuntimeException("sqle plugin not loaded"));
 
             // GaussDB path must remain insulated from sqle plugin failures.
-            List<com.oceanbase.odc.service.sqlcheck.api.SqlCheckRule> result =
+            List<SqlCheckRule> result =
                     service.getRules(oneEnabledRule(), dbVersionSupplier, DialectType.GAUSSDB, jdbc);
 
             Assert.assertNotNull(result);
@@ -164,7 +163,8 @@ public class SqlCheckServiceTest {
                     + "SQLE rule factory is broken", result.isEmpty());
             // And the factory was never called, which is what makes GaussDB
             // resilient against the unloaded plugin.
-            ms.verify(() -> SqlCheckRules.getAllFactories(any(), any()), never());
+            ms.verify(() -> SqlCheckRules.getAllFactories(any(DialectType.class), any(JdbcOperations.class)),
+                    never());
         }
     }
 }

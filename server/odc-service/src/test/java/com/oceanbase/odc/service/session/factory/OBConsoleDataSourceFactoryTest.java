@@ -18,6 +18,7 @@ package com.oceanbase.odc.service.session.factory;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.oceanbase.odc.core.shared.constant.ConnectType;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 
@@ -32,7 +33,8 @@ public class OBConsoleDataSourceFactoryTest {
 
     private ConnectionConfig newConfig(DialectType dialectType, String defaultSchema) {
         ConnectionConfig config = new ConnectionConfig();
-        config.setDialectType(dialectType);
+        // ConnectionConfig#getDialectType() is derived from #type; populate via setType(ConnectType).
+        config.setType(ConnectType.from(dialectType));
         config.setDefaultSchema(defaultSchema);
         return config;
     }
