@@ -1,0 +1,3 @@
+com.oceanbase.odc.plugin.connect.gaussdb.GaussDBConnectionExtension
+com.oceanbase.odc.plugin.connect.gaussdb.GaussDBInformationExtension
+com.oceanbase.odc.plugin.connect.gaussdb.GaussDBSessionExtension

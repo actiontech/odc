@@ -1,0 +1,2 @@
+com.oceanbase.odc.plugin.schema.gaussdb.GaussDBTableExtension
+com.oceanbase.odc.plugin.schema.gaussdb.GaussDBDatabaseExtension

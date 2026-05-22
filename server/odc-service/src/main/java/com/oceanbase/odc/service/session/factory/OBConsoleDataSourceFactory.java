@@ -333,6 +333,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case TIDB:
             case ODP_SHARDING_OB_MYSQL:
             case POSTGRESQL:
+            case GAUSSDB:
             case SQL_SERVER:
                 return schema;
             default:
@@ -361,6 +362,13 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                 // Return null to omit the database from the JDBC URL, which is valid for MySQL.
                 return null;
             case POSTGRESQL:
+            case GAUSSDB:
+                // GaussDB shares the PG-protocol default schema ("public"). Use
+                // POSTGRESQL_DEFAULT_SCHEMA here (rather than the dedicated
+                // GAUSSDB_DEFAULT_SCHEMA constant) so the existing PG case body
+                // is unchanged - both constants resolve to "public" today, and
+                // the GAUSSDB constant is kept separate only for future
+                // differentiation (see OdcConstants javadoc).
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }

@@ -21,6 +21,7 @@
         <module>connect-plugin-tidb</module>
         <module>connect-plugin-oracle</module>
         <module>connect-plugin-postgres</module>
+        <module>connect-plugin-gaussdb</module>
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
         <module>schema-plugin-api</module>
@@ -31,6 +32,7 @@
         <module>schema-plugin-tidb</module>
         <module>schema-plugin-oracle</module>
         <module>schema-plugin-postgres</module>
+        <module>schema-plugin-gaussdb</module>
         <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-dm</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
@@ -110,6 +112,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-gaussdb</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>connect-plugin-sqlserver</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -177,6 +185,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-postgres</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-gaussdb</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

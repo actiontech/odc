@@ -203,6 +203,16 @@ public class SqlCheckService {
         if (CollectionUtils.isEmpty(rules)) {
             return Collections.emptyList();
         }
+        // GaussDB is intentionally skipped from PreCheck rule evaluation in this
+        // release: there is no GaussDB-aware sqle plugin yet, and reusing the
+        // POSTGRESQL rule pack would generate false-positive blocks for valid
+        // GaussDB DDL (e.g. distributed table syntax). See compat_risks.md CR-5b
+        // and design.md §3.2.4: PreCheck degrades to "no rules" so workbench
+        // execution is never blocked (EARS-4.6 / EARS-6.3). PostgreSQL / MySQL /
+        // Oracle paths below are unchanged (PG 0 regression contract).
+        if (dialectType == DialectType.GAUSSDB) {
+            return Collections.emptyList();
+        }
         List<SqlCheckRuleFactory> candidates = SqlCheckRules.getAllFactories(dialectType, jdbc);
         return rules.stream().filter(rule -> {
             RuleMetadata metadata = rule.getMetadata();
