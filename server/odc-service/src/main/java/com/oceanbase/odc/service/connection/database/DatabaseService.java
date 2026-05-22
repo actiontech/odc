@@ -1127,6 +1127,14 @@ public class DatabaseService {
         }
         Map<Long, Project> projectId2Project = projectService.mapByIdIn(entities.stream()
                 .map(DatabaseEntity::getProjectId).collect(Collectors.toSet()));
+        // Task-004-FIX L2: detail API populates project.currentUserResourceRoles via
+        // projectService.detail(...), but the list path goes through
+        // projectService.mapByIdIn(...) which returns bare projects. Front-ends that
+        // gate on currentUserResourceRoles (e.g. database admin list filters) would
+        // therefore treat every list-returned database as if the user had no role.
+        // Reuse the same source of truth that ProjectService.entityToModel uses so
+        // list and detail APIs stay byte-for-byte aligned for this field.
+        fillCurrentUserResourceRoles(projectId2Project, projectService.getProjectId2ResourceRoleNames());
         Map<Long, List<ConnectionConfig>> connectionId2Connections = connectionService.mapByIdIn(entities.stream()
                 .map(DatabaseEntity::getConnectionId).collect(Collectors.toSet()));
         Map<Long, Set<DatabasePermissionType>> databaseId2PermittedActions = new HashMap<>();
@@ -1180,6 +1188,34 @@ public class DatabaseService {
                 database.setOwners(owners);
             }
             return database;
+        });
+    }
+
+    /**
+     * Populate {@link Project#setCurrentUserResourceRoles(Set)} for the value collection of
+     * {@code projectId2Project} so that the list / detail APIs return the same
+     * {@code project.currentUserResourceRoles} payload (Task-004-FIX L2).
+     *
+     * <p>
+     * Package-private + static on purpose: the list path goes through
+     * {@code projectService.mapByIdIn(...)} which returns bare Project DTOs without the resource-role
+     * enrichment that {@code projectService.detail(...)} applies. Extracted as a pure function so unit
+     * tests can pin the behavior without spinning up the Spring context.
+     */
+    static void fillCurrentUserResourceRoles(Map<Long, Project> projectId2Project,
+            Map<Long, Set<ResourceRoleName>> projectId2ResourceRoleNames) {
+        if (projectId2Project == null || projectId2Project.isEmpty()) {
+            return;
+        }
+        Map<Long, Set<ResourceRoleName>> roleNames = projectId2ResourceRoleNames == null
+                ? Collections.emptyMap()
+                : projectId2ResourceRoleNames;
+        projectId2Project.values().forEach(p -> {
+            if (p == null || p.getId() == null) {
+                return;
+            }
+            p.setCurrentUserResourceRoles(
+                    roleNames.getOrDefault(p.getId(), Collections.emptySet()));
         });
     }
 
