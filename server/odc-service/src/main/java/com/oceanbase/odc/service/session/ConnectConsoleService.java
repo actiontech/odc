@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -364,6 +365,20 @@ public class ConnectConsoleService {
         try {
             List<JdbcGeneralResult> resultList =
                     context.getMoreSqlExecutionResults(gettingResultTimeoutSeconds * 1000L);
+            if (resultList.isEmpty() && context.isFinished() && context.getFuture() != null) {
+                try {
+                    resultList = context.getFuture().get();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting async execution result", ex);
+                } catch (ExecutionException ex) {
+                    Throwable cause = ex.getCause();
+                    if (cause instanceof RuntimeException) {
+                        throw (RuntimeException) cause;
+                    }
+                    throw new IllegalStateException("Async execution failed", cause == null ? ex : cause);
+                }
+            }
             List<SqlExecuteResult> results = resultList.stream().map(jdbcGeneralResult -> {
                 SqlExecuteResult result = generateResult(connectionSession, jdbcGeneralResult, context.getContextMap());
                 try (TraceStage stage = result.getSqlTuple().getSqlWatch().start(SqlExecuteStages.SQL_AFTER_CHECK)) {

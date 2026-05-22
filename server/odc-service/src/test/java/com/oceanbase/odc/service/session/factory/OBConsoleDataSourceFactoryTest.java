@@ -15,12 +15,17 @@
  */
 package com.oceanbase.odc.service.session.factory;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.oceanbase.odc.core.shared.constant.ConnectType;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
+
+import sun.misc.Unsafe;
 
 /**
  * Unit tests for {@link OBConsoleDataSourceFactory#getSchema(String, DialectType)} and
@@ -98,5 +103,20 @@ public class OBConsoleDataSourceFactoryTest {
         // Defence in depth - the Oracle branch is unaffected.
         Assert.assertEquals("\"public\"",
                 OBConsoleDataSourceFactory.getSchema("public", DialectType.OB_ORACLE));
+    }
+
+    @Test
+    public void getKeepAliveSql_mongodb_returnsPingCommand() throws Exception {
+        Method method = OBConsoleDataSourceFactory.class.getDeclaredMethod("getKeepAliveSql", DialectType.class);
+        method.setAccessible(true);
+
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        OBConsoleDataSourceFactory factory = (OBConsoleDataSourceFactory) unsafe.allocateInstance(
+                OBConsoleDataSourceFactory.class);
+        String keepAliveSql = (String) method.invoke(factory, DialectType.MONGODB);
+
+        Assert.assertEquals("db.runCommand({ ping: 1 })", keepAliveSql);
     }
 }
