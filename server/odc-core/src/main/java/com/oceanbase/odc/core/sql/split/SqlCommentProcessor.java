@@ -174,6 +174,10 @@ public class SqlCommentProcessor {
                     addLineOracle(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isTidb()) {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isPgFamily()) {
+                    // PostgreSQL / GaussDB / openGauss use ';' as standard statement separator
+                    // and do not support MySQL-style DELIMITER. Reuse MySQL line processing.
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
                 }

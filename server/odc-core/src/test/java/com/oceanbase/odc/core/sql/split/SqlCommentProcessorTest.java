@@ -160,6 +160,46 @@ public class SqlCommentProcessorTest {
         Assert.assertEquals(sqls, actual);
     }
 
+    @Test
+    public void splitGaussDBSql_ReturnsList() {
+        // P4 regression: SqlCommentProcessor.split must support PG family (POSTGRESQL + GAUSSDB),
+        // otherwise SQL Console on GaussDB / openGauss is blocked with "dialect type is illegal".
+        // See episodic task_005_006_odc_sqlcommentprocessor_p4_pg_family.
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.GAUSSDB, false, false);
+        StringBuffer buffer = new StringBuffer();
+        String script = "SELECT version();\nSELECT 1;";
+        List<OffsetString> sqls = processor.split(buffer, script);
+        Assert.assertEquals(2, sqls.size());
+        Assert.assertEquals("SELECT version()", sqls.get(0).getStr());
+        Assert.assertEquals("SELECT 1", sqls.get(1).getStr());
+    }
+
+    @Test
+    public void splitPostgreSqlSql_ReturnsList() {
+        // P4 regression: same as splitGaussDBSql_ReturnsList but for the POSTGRESQL dialect.
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.POSTGRESQL, false, false);
+        StringBuffer buffer = new StringBuffer();
+        String script = "SELECT NOW();\nSELECT * FROM pg_stat_activity LIMIT 1;";
+        List<OffsetString> sqls = processor.split(buffer, script);
+        Assert.assertEquals(2, sqls.size());
+        Assert.assertEquals("SELECT NOW()", sqls.get(0).getStr());
+        Assert.assertEquals("SELECT * FROM pg_stat_activity LIMIT 1", sqls.get(1).getStr());
+    }
+
+    @Test
+    public void splitOpenGaussSql_SingleStatement_ReturnsOneItem() {
+        // openGauss reports dialect=GAUSSDB at the ODC layer; verify single-statement script
+        // still splits cleanly without DELIMITER syntax.
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.GAUSSDB, false, false);
+        StringBuffer buffer = new StringBuffer();
+        String script = "INSERT INTO test_odc_opengauss.t_complex (jsonb_col) VALUES ('{\"x\":1}'::jsonb);";
+        List<OffsetString> sqls = processor.split(buffer, script);
+        Assert.assertEquals(1, sqls.size());
+        Assert.assertEquals(
+                "INSERT INTO test_odc_opengauss.t_complex (jsonb_col) VALUES ('{\"x\":1}'::jsonb)",
+                sqls.get(0).getStr());
+    }
+
     private String getSqlFromFile(String fileName) throws IOException {
         InputStream input = this.getClass().getClassLoader().getResourceAsStream(fileName);
         assert input != null;
