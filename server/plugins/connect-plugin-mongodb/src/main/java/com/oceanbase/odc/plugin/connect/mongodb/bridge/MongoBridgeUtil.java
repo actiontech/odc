@@ -73,6 +73,8 @@ public final class MongoBridgeUtil {
             metaData.setColumnName(columnIndex, result.getColumns().get(i));
             metaData.setColumnLabel(columnIndex, result.getColumns().get(i));
             metaData.setColumnType(columnIndex, Types.VARCHAR);
+            // ODC frontend expects columnTypeName when rendering result sets.
+            metaData.setColumnTypeName(columnIndex, "VARCHAR");
         }
         rowSet.setMetaData(metaData);
         for (List<Object> row : result.getRows()) {

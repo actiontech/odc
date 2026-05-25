@@ -17,6 +17,7 @@ package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,7 +79,7 @@ public class MongoCommandParser {
         List<Object> values = Document.parse("{\"pipeline\":" + json + "}").getList("pipeline", Object.class);
         List<Bson> pipeline = new ArrayList<>();
         for (Object value : values) {
-            pipeline.add(Document.parse(value.toString()));
+            pipeline.add(asDocument(value));
         }
         return pipeline;
     }
@@ -88,9 +89,24 @@ public class MongoCommandParser {
         List<Object> values = Document.parse("{\"items\":" + json + "}").getList("items", Object.class);
         List<Document> documents = new ArrayList<>();
         for (Object value : values) {
-            documents.add(Document.parse(value.toString()));
+            documents.add(asDocument(value));
         }
         return documents;
+    }
+
+    private Document asDocument(Object value) {
+        if (value == null) {
+            return new Document();
+        }
+        if (value instanceof Document) {
+            return (Document) value;
+        }
+        if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) value;
+            return new Document(map);
+        }
+        return Document.parse(String.valueOf(value));
     }
 
     private List<String> splitTopLevelArgs(String args) {
