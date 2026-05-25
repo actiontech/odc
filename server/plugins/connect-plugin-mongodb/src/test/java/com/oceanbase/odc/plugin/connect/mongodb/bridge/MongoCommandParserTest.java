@@ -20,6 +20,18 @@ import org.junit.Test;
 
 public class MongoCommandParserTest {
     @Test
+    public void parseInsertMany_parsesDocumentArray() {
+        MongoParsedCommand command = new MongoCommandParser().parse(
+                "db.test_items.insertMany([ { _id: 1, name: \"alpha\", qty: 3, status: \"active\" }, "
+                        + "{ _id: 2, name: \"beta\", qty: 5, status: \"active\" } ])");
+        Assert.assertEquals(MongoParsedCommand.Type.INSERT_MANY, command.getType());
+        Assert.assertEquals("test_items", command.getCollection());
+        Assert.assertEquals(2, command.getDocuments().size());
+        Assert.assertEquals("alpha", command.getDocuments().get(0).getString("name"));
+        Assert.assertEquals(Integer.valueOf(5), command.getDocuments().get(1).getInteger("qty"));
+    }
+
+    @Test
     public void parseFind_returnsCollectionAndType() {
         MongoParsedCommand command = new MongoCommandParser().parse("db.users.find({name:'alice'})");
         Assert.assertEquals(MongoParsedCommand.Type.FIND, command.getType());

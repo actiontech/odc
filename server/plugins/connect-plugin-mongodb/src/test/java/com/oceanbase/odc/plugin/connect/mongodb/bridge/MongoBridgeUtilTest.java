@@ -19,13 +19,28 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
+import java.util.Collections;
 
+import org.bson.Document;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class MongoBridgeUtilTest {
+
+    @Test
+    public void toResultSet_exposesColumnTypeNameForFrontend() throws Exception {
+        MongoTabularResult tabularResult = new MongoResultMapper().mapDocuments(
+                Collections.singletonList(new Document("_id", 1).append("name", "alpha")));
+        ResultSet resultSet = MongoBridgeUtil.toResultSet(tabularResult);
+
+        Assert.assertTrue(resultSet.next());
+        Assert.assertEquals(Types.VARCHAR, resultSet.getMetaData().getColumnType(1));
+        Assert.assertEquals("VARCHAR", resultSet.getMetaData().getColumnTypeName(1));
+    }
 
     @Test
     public void connectionProxy_supportsObjectMethods() throws Exception {
