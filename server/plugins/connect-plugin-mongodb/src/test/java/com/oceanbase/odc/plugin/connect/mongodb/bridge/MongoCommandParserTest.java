@@ -15,6 +15,10 @@
  */
 package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
+import java.time.Instant;
+import java.util.Date;
+
+import org.bson.Document;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -65,5 +69,34 @@ public class MongoCommandParserTest {
         MongoParsedCommand command = new MongoCommandParser().parse("db.runCommand({ ping: 1 }); /* keepalive */");
         Assert.assertEquals(MongoParsedCommand.Type.RUN_COMMAND, command.getType());
         Assert.assertEquals(1, command.getDocument().getInteger("ping").intValue());
+    }
+
+    @Test
+    public void parseInsertOne_newDateWithoutArgs_parsesCurrentDate() {
+        MongoParsedCommand command = new MongoCommandParser().parse(
+                "db.agent_sessions.insertOne({ sessionId: \"s1\", createdAt: new Date() })");
+        Assert.assertEquals(MongoParsedCommand.Type.INSERT_ONE, command.getType());
+        Assert.assertTrue(command.getDocument().get("createdAt") instanceof Date);
+    }
+
+    @Test
+    public void parseInsertOne_newDateWithExpression_parsesFutureDate() {
+        long offsetMillis = 30L * 24 * 3600 * 1000;
+        MongoParsedCommand command = new MongoCommandParser().parse(
+                "db.agent_sessions.insertOne({ sessionId: \"s2\", expireAt: new Date(Date.now() + "
+                        + offsetMillis + ") })");
+        Date expireAt = (Date) command.getDocument().get("expireAt");
+        Assert.assertTrue(expireAt.getTime() >= System.currentTimeMillis() + offsetMillis - 5000);
+    }
+
+    @Test
+    public void parseInsertOne_nestedNewDateAndIsoDate_parsesDocument() {
+        MongoParsedCommand command = new MongoCommandParser().parse(
+                "db.agent_sessions.insertOne({ sessionId: \"s3\", messages: [{ createdAt: new Date() }], "
+                        + "expireAt: ISODate(\"2030-01-01T00:00:00.000Z\") })");
+        Document document = command.getDocument();
+        Assert.assertTrue(document.getList("messages", Document.class).get(0).get("createdAt") instanceof Date);
+        Date expireAt = (Date) document.get("expireAt");
+        Assert.assertEquals(Instant.parse("2030-01-01T00:00:00.000Z").toEpochMilli(), expireAt.getTime());
     }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.bson.Document;
+import org.bson.types.ObjectId;
 
 public class MongoResultMapper {
     public MongoTabularResult mapDocuments(List<Document> documents) {
@@ -44,5 +45,33 @@ public class MongoResultMapper {
         List<Document> list = new ArrayList<>();
         list.add(document == null ? new Document() : document);
         return mapDocuments(list);
+    }
+
+    /**
+     * Map MongoDB write command acknowledgement (insert/update/delete) without {@code _raw_json}.
+     */
+    public MongoTabularResult mapWriteResult(Document document) {
+        Document payload = document == null ? new Document() : document;
+        List<String> columns = new ArrayList<>(payload.keySet());
+        List<Object> row = new ArrayList<>();
+        for (String column : columns) {
+            row.add(formatWriteValue(payload.get(column)));
+        }
+        List<List<Object>> rows = new ArrayList<>();
+        rows.add(row);
+        return new MongoTabularResult(columns, rows);
+    }
+
+    private Object formatWriteValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof ObjectId) {
+            return "ObjectId(\"" + value + "\")";
+        }
+        if (value instanceof Document) {
+            return ((Document) value).toJson();
+        }
+        return value;
     }
 }

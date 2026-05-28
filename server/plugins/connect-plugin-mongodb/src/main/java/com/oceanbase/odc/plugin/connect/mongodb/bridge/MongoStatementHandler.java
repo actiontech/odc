@@ -150,7 +150,7 @@ class MongoStatementHandler implements InvocationHandler {
     }
 
     private boolean setUpdateResult(Document result) throws SQLException {
-        this.currentResultSet = MongoBridgeUtil.toResultSet(resultMapper.mapSingleDocument(result));
+        this.currentResultSet = MongoBridgeUtil.toResultSet(resultMapper.mapWriteResult(result));
         this.updateCount = 1;
         return true;
     }

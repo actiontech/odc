@@ -15,6 +15,7 @@
  */
 package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,16 @@ public class MongoCommandParser {
             Pattern.compile("^db(?:\\.([a-zA-Z0-9_\\-]+))?\\.([a-zA-Z]+)\\((.*)\\)\\s*;?$", Pattern.DOTALL);
     private static final Pattern KEEP_ALIVE =
             Pattern.compile("^select\\s+1(?:\\s+from\\s+dual)?\\s*;?$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern NEW_DATE =
+            Pattern.compile("new\\s+Date\\s*\\(", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ISO_DATE =
+            Pattern.compile("ISODate\\s*\\(\\s*\"([^\"]+)\"\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DATE_NOW =
+            Pattern.compile("Date\\.now\\(\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DATE_STRING_ARG =
+            Pattern.compile("^\"([^\"]+)\"$");
+    private static final Pattern NUMERIC_EXPRESSION =
+            Pattern.compile("[0-9+\\-*/().]+");
 
     public MongoParsedCommand parse(String sql) {
         String normalized = normalize(sql);
@@ -130,8 +141,149 @@ public class MongoCommandParser {
 
     private String toJson(String value) {
         String json = value.replace('\'', '"');
+        json = replaceJavaScriptDates(json);
         json = json.replaceAll("([\\{,]\\s*)([A-Za-z_\\$][A-Za-z0-9_\\$]*)\\s*:", "$1\"$2\":");
         return json;
+    }
+
+    private String replaceJavaScriptDates(String input) {
+        String replacedIsoDate = ISO_DATE.matcher(input).replaceAll("{\"$date\":\"$1\"}");
+        StringBuilder result = new StringBuilder();
+        int index = 0;
+        Matcher matcher = NEW_DATE.matcher(replacedIsoDate);
+        while (matcher.find()) {
+            result.append(replacedIsoDate, index, matcher.start());
+            int openParen = matcher.end() - 1;
+            int closeParen = findMatchingParen(replacedIsoDate, openParen);
+            String argument = replacedIsoDate.substring(matcher.end(), closeParen).trim();
+            result.append(toExtendedJsonDate(argument));
+            index = closeParen + 1;
+        }
+        result.append(replacedIsoDate.substring(index));
+        return result.toString();
+    }
+
+    private int findMatchingParen(String input, int openParen) {
+        int depth = 0;
+        for (int i = openParen; i < input.length(); i++) {
+            char current = input.charAt(i);
+            if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Unbalanced parentheses in MongoDB command");
+    }
+
+    private String toExtendedJsonDate(String argument) {
+        long epochMillis;
+        if (argument.isEmpty()) {
+            epochMillis = System.currentTimeMillis();
+        } else {
+            Matcher stringMatcher = DATE_STRING_ARG.matcher(argument);
+            if (stringMatcher.matches()) {
+                epochMillis = Instant.parse(stringMatcher.group(1)).toEpochMilli();
+            } else {
+                epochMillis = evaluateMillisExpression(argument);
+            }
+        }
+        return "{\"$date\":\"" + Instant.ofEpochMilli(epochMillis).toString() + "\"}";
+    }
+
+    private long evaluateMillisExpression(String expression) {
+        String normalized = DATE_NOW.matcher(expression.trim()).replaceAll(Long.toString(System.currentTimeMillis()));
+        normalized = normalized.replaceAll("\\s+", "");
+        if (!NUMERIC_EXPRESSION.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("Unsupported date expression: " + expression);
+        }
+        return (long) evaluateArithmetic(normalized);
+    }
+
+    private double evaluateArithmetic(String expression) {
+        return new ArithmeticExpression(expression).evaluate();
+    }
+
+    private static final class ArithmeticExpression {
+        private final String expression;
+        private int index;
+
+        private ArithmeticExpression(String expression) {
+            this.expression = expression;
+            this.index = 0;
+        }
+
+        private double evaluate() {
+            double value = parseExpression();
+            if (index < expression.length()) {
+                throw new IllegalArgumentException("Unexpected token at index " + index);
+            }
+            return value;
+        }
+
+        private double parseExpression() {
+            double value = parseTerm();
+            while (index < expression.length()) {
+                char operator = expression.charAt(index);
+                if (operator == '+') {
+                    index++;
+                    value += parseTerm();
+                } else if (operator == '-') {
+                    index++;
+                    value -= parseTerm();
+                } else {
+                    break;
+                }
+            }
+            return value;
+        }
+
+        private double parseTerm() {
+            double value = parseFactor();
+            while (index < expression.length()) {
+                char operator = expression.charAt(index);
+                if (operator == '*') {
+                    index++;
+                    value *= parseFactor();
+                } else if (operator == '/') {
+                    index++;
+                    value /= parseFactor();
+                } else {
+                    break;
+                }
+            }
+            return value;
+        }
+
+        private double parseFactor() {
+            if (expression.charAt(index) == '+') {
+                index++;
+            } else if (expression.charAt(index) == '-') {
+                index++;
+                return -parseFactor();
+            }
+            if (expression.charAt(index) == '(') {
+                index++;
+                double value = parseExpression();
+                if (index >= expression.length() || expression.charAt(index) != ')') {
+                    throw new IllegalArgumentException("Missing closing parenthesis");
+                }
+                index++;
+                return value;
+            }
+            int start = index;
+            while (index < expression.length()
+                    && (Character.isDigit(expression.charAt(index)) || expression.charAt(index) == '.')) {
+                index++;
+            }
+            if (start == index) {
+                throw new IllegalArgumentException("Expected number at index " + index);
+            }
+            return Double.parseDouble(expression.substring(start, index));
+        }
     }
 
     private String normalize(String sql) {

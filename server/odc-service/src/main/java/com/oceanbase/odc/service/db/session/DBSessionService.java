@@ -52,6 +52,9 @@ public class DBSessionService {
         if (ConnectionSessionUtil.isLogicalSession(connectionSession)) {
             return null;
         }
+        if (connectionSession.getDialectType().isMongoDB()) {
+            return DBSession.unknown();
+        }
         try {
             DBStatsAccessor accessor = DBStatsAccessors.create(connectionSession);
             return accessor.currentSession();

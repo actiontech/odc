@@ -27,6 +27,7 @@ import com.oceanbase.odc.plugin.schema.api.TableExtensionPoint;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBTable;
+import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 
 @Extension
 public class MongoTableExtension implements TableExtensionPoint {
@@ -58,7 +59,9 @@ public class MongoTableExtension implements TableExtensionPoint {
         table.setSchemaName(schemaName);
         table.setOwner(schemaName);
         table.setType(DBObjectType.TABLE);
-        table.setColumns(new MongoColumnExtension().listBasicTableColumns(connection, schemaName).get(tableName));
+        List<DBTableColumn> columns = new MongoColumnExtension()
+                .listBasicTableColumns(connection, schemaName).get(tableName);
+        table.setColumns(columns != null ? columns : new ArrayList<>());
         return table;
     }
 
