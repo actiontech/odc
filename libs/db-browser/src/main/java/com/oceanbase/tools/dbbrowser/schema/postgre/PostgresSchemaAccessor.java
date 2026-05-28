@@ -466,18 +466,23 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 // but fall back to data_type when udt_name is null.
                 String typeName = udtName != null ? udtName : dataType;
                 column.setTypeName(typeName);
-                column.setFullTypeName(buildFullTypeName(typeName, rs.getObject(4), rs.getObject(5), rs.getObject(6)));
-                Long charMaxLen = (Long) rs.getObject(4);
-                if (charMaxLen != null) {
-                    column.setMaxLength(charMaxLen);
+                // PG returns these length / precision / scale columns as Number subclasses
+                // (Integer for openGauss / Long for some PG drivers). Use Number#xxxValue() so
+                // we don't ClassCastException when the JDBC driver hands us an Integer where
+                // we expected a Long (the bug seen in the initial 5104c79a build).
+                Number charMaxLenObj = (Number) rs.getObject(4);
+                Number numericPrecisionObj = (Number) rs.getObject(5);
+                Number numericScaleObj = (Number) rs.getObject(6);
+                column.setFullTypeName(
+                        buildFullTypeName(typeName, charMaxLenObj, numericPrecisionObj, numericScaleObj));
+                if (charMaxLenObj != null) {
+                    column.setMaxLength(charMaxLenObj.longValue());
                 }
-                Integer precision = (Integer) rs.getObject(5);
-                if (precision != null) {
-                    column.setPrecision(precision.longValue());
+                if (numericPrecisionObj != null) {
+                    column.setPrecision(numericPrecisionObj.longValue());
                 }
-                Integer scale = (Integer) rs.getObject(6);
-                if (scale != null) {
-                    column.setScale(scale);
+                if (numericScaleObj != null) {
+                    column.setScale(numericScaleObj.intValue());
                 }
                 String isNullable = rs.getString(7);
                 column.setNullable("YES".equalsIgnoreCase(isNullable));
@@ -502,16 +507,16 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      * <li>plain type name otherwise (e.g. {@code jsonb}, {@code timestamptz})</li>
      * </ul>
      */
-    private String buildFullTypeName(String typeName, Object charMaxLen, Object numericPrecision,
-            Object numericScale) {
+    private String buildFullTypeName(String typeName, Number charMaxLen, Number numericPrecision,
+            Number numericScale) {
         if (charMaxLen != null) {
-            return typeName + "(" + charMaxLen + ")";
+            return typeName + "(" + charMaxLen.longValue() + ")";
         }
         if (numericPrecision != null) {
             if (numericScale != null) {
-                return typeName + "(" + numericPrecision + "," + numericScale + ")";
+                return typeName + "(" + numericPrecision.longValue() + "," + numericScale.intValue() + ")";
             }
-            return typeName + "(" + numericPrecision + ")";
+            return typeName + "(" + numericPrecision.longValue() + ")";
         }
         return typeName;
     }
