@@ -226,6 +226,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             properties.put(ConnectionPropertiesBuilder.USER_ROLE, this.userRole.name());
             dataSource.setConnectionProperties(properties);
         }
+        dataSource.setDriverClassLoader(ConnectionPluginUtil.getPluginClassLoader(connectionConfig.getDialectType()));
         // Set datasource driver class
         dataSource.setDriverClassName(connectionExtensionPoint.getDriverClassName());
         // fix arbitrary file reading vulnerability
@@ -249,7 +250,9 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
     }
 
     private String getKeepAliveSql(DialectType dialectType) {
-        if (dialectType.isOracle()) {
+        if (dialectType.isMongoDB()) {
+            return "db.runCommand({ ping: 1 })";
+        } else if (dialectType.isOracle()) {
             // Oracle and OceanBase Oracle support DUAL table
             return "SELECT 1 FROM DUAL";
         } else {

@@ -163,6 +163,8 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isMongoDB()) {
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }
@@ -200,6 +202,9 @@ public class ConnectionTesting {
             }
             if (Objects.nonNull(type) && type.isODPSharding()) {
                 return new ConnectionTestResult(result, null);
+            }
+            if (Objects.nonNull(type) && type.getDialectType() == DialectType.MONGODB) {
+                return new ConnectionTestResult(result, type);
             }
             ConnectType connectType = ConnectTypeUtil.getConnectType(
                     connectionExtensionPoint.generateJdbcUrl(jdbcUrlProperties),

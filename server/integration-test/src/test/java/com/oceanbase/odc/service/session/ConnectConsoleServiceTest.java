@@ -167,6 +167,22 @@ public class ConnectConsoleServiceTest extends ServiceTestEnv {
     }
 
     @Test
+    public void getAsyncResult_commonCommandForMongo_getSucceed() throws Exception {
+        Mockito.when(organizationConfigUtils.getDefaultQueryLimit())
+                .thenReturn(1000);
+        Mockito.when(organizationConfigUtils.getDefaultMaxQueryLimit())
+                .thenReturn(1000);
+        String sql = "db.runCommand({ ping: 1 });";
+        injectAsyncJdbcExecutor(JdbcGeneralResult.successResult(SqlTuple.newTuple(sql)),
+                ConnectType.MONGODB);
+        SqlAsyncExecuteResp resp = consoleService.streamExecute(sessionid, getSqlAsyncExecuteReq(sql));
+        injectExecuteContext(sessionid, resp.getRequestId(), JdbcGeneralResult.successResult(SqlTuple.newTuple(sql)));
+        List<SqlExecuteResult> resultList = consoleService.getMoreResults(sessionid, resp.getRequestId()).getResults();
+
+        Assert.assertFalse(resultList.isEmpty());
+    }
+
+    @Test
     public void generateResult_editableResultSet_isEditable() throws Exception {
         Mockito.when(organizationConfigUtils.getDefaultQueryLimit())
                 .thenReturn(1000);

@@ -167,7 +167,9 @@ public class DefaultConnectSessionFactory implements ConnectionSessionFactory {
         ConnectionInfoUtil.initConsoleConnectionId(session);
         ConnectionInfoUtil.initOdpVersionIfExists(session);
         ConnectionSessionUtil.setConnectionConfig(session, connectionConfig);
-        ConnectionSessionUtil.setColumnAccessor(session, new DatasourceColumnAccessor(session));
+        if (!session.getDialectType().isMongoDB()) {
+            ConnectionSessionUtil.setColumnAccessor(session, new DatasourceColumnAccessor(session));
+        }
         if (StringUtils.isNotBlank(connectionConfig.getTenantName())) {
             ConnectionSessionUtil.setTenantName(session, connectionConfig.getTenantName());
         }

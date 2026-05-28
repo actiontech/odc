@@ -212,6 +212,7 @@ public class MvcConfiguration implements WebMvcConfigurer {
                 "/index.body.html",
                 "/index.head.html",
                 "/404.html",
+                "/preload_helper.**.js",
                 "/umi.**.js",
                 "/**.async.js",
                 "/editor.worker.js",

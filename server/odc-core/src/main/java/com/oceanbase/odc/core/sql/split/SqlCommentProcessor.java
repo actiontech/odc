@@ -178,6 +178,8 @@ public class SqlCommentProcessor {
                     // PostgreSQL / GaussDB / openGauss use ';' as standard statement separator
                     // and do not support MySQL-style DELIMITER. Reuse MySQL line processing.
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isMongoDB()) {
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
                 }

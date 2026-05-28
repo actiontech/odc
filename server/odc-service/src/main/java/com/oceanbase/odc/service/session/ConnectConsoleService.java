@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -172,6 +173,17 @@ public class ConnectConsoleService {
         } else if (dialectType.isSqlServer()) {
             throw new UnsupportedOperationException(
                     "db-browser:1.2.3 lacks SqlServerSqlBuilder; SqlServer dialect SQL builder is not available in this version");
+        } else if (dialectType.isMongoDB()) {
+            Integer queryLimit = checkQueryLimit(req.getQueryLimit());
+            String sql = formatMongoCollectionRef(req.getTableOrViewName()) + ".find({})";
+            SqlAsyncExecuteReq asyncExecuteReq = new SqlAsyncExecuteReq();
+            asyncExecuteReq.setSql(sql);
+            asyncExecuteReq.setAddROWID(false);
+            asyncExecuteReq.setQueryLimit(queryLimit);
+            asyncExecuteReq.setShowTableColumnInfo(true);
+            asyncExecuteReq.setContinueExecutionOnError(true);
+            asyncExecuteReq.setFullLinkTraceEnabled(false);
+            return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
@@ -211,6 +223,11 @@ public class ConnectConsoleService {
         asyncExecuteReq.setContinueExecutionOnError(true);
         asyncExecuteReq.setFullLinkTraceEnabled(false);
         // SqlAsyncExecuteResp resp = execute(sessionId, asyncExecuteReq, false);
+        return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+    }
+
+    private SqlExecuteResult executeQueryTableOrViewData(@NotNull String sessionId,
+            ConnectionSession connectionSession, SqlAsyncExecuteReq asyncExecuteReq) throws Exception {
         SqlAsyncExecuteResp resp = streamExecute(sessionId, asyncExecuteReq, false);
 
         List<UnauthorizedDBResource> unauthorizedDBResources = resp.getUnauthorizedDBResources();
@@ -364,6 +381,20 @@ public class ConnectConsoleService {
         try {
             List<JdbcGeneralResult> resultList =
                     context.getMoreSqlExecutionResults(gettingResultTimeoutSeconds * 1000L);
+            if (resultList.isEmpty() && context.isFinished() && context.getFuture() != null) {
+                try {
+                    resultList = context.getFuture().get();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while waiting async execution result", ex);
+                } catch (ExecutionException ex) {
+                    Throwable cause = ex.getCause();
+                    if (cause instanceof RuntimeException) {
+                        throw (RuntimeException) cause;
+                    }
+                    throw new IllegalStateException("Async execution failed", cause == null ? ex : cause);
+                }
+            }
             List<SqlExecuteResult> results = resultList.stream().map(jdbcGeneralResult -> {
                 SqlExecuteResult result = generateResult(connectionSession, jdbcGeneralResult, context.getContextMap());
                 try (TraceStage stage = result.getSqlTuple().getSqlWatch().start(SqlExecuteStages.SQL_AFTER_CHECK)) {
@@ -567,7 +598,7 @@ public class ConnectConsoleService {
         SqlExecuteResult result = new SqlExecuteResult(generalResult);
         TraceWatch watch = generalResult.getSqlTuple().getSqlWatch();
         OdcTable resultTable = null;
-        DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);
+        DBSchemaAccessor schemaAccessor = null;
         try (TraceStage s = watch.start(SqlExecuteStages.INIT_SQL_TYPE)) {
             result.initSqlType(connectionSession.getDialectType());
         } catch (Exception e) {
@@ -586,7 +617,10 @@ public class ConnectConsoleService {
         }
         if (Boolean.TRUE.equals(cxt.get(SHOW_TABLE_COLUMN_INFO))) {
             try (TraceStage s = watch.start(SqlExecuteStages.INIT_COLUMN_INFO)) {
-                result.initColumnInfo(connectionSession, resultTable, schemaAccessor);
+                if (connectionSession.getDialectType() != DialectType.MONGODB) {
+                    schemaAccessor = DBSchemaAccessors.create(connectionSession);
+                    result.initColumnInfo(connectionSession, resultTable, schemaAccessor);
+                }
             } catch (Exception e) {
                 log.warn("Failed to init column comment, reason={}", ExceptionUtils.getSimpleReason(e));
             }
@@ -612,5 +646,15 @@ public class ConnectConsoleService {
             queryLimit = organizationConfigUtils.getDefaultQueryLimit();
         }
         return queryLimit;
+    }
+
+    private String formatMongoCollectionRef(String collectionName) {
+        if (StringUtils.isBlank(collectionName)) {
+            return "db.collection";
+        }
+        if (collectionName.matches("^[A-Za-z_$][\\w$]*$")) {
+            return "db." + collectionName;
+        }
+        return "db.getCollection(\"" + collectionName.replace("\\", "\\\\").replace("\"", "\\\"") + "\")";
     }
 }

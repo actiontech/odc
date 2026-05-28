@@ -350,7 +350,12 @@ public class OdcStatementCallBack implements StatementCallback<List<JdbcGeneralR
                         return handleException(e, statement, sqlTuple);
                     }
                     latch.countDown();
-                    return consumeStatement(statement, sqlTuple, isResultSet);
+                    List<JdbcGeneralResult> results = consumeStatement(statement, sqlTuple, isResultSet);
+                    if (dialectType.isMongoDB()) {
+                        log.info("Mongo statement executed, sql={}, resultCount={}, isResultSet={}",
+                                sqlTuple.getExecutedSql(), results.size(), isResultSet);
+                    }
+                    return results;
                 }
             }
             // use ps protocal
@@ -386,7 +391,12 @@ public class OdcStatementCallBack implements StatementCallback<List<JdbcGeneralR
                     return handleException(e, statement, sqlTuple);
                 }
                 latch.countDown();
-                return consumeStatement(statement, sqlTuple, isResultSet);
+                List<JdbcGeneralResult> results = consumeStatement(statement, sqlTuple, isResultSet);
+                if (dialectType.isMongoDB()) {
+                    log.info("Mongo prepared statement executed, sql={}, resultCount={}, isResultSet={}",
+                            sqlTuple.getExecutedSql(), results.size(), isResultSet);
+                }
+                return results;
             }
         } catch (Exception e) {
             return Collections.singletonList(JdbcGeneralResult.failedResult(sqlTuple, e));
@@ -599,6 +609,10 @@ public class OdcStatementCallBack implements StatementCallback<List<JdbcGeneralR
     private void onExecutionEnd(SqlTuple sqlTuple, List<JdbcGeneralResult> results) {
         if (context != null) {
             context.addSqlExecutionResults(results);
+        }
+        if (dialectType.isMongoDB()) {
+            log.info("Mongo execution finished, sql={}, queuedResultCount={}", sqlTuple.getExecutedSql(),
+                    results.size());
         }
         listeners.forEach(listener -> {
             try {

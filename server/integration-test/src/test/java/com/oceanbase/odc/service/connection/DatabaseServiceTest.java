@@ -49,6 +49,9 @@ import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 import com.oceanbase.odc.service.connection.model.QueryConnectionParams;
 import com.oceanbase.odc.service.db.schema.model.DBObjectSyncStatus;
 import com.oceanbase.odc.service.iam.ProjectPermissionValidator;
+import com.oceanbase.odc.service.iam.auth.AuthenticationFacade;
+import com.oceanbase.odc.service.iam.model.OrganizationType;
+import com.oceanbase.odc.service.iam.model.User;
 
 /**
  * @Author: Lebie
@@ -74,6 +77,9 @@ public class DatabaseServiceTest extends AuthorityTestEnv {
     @MockBean
     private ConnectionService connectionService;
 
+    @MockBean
+    private AuthenticationFacade authenticationFacade;
+
     @Before
     public void setUp() {
         databaseRepository.deleteAll();
@@ -90,6 +96,8 @@ public class DatabaseServiceTest extends AuthorityTestEnv {
                 PageAndStats.empty());
         Mockito.when(connectionService.getWithoutPermissionCheck(Mockito.anyLong())).thenReturn(getDataSource());
         Mockito.when(environmentService.detailSkipPermissionCheck(Mockito.anyLong())).thenReturn(getEnvironment());
+        Mockito.when(authenticationFacade.currentOrganizationId()).thenReturn(ORGANIZATION_ID);
+        Mockito.when(authenticationFacade.currentUser()).thenReturn(getTeamUser());
     }
 
     @After
@@ -142,6 +150,31 @@ public class DatabaseServiceTest extends AuthorityTestEnv {
                 .schemaName("real").dataSourceId(1L).build();
         Page<Database> databases = databaseService.list(params, Pageable.unpaged());
         Assert.assertEquals(0, databases.getSize());
+    }
+
+    @Test
+    public void testListDatabasesByDataSource_InIndividualSpace_ReturnUnassignedDatabase() {
+        DatabaseEntity database = getEntity();
+        database.setProjectId(null);
+        databaseRepository.saveAndFlush(database);
+        Mockito.when(authenticationFacade.currentUser()).thenReturn(getIndividualUser());
+
+        Page<Database> databases = databaseService.listDatabasesByDataSource(1L, null, true, true,
+                Pageable.unpaged());
+
+        Assert.assertEquals(1, databases.getNumberOfElements());
+    }
+
+    @Test
+    public void testListDatabasesByDataSource_InTeamSpace_FilterUnassignedDatabase() {
+        DatabaseEntity database = getEntity();
+        database.setProjectId(null);
+        databaseRepository.saveAndFlush(database);
+
+        Page<Database> databases = databaseService.listDatabasesByDataSource(1L, null, true, true,
+                Pageable.unpaged());
+
+        Assert.assertEquals(0, databases.getNumberOfElements());
     }
 
     @Test
@@ -207,6 +240,18 @@ public class DatabaseServiceTest extends AuthorityTestEnv {
         environment.setId(1L);
         environment.setName("fake_env");
         return environment;
+    }
+
+    private User getIndividualUser() {
+        User user = User.of(1L);
+        user.setOrganizationType(OrganizationType.INDIVIDUAL);
+        return user;
+    }
+
+    private User getTeamUser() {
+        User user = User.of(1L);
+        user.setOrganizationType(OrganizationType.TEAM);
+        return user;
     }
 
 }
