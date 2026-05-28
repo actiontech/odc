@@ -72,4 +72,9 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectEditor<DBSequence> buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
 }

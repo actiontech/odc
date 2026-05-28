@@ -92,4 +92,9 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
         return buildForOracle();
     }
 
+    @Override
+    public DBTableConstraintEditor buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
 }

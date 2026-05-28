@@ -178,6 +178,11 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
         return new DmSchemaAccessor(getJdbcOperations());
     }
 
+    @Override
+    public DBSchemaAccessor buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

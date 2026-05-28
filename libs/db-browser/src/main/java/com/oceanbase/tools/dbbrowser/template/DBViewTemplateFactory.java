@@ -73,4 +73,9 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectTemplate<DBView> buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
 }

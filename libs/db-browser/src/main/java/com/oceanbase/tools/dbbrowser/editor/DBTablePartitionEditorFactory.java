@@ -97,4 +97,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         return buildForOracle();
     }
 
+    @Override
+    public DBTablePartitionEditor buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
 }
