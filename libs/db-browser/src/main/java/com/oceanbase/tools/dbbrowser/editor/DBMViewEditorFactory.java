@@ -86,6 +86,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         return buildForOracle();
     }
 
+    @Override
+    public DBMViewEditor buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

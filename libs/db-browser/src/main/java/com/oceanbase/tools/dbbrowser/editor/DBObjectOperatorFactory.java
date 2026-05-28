@@ -86,6 +86,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
         return new DmObjectOperator(getJdbcOperations());
     }
 
+    @Override
+    public DBObjectOperator buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

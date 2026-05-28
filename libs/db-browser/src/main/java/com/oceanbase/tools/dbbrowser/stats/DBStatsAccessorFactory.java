@@ -128,6 +128,11 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
         return new DmStatsAccessor(getJdbcOperations());
     }
 
+    @Override
+    public DBStatsAccessor buildForHive() {
+        throw new UnsupportedOperationException("Hive not yet implemented");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;
