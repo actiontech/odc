@@ -173,6 +173,17 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isSqlServer()) {
             sqlBuilder = new SqlServerSqlBuilder();
+        } else if (dialectType.isMongoDB()) {
+            Integer queryLimit = checkQueryLimit(req.getQueryLimit());
+            String sql = formatMongoCollectionRef(req.getTableOrViewName()) + ".find({})";
+            SqlAsyncExecuteReq asyncExecuteReq = new SqlAsyncExecuteReq();
+            asyncExecuteReq.setSql(sql);
+            asyncExecuteReq.setAddROWID(false);
+            asyncExecuteReq.setQueryLimit(queryLimit);
+            asyncExecuteReq.setShowTableColumnInfo(true);
+            asyncExecuteReq.setContinueExecutionOnError(true);
+            asyncExecuteReq.setFullLinkTraceEnabled(false);
+            return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
@@ -212,6 +223,11 @@ public class ConnectConsoleService {
         asyncExecuteReq.setContinueExecutionOnError(true);
         asyncExecuteReq.setFullLinkTraceEnabled(false);
         // SqlAsyncExecuteResp resp = execute(sessionId, asyncExecuteReq, false);
+        return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+    }
+
+    private SqlExecuteResult executeQueryTableOrViewData(@NotNull String sessionId,
+            ConnectionSession connectionSession, SqlAsyncExecuteReq asyncExecuteReq) throws Exception {
         SqlAsyncExecuteResp resp = streamExecute(sessionId, asyncExecuteReq, false);
 
         List<UnauthorizedDBResource> unauthorizedDBResources = resp.getUnauthorizedDBResources();
@@ -630,5 +646,15 @@ public class ConnectConsoleService {
             queryLimit = organizationConfigUtils.getDefaultQueryLimit();
         }
         return queryLimit;
+    }
+
+    private String formatMongoCollectionRef(String collectionName) {
+        if (StringUtils.isBlank(collectionName)) {
+            return "db.collection";
+        }
+        if (collectionName.matches("^[A-Za-z_$][\\w$]*$")) {
+            return "db." + collectionName;
+        }
+        return "db.getCollection(\"" + collectionName.replace("\\", "\\\\").replace("\"", "\\\"") + "\")";
     }
 }

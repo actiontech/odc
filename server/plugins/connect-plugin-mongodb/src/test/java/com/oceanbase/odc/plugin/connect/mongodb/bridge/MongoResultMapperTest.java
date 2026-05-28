@@ -18,6 +18,7 @@ package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 import java.util.Arrays;
 
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,5 +30,16 @@ public class MongoResultMapperTest {
         Assert.assertTrue(result.getColumns().contains("_raw_json"));
         Assert.assertTrue(result.getColumns().contains("name"));
         Assert.assertEquals(1, result.getRows().size());
+    }
+
+    @Test
+    public void mapWriteResult_formatsAckWithoutRawJson() {
+        Document doc = new Document("acknowledged", true)
+                .append("insertedId", new ObjectId("507f1f77bcf86cd799439011"));
+        MongoTabularResult result = new MongoResultMapper().mapWriteResult(doc);
+        Assert.assertFalse(result.getColumns().contains("_raw_json"));
+        Assert.assertEquals(Arrays.asList("acknowledged", "insertedId"), result.getColumns());
+        Assert.assertEquals(true, result.getRows().get(0).get(0));
+        Assert.assertEquals("ObjectId(\"507f1f77bcf86cd799439011\")", result.getRows().get(0).get(1));
     }
 }

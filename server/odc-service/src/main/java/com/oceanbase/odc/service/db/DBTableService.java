@@ -76,8 +76,7 @@ public class DBTableService {
      */
     public List<String> showTablesLike(@NotNull ConnectionSession session, String schemaName, String fuzzyTableName) {
         String tableNameLike = SqlUtils.anyLike(fuzzyTableName);
-        List<String> tableNames = session.getSyncJdbcExecutor(
-                ConnectionSessionConstants.BACKEND_DS_KEY)
+        List<String> tableNames = session.getSyncJdbcExecutor(getSchemaDataSourceKey(session))
                 .execute((ConnectionCallback<List<String>>) con -> getTableExtensionPoint(session)
                         .showNamesLike(con, schemaName, tableNameLike).stream()
                         .filter(name -> !StringUtils.endsWith(name.toUpperCase(),
@@ -90,16 +89,29 @@ public class DBTableService {
 
     public DBTable getTable(@NotNull ConnectionSession connectionSession, String schemaName,
             @NotBlank String tableName, @NotNull DBObjectType type) {
-        DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);
-        if (type == DBObjectType.TABLE) {
-            PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
-                    () -> schemaAccessor.showTables(schemaName).stream().filter(name -> name.equals(tableName))
-                            .collect(Collectors.toList()).size() > 0);
-        }
-        if (type == DBObjectType.EXTERNAL_TABLE) {
-            PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
-                    () -> schemaAccessor.showExternalTables(schemaName).stream().filter(name -> name.equals(tableName))
-                            .collect(Collectors.toList()).size() > 0);
+        if (connectionSession.getDialectType().isMongoDB()) {
+            if (type == DBObjectType.TABLE) {
+                PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
+                        () -> connectionSession.getSyncJdbcExecutor(getSchemaDataSourceKey(connectionSession))
+                                .execute((ConnectionCallback<Boolean>) con -> getTableExtensionPoint(connectionSession)
+                                        .list(con, schemaName, DBObjectType.TABLE).stream()
+                                        .anyMatch(identity -> tableName.equals(identity.getName()))));
+            } else {
+                throw new UnsupportedOperationException("MongoDB does not support DB object type: " + type);
+            }
+        } else {
+            DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);
+            if (type == DBObjectType.TABLE) {
+                PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
+                        () -> schemaAccessor.showTables(schemaName).stream().filter(name -> name.equals(tableName))
+                                .collect(Collectors.toList()).size() > 0);
+            }
+            if (type == DBObjectType.EXTERNAL_TABLE) {
+                PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
+                        () -> schemaAccessor.showExternalTables(schemaName).stream()
+                                .filter(name -> name.equals(tableName))
+                                .collect(Collectors.toList()).size() > 0);
+            }
         }
         try {
             return connectionSession.getSyncJdbcExecutor(
@@ -118,11 +130,15 @@ public class DBTableService {
      * get all table details in a schema
      */
     public Map<String, DBTable> getTables(@NotNull ConnectionSession connectionSession, String schemaName) {
+        if (connectionSession.getDialectType().isMongoDB()) {
+            return listTables(connectionSession, schemaName).stream()
+                    .collect(Collectors.toMap(DBTable::getName, table -> table, (left, right) -> left));
+        }
         return DBSchemaAccessors.create(connectionSession).getTables(schemaName, null);
     }
 
     public List<DBTable> listTables(@NotNull ConnectionSession connectionSession, String schemaName) {
-        return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.BACKEND_DS_KEY)
+        return connectionSession.getSyncJdbcExecutor(getSchemaDataSourceKey(connectionSession))
                 .execute((ConnectionCallback<List<DBObjectIdentity>>) con -> getTableExtensionPoint(connectionSession)
                         .list(con, schemaName, DBObjectType.TABLE))
                 .stream().map(item -> {
@@ -277,5 +293,11 @@ public class DBTableService {
 
     private TableExtensionPoint getTableExtensionPoint(@NotNull ConnectionSession connectionSession) {
         return SchemaPluginUtil.getTableExtension(connectionSession.getDialectType());
+    }
+
+    private String getSchemaDataSourceKey(@NotNull ConnectionSession connectionSession) {
+        return connectionSession.getDialectType().isMongoDB()
+                ? ConnectionSessionConstants.CONSOLE_DS_KEY
+                : ConnectionSessionConstants.BACKEND_DS_KEY;
     }
 }
