@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.stats.DBStatsAccessor;
 
 /**
- * Utility class bridging schema-plugin-hive to the db-browser factory system.
- * Each method uses the {@link DBBrowser} fluent API to create the appropriate
- * Hive accessor or editor via the registered factory.
+ * Utility class bridging schema-plugin-hive to the db-browser factory system. Each method uses the
+ * {@link DBBrowser} fluent API to create the appropriate Hive accessor or editor via the registered
+ * factory.
  *
  * @since ODC_release_4.3.4
  */

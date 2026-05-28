@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Tests for {@link HiveSessionExtension}.
- * Covers design.md section 5.2.9: switchSchema SQL, getCurrentSchema SQL,
- * getConnectionId, getKillSessionSql.
+ * Tests for {@link HiveSessionExtension}. Covers design.md section 5.2.9: switchSchema SQL,
+ * getCurrentSchema SQL, getConnectionId, getKillSessionSql.
  * <p>
- * Note: switchSchema and getCurrentSchema require a live Connection so we test
- * the SQL-returning methods and exception-throwing methods only.
+ * Note: switchSchema and getCurrentSchema require a live Connection so we test the SQL-returning
+ * methods and exception-throwing methods only.
  *
  * @since ODC_release_4.3.4
  */

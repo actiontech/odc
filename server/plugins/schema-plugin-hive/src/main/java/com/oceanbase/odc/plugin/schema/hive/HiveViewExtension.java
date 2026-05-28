@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import com.oceanbase.tools.dbbrowser.template.DBObjectTemplate;
 import lombok.NonNull;
 
 /**
- * Hive view extension. Delegates to the Hive schema accessor and uses
- * the Hive view template for CREATE VIEW generation.
+ * Hive view extension. Delegates to the Hive schema accessor and uses the Hive view template for
+ * CREATE VIEW generation.
  *
  * @since ODC_release_4.3.4
  */

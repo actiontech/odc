@@ -414,11 +414,10 @@ public class HiveSchemaAccessor implements DBSchemaAccessor {
         sb.schemaPrefixIfNotBlank(dbName);
         sb.identifier(tableName);
         try {
-            List<DescribeRow> rows = jdbcOperations.query(sb.toString(), (rs, rowNum) ->
-                    new DescribeRow(
-                            rs.getString("col_name"),
-                            rs.getString("data_type"),
-                            rs.getString("comment")));
+            List<DescribeRow> rows = jdbcOperations.query(sb.toString(), (rs, rowNum) -> new DescribeRow(
+                    rs.getString("col_name"),
+                    rs.getString("data_type"),
+                    rs.getString("comment")));
             // Parse using the state machine to correctly separate regular and partition columns
             HiveTableMetadata metadata = HiveSchemaUtil.parseDescribeFormatted(rows);
             // For listTableColumns, return all columns (regular + partition)
@@ -609,8 +608,8 @@ public class HiveSchemaAccessor implements DBSchemaAccessor {
                             new java.sql.Timestamp(
                                     new java.text.SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy",
                                             java.util.Locale.US)
-                                            .parse(createTime)
-                                            .getTime()));
+                                                    .parse(createTime)
+                                                    .getTime()));
                 } catch (Exception e) {
                     log.debug("Failed to parse CreateTime: " + createTime, e);
                 }
@@ -716,8 +715,8 @@ public class HiveSchemaAccessor implements DBSchemaAccessor {
     }
 
     /**
-     * Escapes special characters in a LIKE pattern for Hive. Hive LIKE supports {@code %} and
-     * {@code _} as wildcards.
+     * Escapes special characters in a LIKE pattern for Hive. Hive LIKE supports {@code %} and {@code _}
+     * as wildcards.
      */
     private String escapeLikePattern(String pattern) {
         if (pattern == null) {
@@ -737,11 +736,10 @@ public class HiveSchemaAccessor implements DBSchemaAccessor {
         sb.schemaPrefixIfNotBlank(dbName);
         sb.identifier(tableName);
 
-        List<DescribeRow> rows = jdbcOperations.query(sb.toString(), (rs, rowNum) ->
-                new DescribeRow(
-                        rs.getString("col_name"),
-                        rs.getString("data_type"),
-                        rs.getString("comment")));
+        List<DescribeRow> rows = jdbcOperations.query(sb.toString(), (rs, rowNum) -> new DescribeRow(
+                rs.getString("col_name"),
+                rs.getString("data_type"),
+                rs.getString("comment")));
         return HiveSchemaUtil.parseDescribeFormatted(rows);
     }
 
@@ -788,8 +786,8 @@ public class HiveSchemaAccessor implements DBSchemaAccessor {
                         new java.sql.Timestamp(
                                 new java.text.SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy",
                                         java.util.Locale.US)
-                                        .parse(createTime)
-                                        .getTime()));
+                                                .parse(createTime)
+                                                .getTime()));
             } catch (Exception e) {
                 log.debug("Failed to parse CreateTime: " + createTime, e);
             }

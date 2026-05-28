@@ -48,7 +48,8 @@ public class HiveViewTemplate extends BaseViewTemplate {
     }
 
     @Override
-    protected String doGenerateCreateObjectTemplate(SqlBuilder sqlBuilder, com.oceanbase.tools.dbbrowser.model.DBView dbObject) {
+    protected String doGenerateCreateObjectTemplate(SqlBuilder sqlBuilder,
+            com.oceanbase.tools.dbbrowser.model.DBView dbObject) {
         return sqlBuilder.toString();
     }
 

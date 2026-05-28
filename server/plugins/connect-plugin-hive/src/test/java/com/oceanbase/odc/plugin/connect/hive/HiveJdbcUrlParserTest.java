@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import org.junit.runners.Parameterized;
 import com.oceanbase.odc.plugin.connect.api.HostAddress;
 
 /**
- * Parameterized tests for {@link HiveJdbcUrlParser}.
- * Covers design.md section 5.2.7: standard URL, no parameters, no database, multiple parameters.
+ * Parameterized tests for {@link HiveJdbcUrlParser}. Covers design.md section 5.2.7: standard URL,
+ * no parameters, no database, multiple parameters.
  *
  * @since ODC_release_4.3.4
  */
