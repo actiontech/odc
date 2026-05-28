@@ -17,6 +17,7 @@ package com.oceanbase.tools.dbbrowser.template;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBView;
+import com.oceanbase.tools.dbbrowser.template.hive.HiveViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerViewTemplate;
@@ -75,7 +76,7 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
 
     @Override
     public DBObjectTemplate<DBView> buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        return new HiveViewTemplate();
     }
 
 }

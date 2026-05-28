@@ -80,6 +80,6 @@ public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTem
 
     @Override
     public DBObjectTemplate<DBMaterializedView> buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        throw new UnsupportedOperationException("Hive does not support materialized views");
     }
 }

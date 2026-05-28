@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.hive.HiveTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor;
@@ -104,7 +105,10 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
 
     @Override
     public DBTableEditor buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        return new HiveTableEditor(getTableIndexEditor(),
+                getTableColumnEditor(),
+                getTableConstraintEditor(),
+                getTablePartitionEditor());
     }
 
     private DBTableIndexEditor getTableIndexEditor() {

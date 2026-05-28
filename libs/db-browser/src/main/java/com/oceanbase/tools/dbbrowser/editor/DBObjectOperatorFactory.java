@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.editor.dm.DmObjectOperator;
+import com.oceanbase.tools.dbbrowser.editor.hive.HiveObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleObjectOperator;
 import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerObjectOperator;
@@ -88,7 +89,7 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
 
     @Override
     public DBObjectOperator buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        return new HiveObjectOperator(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {
