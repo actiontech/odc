@@ -25,6 +25,7 @@
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
         <module>connect-plugin-mongodb</module>
+        <module>connect-plugin-hive</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
         <module>schema-plugin-ob-oracle</module>
@@ -37,6 +38,7 @@
         <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-dm</module>
         <module>schema-plugin-mongodb</module>
+        <module>schema-plugin-hive</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
         <module>task-plugin-api</module>
         <module>task-plugin-mysql</module>
@@ -216,6 +218,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-hive</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-dm</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -223,6 +231,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-mongodb</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-hive</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
