@@ -44,6 +44,7 @@ import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleLessThan400SchemaAcce
 import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.oracle.OracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.postgre.PostgresSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.schema.hive.HiveSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.sqlserver.SqlServerSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.ALLDataDictTableNames;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
@@ -180,7 +181,7 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
 
     @Override
     public DBSchemaAccessor buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        return new HiveSchemaAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {
