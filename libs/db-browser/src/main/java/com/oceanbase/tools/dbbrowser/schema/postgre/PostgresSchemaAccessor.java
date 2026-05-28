@@ -15,6 +15,7 @@
  */
 package com.oceanbase.tools.dbbrowser.schema.postgre;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcOperations;
 
 import com.oceanbase.tools.dbbrowser.model.DBColumnGroupElement;
+import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshParameter;
@@ -32,6 +34,7 @@ import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecord;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecordParam;
 import com.oceanbase.tools.dbbrowser.model.DBMaterializedView;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
+import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBPLObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBPackage;
 import com.oceanbase.tools.dbbrowser.model.DBProcedure;
@@ -133,22 +136,70 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<String> showTablesLike(String schemaName, String tableNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Implementation backed by information_schema. Wildcards (%, _) follow the same
+        // semantics as SQL LIKE; an empty/blank pattern returns all tables in the schema.
+        StringBuilder sb = new StringBuilder();
+        sb.append("select table_name from information_schema.tables where table_schema = ");
+        sb.append("'").append(schemaName).append("'");
+        sb.append(" and table_type = 'BASE TABLE'");
+        if (StringUtils.isNotBlank(tableNameLike)) {
+            sb.append(" and table_name like ");
+            sb.append("'").append(tableNameLike).append("'");
+        }
+        sb.append(";");
+        try {
+            return jdbcOperations.query(sb.toString(), (rs, rowNum) -> rs.getString(1));
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
     @Override
     public List<DBObjectIdentity> listTables(String schemaName, String tableNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Drive the result entirely off information_schema; if schemaName is blank we list
+        // tables across all user schemas (excluding pg_* / information_schema), which matches
+        // the contract used by DBIdentitiesService.listTables.
+        StringBuilder sb = new StringBuilder();
+        sb.append("select table_schema, table_name from information_schema.tables where table_type = 'BASE TABLE'");
+        sb.append(" and table_schema not like 'pg_%' and table_schema <> 'information_schema'");
+        if (StringUtils.isNotBlank(schemaName)) {
+            sb.append(" and table_schema = '").append(schemaName).append("'");
+        }
+        if (StringUtils.isNotBlank(tableNameLike)) {
+            sb.append(" and table_name like '").append(tableNameLike).append("'");
+        }
+        sb.append(" order by table_schema, table_name;");
+        try {
+            return jdbcOperations.query(sb.toString(), (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.TABLE);
+                identity.setSchemaName(rs.getString(1));
+                identity.setName(rs.getString(2));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            if (StringUtils.containsIgnoreCase(e.getMessage(), "Unknown schema")) {
+                return Collections.emptyList();
+            }
+            throw e;
+        }
     }
 
     @Override
     public List<String> showExternalTablesLike(String schemaName, String tableNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL/GaussDB don't expose ODC-style external tables; return an empty list so
+        // callers that probe metadata (workbench identities, DBIdentitiesService.listExternalTables)
+        // can degrade gracefully instead of bubbling an HTTP 500 to the UI.
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBObjectIdentity> listExternalTables(String schemaName, String tableNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // See showExternalTablesLike comment above; return empty for the same reason.
+        return Collections.emptyList();
     }
 
     @Override
@@ -158,42 +209,115 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public boolean syncExternalTableFiles(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL/GaussDB don't model external tables in the ODC sense; nothing to sync.
+        return false;
     }
 
     @Override
     public List<DBObjectIdentity> listViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+        String sql = "select table_schema, table_name from information_schema.views "
+                + "where table_schema = '" + schemaName + "' "
+                + "order by table_name;";
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.VIEW);
+                identity.setSchemaName(rs.getString(1));
+                identity.setName(rs.getString(2));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public List<DBObjectIdentity> listAllViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        StringBuilder sb = new StringBuilder();
+        sb.append("select table_schema, table_name from information_schema.views ");
+        sb.append("where table_schema not like 'pg_%' and table_schema <> 'information_schema'");
+        if (StringUtils.isNotBlank(viewNameLike)) {
+            sb.append(" and table_name like '").append(viewNameLike).append("'");
+        }
+        sb.append(" order by table_schema, table_name;");
+        try {
+            return jdbcOperations.query(sb.toString(), (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.VIEW);
+                identity.setSchemaName(rs.getString(1));
+                identity.setName(rs.getString(2));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public List<DBObjectIdentity> listAllUserViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Same as listAllViews — PG doesn't strongly distinguish user vs all here; we already
+        // filter out pg_* / information_schema in listAllViews.
+        return listAllViews(viewNameLike);
     }
 
     @Override
     public List<DBObjectIdentity> listAllSystemViews(String viewNameLike) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // System views in PG live in pg_catalog & information_schema. Returning an empty list
+        // is safe for the workbench identities API (the user-facing tree does not surface them).
+        return Collections.emptyList();
     }
 
     @Override
     public List<String> showSystemViews(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return Collections.emptyList();
     }
 
     @Override
     public List<DBObjectIdentity> listMViews(String schemaName) {
-        throw new UnsupportedOperationException("not support yet");
+        // Materialized views — query pg_matviews; if it doesn't exist (very old PG) fall back
+        // to an empty list rather than 500-ing the workbench identities API.
+        if (StringUtils.isBlank(schemaName)) {
+            return Collections.emptyList();
+        }
+        String sql = "select schemaname, matviewname from pg_matviews "
+                + "where schemaname = '" + schemaName + "' "
+                + "order by matviewname;";
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.MATERIALIZED_VIEW);
+                identity.setSchemaName(rs.getString(1));
+                identity.setName(rs.getString(2));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public List<DBObjectIdentity> listAllMViewsLike(String mViewNameLike) {
-        throw new UnsupportedOperationException("not support yet");
+        StringBuilder sb = new StringBuilder();
+        sb.append("select schemaname, matviewname from pg_matviews ");
+        sb.append("where schemaname not like 'pg_%' and schemaname <> 'information_schema'");
+        if (StringUtils.isNotBlank(mViewNameLike)) {
+            sb.append(" and matviewname like '").append(mViewNameLike).append("'");
+        }
+        sb.append(" order by schemaname, matviewname;");
+        try {
+            return jdbcOperations.query(sb.toString(), (rs, rowNum) -> {
+                DBObjectIdentity identity = new DBObjectIdentity();
+                identity.setType(DBObjectType.MATERIALIZED_VIEW);
+                identity.setSchemaName(rs.getString(1));
+                identity.setName(rs.getString(2));
+                return identity;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -297,7 +421,99 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableColumn> listTableColumns(String schemeName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Build a DBTableColumn list from information_schema.columns. We deliberately use only
+        // information_schema (portable across PostgreSQL / openGauss / GaussDB) plus a single
+        // pg_class/pg_index probe for the PRIMARY KEY flag. Columns that aren't part of any
+        // primary key get KeyType.NONE so the UI renders them normally.
+        if (StringUtils.isBlank(schemeName) || StringUtils.isBlank(tableName)) {
+            return Collections.emptyList();
+        }
+        // Step 1: pull the PK column names so we can stamp KeyType.PRI on the matching DBTableColumn.
+        java.util.Set<String> pkColumns = new java.util.HashSet<>();
+        String pkSql = "select kcu.column_name "
+                + "from information_schema.table_constraints tc "
+                + "join information_schema.key_column_usage kcu "
+                + "  on tc.constraint_name = kcu.constraint_name "
+                + " and tc.table_schema = kcu.table_schema "
+                + " and tc.table_name = kcu.table_name "
+                + "where tc.constraint_type = 'PRIMARY KEY' "
+                + " and tc.table_schema = '" + schemeName + "' "
+                + " and tc.table_name = '" + tableName + "';";
+        try {
+            pkColumns.addAll(jdbcOperations.query(pkSql, (rs, rowNum) -> rs.getString(1)));
+        } catch (BadSqlGrammarException ignored) {
+            // Swallow — proceed without PK info rather than failing the whole metadata read.
+        }
+
+        // Step 2: read the column list itself.
+        String sql = "select column_name, data_type, udt_name, character_maximum_length, "
+                + "numeric_precision, numeric_scale, is_nullable, column_default, "
+                + "ordinal_position "
+                + "from information_schema.columns "
+                + "where table_schema = '" + schemeName + "' and table_name = '" + tableName + "' "
+                + "order by ordinal_position;";
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBTableColumn column = new DBTableColumn();
+                column.setSchemaName(schemeName);
+                column.setTableName(tableName);
+                String name = rs.getString(1);
+                column.setName(name);
+                String dataType = rs.getString(2);
+                String udtName = rs.getString(3);
+                // udt_name is the most specific type (e.g. "varchar", "int4", "jsonb",
+                // "_text" for arrays). Prefer it over data_type for ODC's column rendering,
+                // but fall back to data_type when udt_name is null.
+                String typeName = udtName != null ? udtName : dataType;
+                column.setTypeName(typeName);
+                column.setFullTypeName(buildFullTypeName(typeName, rs.getObject(4), rs.getObject(5), rs.getObject(6)));
+                Long charMaxLen = (Long) rs.getObject(4);
+                if (charMaxLen != null) {
+                    column.setMaxLength(charMaxLen);
+                }
+                Integer precision = (Integer) rs.getObject(5);
+                if (precision != null) {
+                    column.setPrecision(precision.longValue());
+                }
+                Integer scale = (Integer) rs.getObject(6);
+                if (scale != null) {
+                    column.setScale(scale);
+                }
+                String isNullable = rs.getString(7);
+                column.setNullable("YES".equalsIgnoreCase(isNullable));
+                column.setDefaultValue(rs.getString(8));
+                column.setOrdinalPosition(rs.getInt(9));
+                if (pkColumns.contains(name)) {
+                    column.setKeyType(DBTableColumn.KeyType.PRI);
+                }
+                return column;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Build a human-readable full type name. Mirrors information_schema conventions:
+     * <ul>
+     * <li>{@code varchar(255)} when only character_maximum_length is set</li>
+     * <li>{@code numeric(10,2)} when numeric_precision + numeric_scale are set</li>
+     * <li>{@code numeric(10)} when only numeric_precision is set</li>
+     * <li>plain type name otherwise (e.g. {@code jsonb}, {@code timestamptz})</li>
+     * </ul>
+     */
+    private String buildFullTypeName(String typeName, Object charMaxLen, Object numericPrecision,
+            Object numericScale) {
+        if (charMaxLen != null) {
+            return typeName + "(" + charMaxLen + ")";
+        }
+        if (numericPrecision != null) {
+            if (numericScale != null) {
+                return typeName + "(" + numericPrecision + "," + numericScale + ")";
+            }
+            return typeName + "(" + numericPrecision + ")";
+        }
+        return typeName;
     }
 
     @Override
@@ -391,7 +607,71 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableConstraint> listTableConstraints(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Read constraints from information_schema, grouping by constraint name + type.
+        if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
+            return Collections.emptyList();
+        }
+        String sql = "select tc.constraint_name, tc.constraint_type, kcu.column_name, "
+                + "       kcu.ordinal_position, ccu.table_schema, ccu.table_name, ccu.column_name "
+                + "  from information_schema.table_constraints tc "
+                + "  left join information_schema.key_column_usage kcu "
+                + "    on tc.constraint_name = kcu.constraint_name "
+                + "   and tc.table_schema = kcu.table_schema "
+                + "   and tc.table_name = kcu.table_name "
+                + "  left join information_schema.constraint_column_usage ccu "
+                + "    on tc.constraint_name = ccu.constraint_name "
+                + "   and tc.constraint_schema = ccu.constraint_schema "
+                + " where tc.table_schema = '" + schemaName + "' "
+                + "   and tc.table_name = '" + tableName + "' "
+                + " order by tc.constraint_name, kcu.ordinal_position;";
+        java.util.LinkedHashMap<String, DBTableConstraint> byName = new java.util.LinkedHashMap<>();
+        try {
+            jdbcOperations.query(sql, rs -> {
+                String constraintName = rs.getString(1);
+                String constraintType = rs.getString(2);
+                String columnName = rs.getString(3);
+                String refSchema = rs.getString(5);
+                String refTable = rs.getString(6);
+                String refColumn = rs.getString(7);
+                DBTableConstraint constraint = byName.computeIfAbsent(constraintName, k -> {
+                    DBTableConstraint c = new DBTableConstraint();
+                    c.setSchemaName(schemaName);
+                    c.setTableName(tableName);
+                    c.setName(k);
+                    c.setColumnNames(new ArrayList<>());
+                    c.setReferenceColumnNames(new ArrayList<>());
+                    if ("PRIMARY KEY".equalsIgnoreCase(constraintType)) {
+                        c.setType(DBConstraintType.PRIMARY_KEY);
+                    } else if ("UNIQUE".equalsIgnoreCase(constraintType)) {
+                        c.setType(DBConstraintType.UNIQUE_KEY);
+                    } else if ("FOREIGN KEY".equalsIgnoreCase(constraintType)) {
+                        c.setType(DBConstraintType.FOREIGN_KEY);
+                    } else if ("CHECK".equalsIgnoreCase(constraintType)) {
+                        c.setType(DBConstraintType.CHECK);
+                    } else {
+                        c.setType(DBConstraintType.UNKNOWN);
+                    }
+                    return c;
+                });
+                if (columnName != null && !constraint.getColumnNames().contains(columnName)) {
+                    constraint.getColumnNames().add(columnName);
+                }
+                if (constraint.getType() == DBConstraintType.FOREIGN_KEY) {
+                    if (refSchema != null) {
+                        constraint.setReferenceSchemaName(refSchema);
+                    }
+                    if (refTable != null) {
+                        constraint.setReferenceTableName(refTable);
+                    }
+                    if (refColumn != null && !constraint.getReferenceColumnNames().contains(refColumn)) {
+                        constraint.getReferenceColumnNames().add(refColumn);
+                    }
+                }
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(byName.values());
     }
 
     @Override
@@ -401,22 +681,103 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableIndex> listTableIndexes(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // Read indexes via pg_indexes. We do NOT try to populate every field (e.g.
+        // index_type/algorithm or partial expressions) — only the visible flags the UI shows.
+        if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
+            return Collections.emptyList();
+        }
+        // pg_indexes gives us name + indexdef per index; combine with pg_index/pg_class for
+        // unique + primary flags.
+        String sql = "select i.relname as index_name, idx.indisunique, idx.indisprimary, "
+                + "       array_to_string(array(select pg_get_indexdef(idx.indexrelid, k + 1, true) "
+                + "                              from generate_subscripts(idx.indkey, 1) as k "
+                + "                              order by k), ', ') as columns "
+                + "  from pg_index idx "
+                + "  join pg_class i on i.oid = idx.indexrelid "
+                + "  join pg_class t on t.oid = idx.indrelid "
+                + "  join pg_namespace n on n.oid = t.relnamespace "
+                + " where n.nspname = '" + schemaName + "' and t.relname = '" + tableName + "' "
+                + " order by i.relname;";
+        try {
+            return jdbcOperations.query(sql, (rs, rowNum) -> {
+                DBTableIndex index = new DBTableIndex();
+                index.setSchemaName(schemaName);
+                index.setTableName(tableName);
+                index.setName(rs.getString(1));
+                index.setUnique(rs.getBoolean(2));
+                index.setPrimary(rs.getBoolean(3));
+                index.setNonUnique(!rs.getBoolean(2));
+                String columnsCsv = rs.getString(4);
+                if (columnsCsv != null && !columnsCsv.isEmpty()) {
+                    List<String> cols = new ArrayList<>();
+                    for (String c : columnsCsv.split(",")) {
+                        cols.add(c.trim());
+                    }
+                    index.setColumnNames(cols);
+                } else {
+                    index.setColumnNames(Collections.emptyList());
+                }
+                return index;
+            });
+        } catch (BadSqlGrammarException e) {
+            return Collections.emptyList();
+        }
     }
 
     @Override
     public String getTableDDL(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL does not expose a native SHOW CREATE TABLE; we synthesise a best-effort
+        // CREATE TABLE based on information_schema. This is intentionally simple — enough for
+        // the UI to display a readable "structure" view, not a perfect round-trip-able DDL.
+        if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
+            return "";
+        }
+        List<DBTableColumn> columns = listTableColumns(schemaName, tableName);
+        if (columns.isEmpty()) {
+            return "-- (no columns found for " + schemaName + "." + tableName + ")";
+        }
+        StringBuilder ddl = new StringBuilder();
+        ddl.append("CREATE TABLE \"").append(schemaName).append("\".\"").append(tableName).append("\" (\n");
+        for (int i = 0; i < columns.size(); i++) {
+            DBTableColumn c = columns.get(i);
+            ddl.append("  \"").append(c.getName()).append("\" ");
+            ddl.append(c.getFullTypeName() != null ? c.getFullTypeName() : c.getTypeName());
+            if (Boolean.FALSE.equals(c.getNullable())) {
+                ddl.append(" NOT NULL");
+            }
+            if (c.getDefaultValue() != null && !c.getDefaultValue().isEmpty()) {
+                ddl.append(" DEFAULT ").append(c.getDefaultValue());
+            }
+            if (i < columns.size() - 1) {
+                ddl.append(",");
+            }
+            ddl.append("\n");
+        }
+        // Append primary key if any
+        List<String> pkCols = columns.stream()
+                .filter(c -> c.getKeyType() == DBTableColumn.KeyType.PRI)
+                .map(DBTableColumn::getName)
+                .collect(Collectors.toList());
+        if (!pkCols.isEmpty()) {
+            ddl.append(",  PRIMARY KEY (");
+            ddl.append(pkCols.stream().map(c -> "\"" + c + "\"").collect(Collectors.joining(", ")));
+            ddl.append(")\n");
+        }
+        ddl.append(");");
+        return ddl.toString();
     }
 
     @Override
     public DBTableOptions getTableOptions(String schemaName, String tableName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        // PostgreSQL doesn't expose MySQL-style table options; return a minimal struct so the
+        // workbench JSON response is well-formed. (DBTableOptions has no schemaName slot; the
+        // owning DBTable already carries the schema, so we just leave engine/charset etc. null.)
+        return new DBTableOptions();
     }
 
     @Override
     public DBTableOptions getTableOptions(String schemaName, String tableName, String ddl) {
-        throw new UnsupportedOperationException("Not supported yet");
+        return getTableOptions(schemaName, tableName);
     }
 
     @Override
