@@ -25,6 +25,7 @@ import org.pf4j.Extension;
 
 import com.oceanbase.odc.core.shared.constant.OdcConstants;
 import com.oceanbase.odc.plugin.schema.gaussdb.utils.DBAccessorUtil;
+import com.oceanbase.odc.plugin.schema.gaussdb.utils.PostgresAlterTableDDLBuilder;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLTableExtension;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
@@ -177,5 +178,35 @@ public class GaussDBTableExtension extends OBMySQLTableExtension {
     @Override
     public boolean syncExternalTableFiles(Connection connection, String schemaName, String tableName) {
         return false;
+    }
+
+    /**
+     * Override {@link OBMySQLTableExtension#generateCreateDDL} to bypass
+     * {@code DBAccessorUtil.getTableEditor()} (OB-MySQL utils version), whose factory call chain
+     * invokes {@code OBMySQLInformationExtension.getDBVersion()} → {@code show variables like
+     * 'version_comment'}. That SQL is not valid on the PostgreSQL wire-protocol GaussDB exposes and
+     * causes the workbench {@code generateCreateTableDDL} endpoint to surface a confusing "syntax error
+     * at or near 'version_comment'" / {@code QueryDBVersionFailed} response. The factory's
+     * {@code buildForPostgres()} branch isn't a workable alternative either: db-browser:1.2.3 throws
+     * {@link UnsupportedOperationException} from that branch (and from all four column / index /
+     * constraint / partition editor builders), so we sidestep the editor stack entirely and emit
+     * PostgreSQL-syntax DDL directly via {@link PostgresAlterTableDDLBuilder}.
+     */
+    @Override
+    public String generateCreateDDL(@NonNull Connection connection, @NonNull DBTable table) {
+        return PostgresAlterTableDDLBuilder.generateCreateDDL(table);
+    }
+
+    /**
+     * Override {@link OBMySQLTableExtension#generateUpdateDDL} for the same reason as
+     * {@link #generateCreateDDL}. The parent's implementation triggers the OB-MySQL
+     * {@code version_comment} probe; we replace it with a self-contained PostgreSQL ALTER TABLE diff
+     * generator scoped to the GaussDB plugin. See
+     * {@link PostgresAlterTableDDLBuilder#generateUpdateDDL} for the supported operations list.
+     */
+    @Override
+    public String generateUpdateDDL(@NonNull Connection connection, @NonNull DBTable oldTable,
+            @NonNull DBTable newTable) {
+        return PostgresAlterTableDDLBuilder.generateUpdateDDL(oldTable, newTable);
     }
 }
