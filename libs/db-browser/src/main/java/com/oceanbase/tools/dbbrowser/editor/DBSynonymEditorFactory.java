@@ -74,7 +74,7 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
 
     @Override
     public DBObjectEditor<DBSynonym> buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        throw new UnsupportedOperationException("Hive does not support synonyms");
     }
 
 }

@@ -88,7 +88,7 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
 
     @Override
     public DBMViewEditor buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        throw new UnsupportedOperationException("Hive does not support materialized views");
     }
 
     private DBTableIndexEditor getMViewIndexEditor() {

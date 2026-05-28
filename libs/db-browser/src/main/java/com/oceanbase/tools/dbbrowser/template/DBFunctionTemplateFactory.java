@@ -75,7 +75,7 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
 
     @Override
     public DBObjectTemplate<DBFunction> buildForHive() {
-        throw new UnsupportedOperationException("Hive not yet implemented");
+        throw new UnsupportedOperationException("Hive does not support user-defined functions via this interface");
     }
 
 }
