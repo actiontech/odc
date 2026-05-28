@@ -48,7 +48,8 @@ import lombok.NonNull;
  * JDBC URL format: {@code jdbc:hive2://host:port/database;param=value}
  * <p>
  * Uses semicolon ({@code ;}) as parameter separator (not {@code ?} or {@code &}). Default
- * authentication mode is NONE ({@code auth=noSasl}).
+ * authentication uses SASL PLAIN (matching HiveServer2 default
+ * {@code hive.server2.authentication=NONE}).
  *
  * @since ODC_release_4.3.4
  */
@@ -84,9 +85,9 @@ public class HiveConnectionExtension extends OBMySQLConnectionExtension {
      * Override to discard MySQL/OceanBase-specific JDBC URL parameters injected by
      * {@code OBConsoleDataSourceFactory.getJdbcParams()} (e.g. useSSL, maxAllowedPacket,
      * allowMultiQueries, etc.). Hive JDBC driver does not recognize these parameters and their presence
-     * causes connection timeouts.
+     * causes connection failures or hangs.
      * <p>
-     * Only Hive-specific defaults (e.g. {@code auth=noSasl}) are retained.
+     * Only Hive-specific defaults from {@link #appendDefaultJdbcUrlParameters} are retained.
      */
     @Override
     protected String getJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
@@ -100,11 +101,17 @@ public class HiveConnectionExtension extends OBMySQLConnectionExtension {
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
         // Ignore the incoming map which contains MySQL-specific parameters.
         // Only add Hive-specific defaults.
+        //
+        // HiveServer2 default authentication is hive.server2.authentication=NONE, which
+        // actually uses SASL with the PLAIN mechanism. The Hive JDBC driver's default
+        // behavior (no "auth" parameter) matches this: it wraps the socket with a SASL
+        // PLAIN transport. Setting auth=noSasl would bypass the SASL layer and use a raw
+        // binary transport, causing an OpenSession hang due to protocol mismatch.
         Map<String, String> hiveParams = new HashMap<>();
-        // Default to NONE authentication mode (auth=noSasl).
-        // Without this, the Hive JDBC driver attempts a SASL handshake which fails
-        // against a non-Kerberos HiveServer2 instance.
-        hiveParams.put("auth", "noSasl");
+        // Set a socket timeout (seconds) to prevent indefinite hangs when the
+        // HiveServer2 is unresponsive. Without this, the SASL handshake or Thrift
+        // RPC can block a thread forever.
+        hiveParams.put("socketTimeout", "30");
         return hiveParams;
     }
 

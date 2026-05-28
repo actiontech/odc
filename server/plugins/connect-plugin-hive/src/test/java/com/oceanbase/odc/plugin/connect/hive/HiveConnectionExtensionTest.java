@@ -56,17 +56,17 @@ public class HiveConnectionExtensionTest {
                 {
                         "basic connection with default schema",
                         "h", 10000, "default",
-                        "jdbc:hive2://h:10000/default;auth=noSasl"
+                        "jdbc:hive2://h:10000/default;socketTimeout=30"
                 },
                 {
                         "connection without schema",
                         "h", 10000, null,
-                        "jdbc:hive2://h:10000/;auth=noSasl"
+                        "jdbc:hive2://h:10000/;socketTimeout=30"
                 },
                 {
                         "connection with custom database",
                         "h", 10000, "mydb",
-                        "jdbc:hive2://h:10000/mydb;auth=noSasl"
+                        "jdbc:hive2://h:10000/mydb;socketTimeout=30"
                 }
         });
     }
@@ -75,7 +75,8 @@ public class HiveConnectionExtensionTest {
     public void testGenerateJdbcUrl() {
         HiveConnectionExtension extension = new HiveConnectionExtension();
 
-        // No extra JDBC parameters -- the extension should append default auth=noSasl
+        // No extra JDBC parameters -- the extension discards MySQL params and adds
+        // no Hive-specific defaults (SASL PLAIN is the driver's built-in default).
         JdbcUrlProperty properties = new JdbcUrlProperty(host, port, schema, new HashMap<>());
 
         String actualUrl = extension.generateJdbcUrl(properties);
