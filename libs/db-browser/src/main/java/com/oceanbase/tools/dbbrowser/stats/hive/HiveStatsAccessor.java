@@ -56,8 +56,8 @@ public class HiveStatsAccessor implements DBStatsAccessor {
     /**
      * Get table statistics by parsing DESCRIBE FORMATTED output.
      * <p>
-     * Extracts {@code numRows} and {@code totalSize} from the Table Parameters section. Returns -1
-     * for missing or unparseable values.
+     * Extracts {@code numRows} and {@code totalSize} from the Table Parameters section. Returns -1 for
+     * missing or unparseable values.
      * </p>
      *
      * @param schema the database name

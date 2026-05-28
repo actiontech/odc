@@ -26,6 +26,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.schema.dm.DmSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.doris.DorisSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.schema.hive.HiveSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.MySQLNoLessThan5600SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.MySQLNoLessThan5700SchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.mysql.OBMySQLBetween220And225XSchemaAccessor;
@@ -44,7 +45,6 @@ import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleLessThan400SchemaAcce
 import com.oceanbase.tools.dbbrowser.schema.oracle.OBOracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.oracle.OracleSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.postgre.PostgresSchemaAccessor;
-import com.oceanbase.tools.dbbrowser.schema.hive.HiveSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.schema.sqlserver.SqlServerSchemaAccessor;
 import com.oceanbase.tools.dbbrowser.util.ALLDataDictTableNames;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;

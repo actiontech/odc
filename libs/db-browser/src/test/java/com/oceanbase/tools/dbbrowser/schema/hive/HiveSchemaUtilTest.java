@@ -16,7 +16,6 @@
 package com.oceanbase.tools.dbbrowser.schema.hive;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 import com.oceanbase.tools.dbbrowser.schema.hive.HiveSchemaUtil.DescribeRow;
 import com.oceanbase.tools.dbbrowser.schema.hive.HiveSchemaUtil.HiveTableMetadata;
 

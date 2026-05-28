@@ -26,7 +26,9 @@ import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
  * Utility class for Apache Hive schema operations.
  * <p>
  * Provides SQL command constants used by {@link HiveSchemaAccessor} and a state-machine parser for
- * the output of {@code DESCRIBE FORMATTED <table>}.
+ * the output of {@code DESCRIBE FORMATTED 
+ * <table>
+ * }.
  * </p>
  * <p>
  * Target Hive version: 4.2.0. The parser uses defensive programming (trim, null-safe) to tolerate
@@ -133,8 +135,9 @@ public class HiveSchemaUtil {
     }
 
     /**
-     * Parses a list of rows from {@code DESCRIBE FORMATTED <table>} output into structured
-     * {@link HiveTableMetadata}.
+     * Parses a list of rows from {@code DESCRIBE FORMATTED 
+     * <table>
+     * } output into structured {@link HiveTableMetadata}.
      * <p>
      * The parser is a state machine that transitions between sections based on header markers:
      * <ul>

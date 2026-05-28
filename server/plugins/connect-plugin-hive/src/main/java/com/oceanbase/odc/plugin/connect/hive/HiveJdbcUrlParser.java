@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Parses Hive JDBC URLs of the form {@code jdbc:hive2://host:port/database;param=value}.
  * <p>
- * Uses simple string splitting rather than regex (the URL format is regular enough
- * that string operations are clearer and sufficient).
+ * Uses simple string splitting rather than regex (the URL format is regular enough that string
+ * operations are clearer and sufficient).
  *
  * @since ODC_release_4.3.4
  */

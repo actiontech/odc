@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import org.junit.runners.Parameterized;
 import com.oceanbase.odc.plugin.connect.model.JdbcUrlProperty;
 
 /**
- * Parameterized tests for {@link HiveConnectionExtension#generateJdbcUrl(JdbcUrlProperty)}.
- * Covers design.md section 5.2.8: basic connection, no schema, custom database.
+ * Parameterized tests for {@link HiveConnectionExtension#generateJdbcUrl(JdbcUrlProperty)}. Covers
+ * design.md section 5.2.8: basic connection, no schema, custom database.
  *
  * @since ODC_release_4.3.4
  */

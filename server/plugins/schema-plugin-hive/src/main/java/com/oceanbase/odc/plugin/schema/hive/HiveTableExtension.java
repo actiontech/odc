@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ import com.oceanbase.tools.dbbrowser.stats.DBStatsAccessor;
 import lombok.NonNull;
 
 /**
- * Hive table extension. Delegates metadata browsing to the Hive schema accessor
- * and table editing to the Hive table editor.
+ * Hive table extension. Delegates metadata browsing to the Hive schema accessor and table editing
+ * to the Hive table editor.
  *
  * @since ODC_release_4.3.4
  */

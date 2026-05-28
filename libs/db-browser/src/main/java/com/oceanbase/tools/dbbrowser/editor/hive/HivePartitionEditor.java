@@ -31,8 +31,8 @@ import lombok.NonNull;
 /**
  * Partition editor for Apache Hive.
  * <p>
- * Supports ADD PARTITION and DROP PARTITION operations. Hive partition specifications use the format
- * {@code (key='value', key2='value2')}.
+ * Supports ADD PARTITION and DROP PARTITION operations. Hive partition specifications use the
+ * format {@code (key='value', key2='value2')}.
  * </p>
  * <p>
  * Most partition DDL operations (e.g., modifying partition type, creating partition definitions
