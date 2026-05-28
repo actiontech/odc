@@ -161,6 +161,8 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isSqlServer()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isHive()) {
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isMongoDB()) {

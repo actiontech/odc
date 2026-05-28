@@ -390,6 +390,8 @@ public class ConnectionConfig
                 return OdcConstants.POSTGRESQL_DEFAULT_SCHEMA;
             case SQL_SERVER:
                 return OdcConstants.SQL_SERVER_DEFAULT_SCHEMA;
+            case HIVE:
+                return OdcConstants.HIVE_DEFAULT_SCHEMA;
             default:
                 return null;
         }
