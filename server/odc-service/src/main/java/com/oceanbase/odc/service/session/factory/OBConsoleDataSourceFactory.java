@@ -338,6 +338,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case POSTGRESQL:
             case GAUSSDB:
             case SQL_SERVER:
+            case HIVE:
                 return schema;
             default:
                 return null;
@@ -386,6 +387,11 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(getDbUser(connectionConfig), connectionConfig.getDialectType());
+            case HIVE:
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return defaultSchema;
+                }
+                return OdcConstants.HIVE_DEFAULT_SCHEMA;
             default:
                 return null;
         }

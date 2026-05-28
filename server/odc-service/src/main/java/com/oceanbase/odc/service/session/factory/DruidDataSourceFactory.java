@@ -128,7 +128,7 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
      */
     static String resolveValidationQuery(DialectType dialectType) {
         if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
-                || dialectType.isPgFamily() || dialectType.isSqlServer()) {
+                || dialectType.isPgFamily() || dialectType.isSqlServer() || dialectType.isHive()) {
             return "select 1";
         }
         return "select 1 from dual";
