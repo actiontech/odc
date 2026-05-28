@@ -34,6 +34,7 @@ public enum DialectType {
     SQL_SERVER,
     DM,
     MONGODB,
+    HIVE,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -101,6 +102,10 @@ public enum DialectType {
 
     public boolean isMongoDB() {
         return MONGODB == this;
+    }
+
+    public boolean isHive() {
+        return HIVE == this;
     }
 
 }

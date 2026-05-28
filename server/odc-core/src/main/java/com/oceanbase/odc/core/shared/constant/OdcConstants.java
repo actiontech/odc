@@ -133,6 +133,12 @@ public class OdcConstants {
      */
     public static final String MONGODB_DRIVER_CLASS_NAME =
             "com.oceanbase.odc.plugin.connect.mongodb.bridge.MongoJdbcDriver";
+    /**
+     * Hive driver class name
+     */
+    public static final String HIVE_DRIVER_CLASS_NAME = "org.apache.hive.jdbc.HiveDriver";
+    public static final String HIVE_DEFAULT_SCHEMA = "default";
+    public static final int HIVE_DEFAULT_PORT = 10000;
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
 
     /**
