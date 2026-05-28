@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
@@ -45,8 +47,8 @@ import lombok.NonNull;
  * <p>
  * JDBC URL format: {@code jdbc:hive2://host:port/database;param=value}
  * <p>
- * Uses semicolon ({@code ;}) as parameter separator (not {@code ?} or {@code &}).
- * Default authentication mode is NONE ({@code auth=noSasl}).
+ * Uses semicolon ({@code ;}) as parameter separator (not {@code ?} or {@code &}). Default
+ * authentication mode is NONE ({@code auth=noSasl}).
  *
  * @since ODC_release_4.3.4
  */
@@ -78,18 +80,32 @@ public class HiveConnectionExtension extends OBMySQLConnectionExtension {
         return jdbcUrl.toString();
     }
 
+    /**
+     * Override to discard MySQL/OceanBase-specific JDBC URL parameters injected by
+     * {@code OBConsoleDataSourceFactory.getJdbcParams()} (e.g. useSSL, maxAllowedPacket,
+     * allowMultiQueries, etc.). Hive JDBC driver does not recognize these parameters and their presence
+     * causes connection timeouts.
+     * <p>
+     * Only Hive-specific defaults (e.g. {@code auth=noSasl}) are retained.
+     */
+    @Override
+    protected String getJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
+        Map<String, String> hiveParams = appendDefaultJdbcUrlParameters(null);
+        return Objects.isNull(hiveParams) ? null
+                : hiveParams.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&"));
+    }
+
     @Override
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
-        if (jdbcUrlParams == null) {
-            jdbcUrlParams = new HashMap<>();
-        }
+        // Ignore the incoming map which contains MySQL-specific parameters.
+        // Only add Hive-specific defaults.
+        Map<String, String> hiveParams = new HashMap<>();
         // Default to NONE authentication mode (auth=noSasl).
         // Without this, the Hive JDBC driver attempts a SASL handshake which fails
         // against a non-Kerberos HiveServer2 instance.
-        if (!jdbcUrlParams.containsKey("auth")) {
-            jdbcUrlParams.put("auth", "noSasl");
-        }
-        return jdbcUrlParams;
+        hiveParams.put("auth", "noSasl");
+        return hiveParams;
     }
 
     @Override
