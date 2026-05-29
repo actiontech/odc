@@ -32,8 +32,10 @@ import com.oceanbase.tools.dbbrowser.util.StringUtils;
  * <p>
  * HANA column DDL differences from other databases:
  * <ul>
- * <li>ADD column: {@code ALTER TABLE "schema"."table" ADD ("col" TYPE [NOT NULL] [DEFAULT ...])}</li>
- * <li>ALTER column: {@code ALTER TABLE "schema"."table" ALTER ("col" TYPE [NOT NULL] [DEFAULT ...])}</li>
+ * <li>ADD column:
+ * {@code ALTER TABLE "schema"."table" ADD ("col" TYPE [NOT NULL] [DEFAULT ...])}</li>
+ * <li>ALTER column:
+ * {@code ALTER TABLE "schema"."table" ALTER ("col" TYPE [NOT NULL] [DEFAULT ...])}</li>
  * <li>DROP column: {@code ALTER TABLE "schema"."table" DROP ("col")}</li>
  * <li>RENAME column: {@code RENAME COLUMN "schema"."table"."old_col" TO "new_col"}</li>
  * <li>Column comment: {@code COMMENT ON COLUMN "schema"."table"."col" IS 'comment'}</li>
@@ -62,8 +64,8 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * Generate ADD column DDL for HANA.
-     * Format: ALTER TABLE "schema"."table" ADD ("col" TYPE [NOT NULL] [DEFAULT ...])
+     * Generate ADD column DDL for HANA. Format: ALTER TABLE "schema"."table" ADD ("col" TYPE [NOT NULL]
+     * [DEFAULT ...])
      */
     @Override
     public String generateCreateObjectDDL(@NotNull DBTableColumn column) {
@@ -77,8 +79,8 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * Generate RENAME COLUMN DDL for HANA.
-     * Format: RENAME COLUMN "schema"."table"."old_col" TO "new_col"
+     * Generate RENAME COLUMN DDL for HANA. Format: RENAME COLUMN "schema"."table"."old_col" TO
+     * "new_col"
      */
     @Override
     public String generateRenameObjectDDL(@NotNull DBTableColumn oldColumn,
@@ -92,9 +94,9 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * Generate UPDATE column DDL for HANA.
-     * Handles: rename, type/nullable change, comment change, default value change.
-     * Format: ALTER TABLE "schema"."table" ALTER ("col" TYPE [NOT NULL] [DEFAULT ...])
+     * Generate UPDATE column DDL for HANA. Handles: rename, type/nullable change, comment change,
+     * default value change. Format: ALTER TABLE "schema"."table" ALTER ("col" TYPE [NOT NULL] [DEFAULT
+     * ...])
      */
     @Override
     public String generateUpdateObjectDDL(@NotNull DBTableColumn oldColumn,
@@ -138,8 +140,7 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * Generate DROP column DDL for HANA.
-     * Format: ALTER TABLE "schema"."table" DROP ("col")
+     * Generate DROP column DDL for HANA. Format: ALTER TABLE "schema"."table" DROP ("col")
      */
     @Override
     public String generateDropObjectDDL(@NotNull DBTableColumn column) {
@@ -150,8 +151,8 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * Generate COMMENT ON COLUMN for HANA.
-     * Format: COMMENT ON COLUMN "schema"."table"."col" IS 'comment'
+     * Generate COMMENT ON COLUMN for HANA. Format: COMMENT ON COLUMN "schema"."table"."col" IS
+     * 'comment'
      */
     @Override
     protected void generateColumnComment(DBTableColumn column, SqlBuilder sqlBuilder) {
@@ -193,8 +194,8 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     }
 
     /**
-     * HANA data type modifier. Formats type with precision and scale.
-     * Examples: NVARCHAR(100), DECIMAL(10,2), INTEGER
+     * HANA data type modifier. Formats type with precision and scale. Examples: NVARCHAR(100),
+     * DECIMAL(10,2), INTEGER
      */
     protected static class HanaDataTypeModifier implements DBColumnModifier {
         @Override

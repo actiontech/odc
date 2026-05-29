@@ -28,7 +28,8 @@ import com.oceanbase.tools.dbbrowser.util.StringUtils;
  * <p>
  * HANA constraint DDL syntax:
  * <ul>
- * <li>ADD: {@code ALTER TABLE "schema"."table" ADD CONSTRAINT "name" PRIMARY KEY ("col1", "col2")}</li>
+ * <li>ADD:
+ * {@code ALTER TABLE "schema"."table" ADD CONSTRAINT "name" PRIMARY KEY ("col1", "col2")}</li>
  * <li>ADD: {@code ALTER TABLE "schema"."table" ADD CONSTRAINT "name" UNIQUE ("col1")}</li>
  * <li>ADD FK: {@code ALTER TABLE "schema"."table" ADD CONSTRAINT "name" FOREIGN KEY ("col")
  *            REFERENCES "ref_schema"."ref_table" ("ref_col")}</li>
@@ -46,8 +47,8 @@ public class HanaConstraintEditor extends DBTableConstraintEditor {
     }
 
     /**
-     * Generate DROP CONSTRAINT DDL for HANA.
-     * Format: ALTER TABLE "schema"."table" DROP CONSTRAINT "constraint_name"
+     * Generate DROP CONSTRAINT DDL for HANA. Format: ALTER TABLE "schema"."table" DROP CONSTRAINT
+     * "constraint_name"
      */
     @Override
     public String generateDropObjectDDL(@NotNull DBTableConstraint constraint) {
@@ -55,6 +56,15 @@ public class HanaConstraintEditor extends DBTableConstraintEditor {
         sqlBuilder.append("ALTER TABLE ").append(getFullyQualifiedTableName(constraint))
                 .append(" DROP CONSTRAINT ").identifier(constraint.getName());
         return sqlBuilder.toString().trim() + ";\n";
+    }
+
+    /**
+     * HANA does not support renaming constraints directly; throw UnsupportedOperationException.
+     */
+    @Override
+    public String generateRenameObjectDDL(@NotNull DBTableConstraint oldConstraint,
+            @NotNull DBTableConstraint newConstraint) {
+        throw new UnsupportedOperationException("HANA does not support constraint renaming");
     }
 
     @Override

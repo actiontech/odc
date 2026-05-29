@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * SAP HANA session extension.
  * <p>
- * Provides HANA-specific implementations for schema switching, connection ID retrieval,
- * and session/query termination.
+ * Provides HANA-specific implementations for schema switching, connection ID retrieval, and
+ * session/query termination.
  *
  * @since ODC_release_4.3.4
  */

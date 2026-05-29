@@ -28,6 +28,7 @@ import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
  * Function template for SAP HANA database.
  * <p>
  * Generates CREATE FUNCTION templates using HANA SQL syntax:
+ * 
  * <pre>
  * CREATE FUNCTION "function_name" (IN param1 INT)
  * RETURNS result INT

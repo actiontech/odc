@@ -33,8 +33,7 @@ public class HanaSchemaUtil {
     private static final String DDL_NOT_AVAILABLE = "-- DDL not available";
 
     /**
-     * Retrieve the DDL (CREATE statement) for a database object by calling
-     * SYS.GET_OBJECT_DEFINITION.
+     * Retrieve the DDL (CREATE statement) for a database object by calling SYS.GET_OBJECT_DEFINITION.
      *
      * <p>
      * This method uses a CallableStatement to invoke the stored procedure, which returns the object

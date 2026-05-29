@@ -951,7 +951,7 @@ public class HanaSchemaAccessor implements DBSchemaAccessor {
                 trigger.setSchemaName(rs.getString("SUBJECT_TABLE_NAME"));
                 trigger.setBaseObjectType("TABLE");
                 trigger.setEnable("TRUE".equalsIgnoreCase(rs.getString("IS_ENABLED")));
-                trigger.setStatus(trigger.getEnable() ? "ENABLED" : "DISABLED");
+                trigger.setStatus(trigger.isEnable() ? "ENABLED" : "DISABLED");
             });
         } catch (Exception e) {
             log.warn("Failed to get trigger info for {}.{}: {}", schemaName, triggerName, e.getMessage());

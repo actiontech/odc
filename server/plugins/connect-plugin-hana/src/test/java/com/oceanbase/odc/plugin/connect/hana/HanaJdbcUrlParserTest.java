@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +37,8 @@ import com.oceanbase.odc.plugin.connect.api.JdbcUrlParser;
 /**
  * Unit tests for {@link HanaJdbcUrlParser}.
  * <p>
- * Uses parameterized map-case style to cover standard URL, URL with parameters,
- * currentSchema handling, and userName-based schema fallback.
+ * Uses parameterized map-case style to cover standard URL, URL with parameters, currentSchema
+ * handling, and userName-based schema fallback.
  * </p>
  *
  * @since ODC_release_4.3.4

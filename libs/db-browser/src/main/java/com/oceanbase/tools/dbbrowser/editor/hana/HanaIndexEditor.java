@@ -51,8 +51,8 @@ public class HanaIndexEditor extends DBTableIndexEditor {
     }
 
     /**
-     * Generate CREATE INDEX DDL for HANA.
-     * Format: CREATE [UNIQUE] INDEX "idx_name" ON "schema"."table" ("col1", "col2")
+     * Generate CREATE INDEX DDL for HANA. Format: CREATE [UNIQUE] INDEX "idx_name" ON "schema"."table"
+     * ("col1", "col2")
      */
     @Override
     public String generateCreateObjectDDL(@NotNull DBTableIndex index) {
@@ -73,8 +73,7 @@ public class HanaIndexEditor extends DBTableIndexEditor {
     }
 
     /**
-     * Generate DROP INDEX DDL for HANA.
-     * Format: DROP INDEX "schema"."idx_name"
+     * Generate DROP INDEX DDL for HANA. Format: DROP INDEX "schema"."idx_name"
      * <p>
      * Note: In HANA, DROP INDEX uses schema-qualified index name, not table-qualified.
      */
@@ -92,6 +91,15 @@ public class HanaIndexEditor extends DBTableIndexEditor {
     @Override
     protected void appendIndexColumnModifiers(DBTableIndex index, SqlBuilder sqlBuilder) {
         // HANA does not have special modifiers for index columns
+    }
+
+    /**
+     * HANA does not support index renaming; throw UnsupportedOperationException.
+     */
+    @Override
+    public String generateRenameObjectDDL(@NotNull DBTableIndex oldIndex,
+            @NotNull DBTableIndex newIndex) {
+        throw new UnsupportedOperationException("HANA does not support index renaming");
     }
 
     @Override

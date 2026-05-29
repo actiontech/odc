@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,9 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * SAP HANA diagnose extension.
  * <p>
- * Provides execution plan retrieval via {@code EXPLAIN PLAN FOR ...} and
- * uses {@code SELECT 1 FROM DUMMY} as the diagnostic SQL (HANA does not
- * support bare {@code SELECT 1}).
+ * Provides execution plan retrieval via {@code EXPLAIN PLAN FOR ...} and uses
+ * {@code SELECT 1 FROM DUMMY} as the diagnostic SQL (HANA does not support bare {@code SELECT 1}).
  *
  * @since ODC_release_4.3.4
  */

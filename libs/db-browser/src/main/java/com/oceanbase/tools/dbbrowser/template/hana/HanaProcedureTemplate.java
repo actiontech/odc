@@ -28,6 +28,7 @@ import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
  * Procedure template for SAP HANA database.
  * <p>
  * Generates CREATE PROCEDURE templates using HANA SQL syntax:
+ * 
  * <pre>
  * CREATE PROCEDURE "procedure_name" (IN param1 INT)
  * LANGUAGE SQLSCRIPT

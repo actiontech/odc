@@ -23,8 +23,8 @@ import com.oceanbase.tools.dbbrowser.util.SqlBuilder;
 /**
  * View template for SAP HANA database.
  * <p>
- * Generates CREATE VIEW templates using HANA SQL syntax with double-quote identifiers.
- * HANA uses a two-level naming scheme: "schema"."view_name".
+ * Generates CREATE VIEW templates using HANA SQL syntax with double-quote identifiers. HANA uses a
+ * two-level naming scheme: "schema"."view_name".
  *
  * @since ODC_release_4.3.4
  */

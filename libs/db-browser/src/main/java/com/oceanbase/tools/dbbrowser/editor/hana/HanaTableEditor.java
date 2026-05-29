@@ -40,12 +40,12 @@ import com.oceanbase.tools.dbbrowser.util.StringUtils;
  * <li>DROP: {@code DROP TABLE "schema"."table"}</li>
  * <li>Comment: {@code COMMENT ON TABLE "schema"."table" IS 'comment'}</li>
  * </ul>
- * This editor integrates HanaColumnEditor, HanaIndexEditor, and HanaConstraintEditor
- * to generate complete table DDL statements.
+ * This editor integrates HanaColumnEditor, HanaIndexEditor, and HanaConstraintEditor to generate
+ * complete table DDL statements.
  * <p>
- * Important: {@code generateUpdateObjectDDL} is overridden to directly control the
- * change processing flow, avoiding the parent class's default traversal logic which
- * may produce incompatible SQL for HANA.
+ * Important: {@code generateUpdateObjectDDL} is overridden to directly control the change
+ * processing flow, avoiding the parent class's default traversal logic which may produce
+ * incompatible SQL for HANA.
  *
  * @since ODC_release_4.3.4
  */
@@ -84,8 +84,8 @@ public class HanaTableEditor extends DBTableEditor {
     }
 
     /**
-     * Generate RENAME TABLE DDL for HANA.
-     * Format: RENAME TABLE "schema"."old_name" TO "schema"."new_name"
+     * Generate RENAME TABLE DDL for HANA. Format: RENAME TABLE "schema"."old_name" TO
+     * "schema"."new_name"
      */
     @Override
     public String generateRenameObjectDDL(@NotNull DBTable oldTable, @NotNull DBTable newTable) {
@@ -100,8 +100,8 @@ public class HanaTableEditor extends DBTableEditor {
     }
 
     /**
-     * Generate COMMENT ON COLUMN for each column with a comment.
-     * Format: COMMENT ON COLUMN "schema"."table"."column" IS 'comment'
+     * Generate COMMENT ON COLUMN for each column with a comment. Format: COMMENT ON COLUMN
+     * "schema"."table"."column" IS 'comment'
      */
     @Override
     protected void appendColumnComment(DBTable table, SqlBuilder sqlBuilder) {
@@ -120,8 +120,7 @@ public class HanaTableEditor extends DBTableEditor {
     }
 
     /**
-     * Generate COMMENT ON TABLE for HANA.
-     * Format: COMMENT ON TABLE "schema"."table" IS 'comment'
+     * Generate COMMENT ON TABLE for HANA. Format: COMMENT ON TABLE "schema"."table" IS 'comment'
      */
     @Override
     protected void appendTableComment(DBTable table, SqlBuilder sqlBuilder) {
@@ -150,9 +149,9 @@ public class HanaTableEditor extends DBTableEditor {
     }
 
     /**
-     * Override generateUpdateObjectDDL to directly control the change processing flow.
-     * This avoids the parent class's default traversal logic which may produce incompatible
-     * SQL for HANA (e.g., partition operations and column group operations that HANA doesn't support).
+     * Override generateUpdateObjectDDL to directly control the change processing flow. This avoids the
+     * parent class's default traversal logic which may produce incompatible SQL for HANA (e.g.,
+     * partition operations and column group operations that HANA doesn't support).
      */
     @Override
     public String generateUpdateObjectDDL(@NotNull DBTable oldTable, @NotNull DBTable newTable) {

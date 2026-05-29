@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -115,10 +115,8 @@ public class HanaJdbcUrlParser implements JdbcUrlParser {
     }
 
     /**
-     * Resolve the effective schema name:
-     * 1. Use currentSchema parameter from JDBC URL if present
-     * 2. Fall back to uppercase userName
-     * 3. Fall back to default HANA schema constant
+     * Resolve the effective schema name: 1. Use currentSchema parameter from JDBC URL if present 2.
+     * Fall back to uppercase userName 3. Fall back to default HANA schema constant
      */
     private String resolveSchema(Map<String, Object> allParams, String userName) {
         Object currentSchema = allParams.get(CURRENT_SCHEMA_KEY);

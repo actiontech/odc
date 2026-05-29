@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 OceanBase.
+ * Copyright (c) 2023 OceanBase.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,9 +42,9 @@ import lombok.NonNull;
 /**
  * SAP HANA connection extension.
  * <p>
- * Generates JDBC URLs in the format {@code jdbc:sap://host:port/?param=value},
- * tests connections using {@code SELECT 1 FROM DUMMY} (HANA does not support
- * bare {@code SELECT 1} without a FROM clause).
+ * Generates JDBC URLs in the format {@code jdbc:sap://host:port/?param=value}, tests connections
+ * using {@code SELECT 1 FROM DUMMY} (HANA does not support bare {@code SELECT 1} without a FROM
+ * clause).
  *
  * @since ODC_release_4.3.4
  */

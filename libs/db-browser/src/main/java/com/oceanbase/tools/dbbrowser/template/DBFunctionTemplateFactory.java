@@ -17,9 +17,9 @@ package com.oceanbase.tools.dbbrowser.template;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
+import com.oceanbase.tools.dbbrowser.template.hana.HanaFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleFunctionTemplate;
-import com.oceanbase.tools.dbbrowser.template.hana.HanaFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerFunctionTemplate;
 
 public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBFunction>> {
