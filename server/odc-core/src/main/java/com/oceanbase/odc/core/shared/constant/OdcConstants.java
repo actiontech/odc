@@ -140,6 +140,12 @@ public class OdcConstants {
     public static final String HIVE_DEFAULT_SCHEMA = "default";
     public static final int HIVE_DEFAULT_PORT = 10000;
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
+    /**
+     * SAP HANA driver class name
+     */
+    public static final String HANA_DRIVER_CLASS_NAME = "com.sap.db.jdbc.Driver";
+    public static final int HANA_DEFAULT_PORT = 30015;
+    public static final String HANA_DEFAULT_SCHEMA = "SYSTEM";
 
     /**
      * Parameters name

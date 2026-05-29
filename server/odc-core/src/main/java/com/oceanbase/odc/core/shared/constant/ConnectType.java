@@ -35,6 +35,7 @@ public enum ConnectType {
     GAUSSDB(DialectType.GAUSSDB),
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
+    HANA(DialectType.HANA),
     MONGODB(DialectType.MONGODB),
     HIVE(DialectType.HIVE),
 

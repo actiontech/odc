@@ -27,6 +27,7 @@ public interface DBBrowserFactory<T> {
     String POSTGRESQL = "POSTGRESQL";
     String SQL_SERVER = "SQL_SERVER";
     String DM = "DM";
+    String HANA = "HANA";
     String HIVE = "HIVE";
 
     T create();
