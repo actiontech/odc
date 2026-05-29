@@ -238,16 +238,114 @@ public class HiveTableEditorTest {
         Assert.assertTrue("ROW FORMAT before STORED AS", rowFormatPos < storedAsPos);
     }
 
+    /**
+     * Test generateUpdateObjectDDL does not throw when modifying columns (Bug fix: skip
+     * index/constraint editors).
+     */
+    @Test
+    public void testUpdateObjectDDL_modifyColumn_noException() {
+        DBTable oldTable = createBaseTable();
+        DBTable newTable = createBaseTable();
+
+        // Add a new column to newTable
+        DBTableColumn emailColumn = createColumn("test_db", "users", "email", "STRING", "user email");
+        newTable.getColumns().add(emailColumn);
+
+        String ddl = tableEditor.generateUpdateObjectDDL(oldTable, newTable);
+        Assert.assertNotNull("DDL should not be null", ddl);
+        Assert.assertTrue("DDL should contain ADD COLUMNS for the new column",
+                ddl.contains("ADD COLUMNS") && ddl.contains("email"));
+    }
+
+    /**
+     * Test generateUpdateObjectDDL handles rename + column change together.
+     */
+    @Test
+    public void testUpdateObjectDDL_renameAndModifyColumn() {
+        DBTable oldTable = createBaseTable();
+        DBTable newTable = createBaseTable();
+        newTable.setName("users_v2");
+
+        // Add a new column
+        DBTableColumn emailColumn = createColumn("test_db", "users_v2", "email", "STRING", "user email");
+        newTable.getColumns().add(emailColumn);
+
+        String ddl = tableEditor.generateUpdateObjectDDL(oldTable, newTable);
+        Assert.assertNotNull("DDL should not be null", ddl);
+        Assert.assertTrue("DDL should contain RENAME TO",
+                ddl.contains("RENAME TO") && ddl.contains("users_v2"));
+        Assert.assertTrue("DDL should contain ADD COLUMNS",
+                ddl.contains("ADD COLUMNS"));
+    }
+
+    /**
+     * Test generateUpdateObjectDDL with no structural changes does not throw.
+     * <p>
+     * Note: The column editor always generates CHANGE COLUMN DDL for each matched column pair (it does
+     * not compare old/new for equality), so the DDL is not empty; the key assertion is that no
+     * UnsupportedOperationException is thrown (index/constraint editors are skipped).
+     * </p>
+     */
+    @Test
+    public void testUpdateObjectDDL_noStructuralChanges_noException() {
+        DBTable oldTable = createBaseTable();
+        DBTable newTable = createBaseTable();
+
+        String ddl = tableEditor.generateUpdateObjectDDL(oldTable, newTable);
+        Assert.assertNotNull("DDL should not be null", ddl);
+        // Key: no UnsupportedOperationException was thrown (index/constraint editors skipped)
+        Assert.assertFalse("DDL should not contain index-related content",
+                ddl.contains("INDEX"));
+    }
+
+    /**
+     * Test generateUpdateObjectDDLWithoutRenaming does not throw (shadow table comparing scenario).
+     */
+    @Test
+    public void testUpdateObjectDDLWithoutRenaming_noException() {
+        DBTable oldTable = createBaseTable();
+        DBTable newTable = createBaseTable();
+
+        DBTableColumn emailColumn = createColumn("test_db", "users", "email", "STRING", "user email");
+        newTable.getColumns().add(emailColumn);
+
+        String ddl = tableEditor.generateUpdateObjectDDLWithoutRenaming(oldTable, newTable);
+        Assert.assertNotNull("DDL should not be null", ddl);
+        Assert.assertTrue("DDL should contain ADD COLUMNS",
+                ddl.contains("ADD COLUMNS") && ddl.contains("email"));
+    }
+
+    /**
+     * Test generateUpdateObjectDDL with table comment change.
+     */
+    @Test
+    public void testUpdateObjectDDL_commentChange() {
+        DBTable oldTable = createBaseTable();
+        DBTableOptions oldOpts = new DBTableOptions();
+        oldOpts.setComment("old comment");
+        oldTable.setTableOptions(oldOpts);
+
+        DBTable newTable = createBaseTable();
+        DBTableOptions newOpts = new DBTableOptions();
+        newOpts.setComment("new comment");
+        newTable.setTableOptions(newOpts);
+
+        String ddl = tableEditor.generateUpdateObjectDDL(oldTable, newTable);
+        Assert.assertNotNull("DDL should not be null", ddl);
+        Assert.assertTrue("DDL should contain SET TBLPROPERTIES for comment update",
+                ddl.contains("SET TBLPROPERTIES") && ddl.contains("new comment"));
+    }
+
     // --- Helper methods ---
 
     private DBTable createBaseTable() {
         DBTable table = new DBTable();
         table.setSchemaName("test_db");
         table.setName("users");
-        table.setColumns(Arrays.asList(
-                createColumn("test_db", "users", "id", "BIGINT", "primary key"),
-                createColumn("test_db", "users", "name", "STRING", "user name"),
-                createColumn("test_db", "users", "age", "INT", null)));
+        table.setColumns(new java.util.ArrayList<>(Arrays.asList(
+                createColumn("test_db", "users", "id", "BIGINT", "primary key", 1),
+                createColumn("test_db", "users", "name", "STRING", "user name", 2),
+                createColumn("test_db", "users", "age", "INT", null, 3))));
         table.setIndexes(Collections.emptyList());
         table.setConstraints(Collections.emptyList());
         table.setTableOptions(new DBTableOptions());
@@ -256,12 +354,18 @@ public class HiveTableEditorTest {
 
     private static DBTableColumn createColumn(String schema, String table, String name,
             String typeName, String comment) {
+        return createColumn(schema, table, name, typeName, comment, null);
+    }
+
+    private static DBTableColumn createColumn(String schema, String table, String name,
+            String typeName, String comment, Integer ordinalPosition) {
         DBTableColumn column = new DBTableColumn();
         column.setSchemaName(schema);
         column.setTableName(table);
         column.setName(name);
         column.setTypeName(typeName);
         column.setComment(comment);
+        column.setOrdinalPosition(ordinalPosition);
         return column;
     }
 

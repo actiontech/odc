@@ -201,6 +201,83 @@ public class HiveTableEditor extends DBTableEditor {
         // No-op: Hive column comments are inline
     }
 
+    /**
+     * Override to skip index/constraint/columnGroup editors that Hive does not support.
+     * <p>
+     * Only handles: table rename, table option changes (COMMENT), column changes, and partition
+     * changes.
+     * </p>
+     */
+    @Override
+    public String generateUpdateObjectDDL(@NotNull DBTable oldTable, @NotNull DBTable newTable) {
+        SqlBuilder sqlBuilder = sqlBuilder();
+        // Table rename
+        if (!StringUtils.equals(oldTable.getName(), newTable.getName())) {
+            sqlBuilder.append(generateRenameObjectDDL(oldTable, newTable));
+            sqlBuilder.append(";\n");
+        }
+        // Table option changes (COMMENT etc.)
+        generateUpdateTableOptionDDL(oldTable, newTable, sqlBuilder);
+        // Fill schema/table names into columns and partitions (parent's fillSchemaNameAndTableName
+        // is private, so we inline the relevant logic here)
+        fillSchemaAndTableNamesForUpdate(oldTable);
+        fillSchemaAndTableNamesForUpdate(newTable);
+        // Column changes (ADD COLUMNS / CHANGE COLUMN)
+        sqlBuilder.append(columnEditor.generateUpdateObjectListDDL(
+                oldTable.getColumns(), newTable.getColumns()));
+        // Partition changes (ADD/DROP PARTITION)
+        sqlBuilder.append(partitionEditor.generateUpdateObjectDDL(
+                oldTable.getPartition(), newTable.getPartition()));
+        // Skip: indexEditor, constraintEditor, generateUpdateColumnGroupDDL (OB-specific)
+        return sqlBuilder.toString();
+    }
+
+    /**
+     * Override to skip index/constraint/columnGroup editors for shadow table comparing.
+     * <p>
+     * Hive does not support indexes, foreign key constraints, or column groups, so those editors are
+     * not invoked.
+     * </p>
+     */
+    @Override
+    public String generateUpdateObjectDDLWithoutRenaming(@NotNull DBTable oldTable,
+            @NotNull DBTable newTable) {
+        SqlBuilder sqlBuilder = sqlBuilder();
+        generateUpdateTableOptionDDL(oldTable, newTable, sqlBuilder);
+        fillSchemaAndTableNamesForUpdate(oldTable);
+        fillSchemaAndTableNamesForUpdate(newTable);
+        // Column changes only
+        sqlBuilder.append(columnEditor.generateUpdateObjectListDDL(
+                oldTable.getColumns(), newTable.getColumns()));
+        // Partition changes
+        sqlBuilder.append(partitionEditor.generateUpdateObjectDDL(
+                oldTable.getPartition(), newTable.getPartition()));
+        // Skip: indexEditor, constraintEditor, generateUpdateColumnGroupDDL
+        return sqlBuilder.toString();
+    }
+
+    /**
+     * Fill schema name and table name into columns and partition for update operations.
+     * <p>
+     * The parent class's {@code fillSchemaNameAndTableName} is private, so we replicate the relevant
+     * subset here (columns + partition only, since Hive has no indexes/constraints).
+     * </p>
+     */
+    private void fillSchemaAndTableNamesForUpdate(DBTable table) {
+        String schemaName = table.getSchemaName();
+        String tableName = table.getName();
+        if (CollectionUtils.isNotEmpty(table.getColumns())) {
+            table.getColumns().forEach(column -> {
+                column.setSchemaName(schemaName);
+                column.setTableName(tableName);
+            });
+        }
+        if (Objects.nonNull(table.getPartition())) {
+            table.getPartition().setSchemaName(schemaName);
+            table.getPartition().setTableName(tableName);
+        }
+    }
+
     @Override
     public String generateRenameObjectDDL(@NotNull DBTable oldTable, @NotNull DBTable newTable) {
         SqlBuilder sqlBuilder = sqlBuilder();
