@@ -27,7 +27,8 @@ import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
  * <p>
  * Provides SQL command constants used by {@link HiveSchemaAccessor} and a state-machine parser for
  * the output of {@code DESCRIBE FORMATTED 
- * <table>
+ * 
+<table>
  * }.
  * </p>
  * <p>
@@ -136,7 +137,8 @@ public class HiveSchemaUtil {
 
     /**
      * Parses a list of rows from {@code DESCRIBE FORMATTED 
-     * <table>
+     * 
+    <table>
      * } output into structured {@link HiveTableMetadata}.
      * <p>
      * The parser is a state machine that transitions between sections based on header markers:

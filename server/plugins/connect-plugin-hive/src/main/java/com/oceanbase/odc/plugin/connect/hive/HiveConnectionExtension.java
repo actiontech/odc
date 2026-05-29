@@ -87,7 +87,7 @@ public class HiveConnectionExtension extends OBMySQLConnectionExtension {
      * allowMultiQueries, etc.). Hive JDBC driver does not recognize these parameters and their presence
      * causes connection failures or hangs.
      * <p>
-     * Only Hive-specific defaults from {@link #appendDefaultJdbcUrlParameters} are retained.
+     * Only Hive-specific defaults (e.g. {@code socketTimeout}) are retained.
      */
     @Override
     protected String getJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
@@ -103,15 +103,15 @@ public class HiveConnectionExtension extends OBMySQLConnectionExtension {
         // Only add Hive-specific defaults.
         //
         // HiveServer2 default authentication is hive.server2.authentication=NONE, which
-        // actually uses SASL with the PLAIN mechanism. The Hive JDBC driver's default
-        // behavior (no "auth" parameter) matches this: it wraps the socket with a SASL
-        // PLAIN transport. Setting auth=noSasl would bypass the SASL layer and use a raw
-        // binary transport, causing an OpenSession hang due to protocol mismatch.
+        // uses SASL with the PLAIN mechanism. The Hive JDBC driver's default behavior
+        // (no "auth" parameter) matches this: it wraps the socket with a SASL PLAIN
+        // transport. Do NOT set auth=noSasl unless the server is explicitly configured
+        // with hive.server2.authentication=NOSASL.
         Map<String, String> hiveParams = new HashMap<>();
-        // Set a socket timeout (seconds) to prevent indefinite hangs when the
-        // HiveServer2 is unresponsive. Without this, the SASL handshake or Thrift
-        // RPC can block a thread forever.
-        hiveParams.put("socketTimeout", "30");
+        // Socket timeout in milliseconds. The Hive JDBC driver passes this value to
+        // TSocket -> Socket.setSoTimeout(), preventing indefinite hangs when the server
+        // is unresponsive. 30000ms = 30 seconds.
+        hiveParams.put("socketTimeout", "30000");
         return hiveParams;
     }
 
