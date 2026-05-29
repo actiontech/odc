@@ -36,6 +36,7 @@ public enum ConnectType {
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
     MONGODB(DialectType.MONGODB),
+    HIVE(DialectType.HIVE),
 
     // reserved for future version
     ODP_SHARDING_OB_ORACLE(DialectType.OB_ORACLE),

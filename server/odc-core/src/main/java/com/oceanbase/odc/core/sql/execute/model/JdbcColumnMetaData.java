@@ -17,6 +17,7 @@ package com.oceanbase.odc.core.sql.execute.model;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 
 import com.oceanbase.odc.common.util.StringUtils;
@@ -24,11 +25,13 @@ import com.oceanbase.odc.core.shared.constant.OdcConstants;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author wenniu.ly
  * @date 2021/8/30
  */
+@Slf4j
 @Data
 @NoArgsConstructor
 public class JdbcColumnMetaData {
@@ -90,28 +93,82 @@ public class JdbcColumnMetaData {
     public JdbcColumnMetaData(ResultSetMetaData resultSetMetaData, int index) throws SQLException {
         this.autoIncrement = resultSetMetaData.isAutoIncrement(index);
         this.caseSensitive = resultSetMetaData.isCaseSensitive(index);
-        this.searchable = resultSetMetaData.isSearchable(index);
+        this.searchable = getBooleanSafely(resultSetMetaData, index, "isSearchable",
+                () -> resultSetMetaData.isSearchable(index));
         this.currency = resultSetMetaData.isCurrency(index);
         this.nullable = resultSetMetaData.isNullable(index);
-        this.signed = resultSetMetaData.isSigned(index);
+        this.signed = getBooleanSafely(resultSetMetaData, index, "isSigned",
+                () -> resultSetMetaData.isSigned(index));
         this.columnDisplaySize = resultSetMetaData.getColumnDisplaySize(index);
         this.columnLabel = resultSetMetaData.getColumnLabel(index);
         this.columnName = resultSetMetaData.getColumnName(index);
-        this.schemaName = resultSetMetaData.getSchemaName(index);
+        this.schemaName = getStringSafely(resultSetMetaData, index, "getSchemaName",
+                () -> resultSetMetaData.getSchemaName(index));
         this.precision = resultSetMetaData.getPrecision(index);
         this.scale = resultSetMetaData.getScale(index);
-        this.tableName = resultSetMetaData.getTableName(index);
-        this.catalogName = resultSetMetaData.getCatalogName(index);
+        this.tableName = getStringSafely(resultSetMetaData, index, "getTableName",
+                () -> resultSetMetaData.getTableName(index));
+        this.catalogName = getStringSafely(resultSetMetaData, index, "getCatalogName",
+                () -> resultSetMetaData.getCatalogName(index));
         this.columnType = resultSetMetaData.getColumnType(index);
         this.columnTypeName = resultSetMetaData.getColumnTypeName(index);
-        this.readOnly = resultSetMetaData.isReadOnly(index);
-        this.writable = resultSetMetaData.isWritable(index);
-        this.definitelyWritable = resultSetMetaData.isDefinitelyWritable(index);
+        this.readOnly = getBooleanSafely(resultSetMetaData, index, "isReadOnly",
+                () -> resultSetMetaData.isReadOnly(index));
+        this.writable = getBooleanSafely(resultSetMetaData, index, "isWritable",
+                () -> resultSetMetaData.isWritable(index));
+        this.definitelyWritable = getBooleanSafely(resultSetMetaData, index, "isDefinitelyWritable",
+                () -> resultSetMetaData.isDefinitelyWritable(index));
         this.columnClassName = resultSetMetaData.getColumnClassName(index);
 
         if (StringUtils.equals(OdcConstants.ODC_INTERNAL_ROWID, this.columnName)) {
             this.internal = true;
         }
+    }
+
+    private static String getStringSafely(ResultSetMetaData metaData, int index, String methodName,
+            SqlStringSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (SQLFeatureNotSupportedException e) {
+            log.debug("ResultSetMetaData.{}({}) not supported by JDBC driver [{}], returning empty string",
+                    methodName, index, metaData.getClass().getName());
+            return "";
+        } catch (SQLException e) {
+            if ("Method not supported".equals(e.getMessage())) {
+                log.debug("ResultSetMetaData.{}({}) not supported by JDBC driver [{}], returning empty string",
+                        methodName, index, metaData.getClass().getName());
+                return "";
+            }
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static boolean getBooleanSafely(ResultSetMetaData metaData, int index, String methodName,
+            SqlBooleanSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (SQLFeatureNotSupportedException e) {
+            log.debug("ResultSetMetaData.{}({}) not supported by JDBC driver [{}], returning false",
+                    methodName, index, metaData.getClass().getName());
+            return false;
+        } catch (SQLException e) {
+            if ("Method not supported".equals(e.getMessage())) {
+                log.debug("ResultSetMetaData.{}({}) not supported by JDBC driver [{}], returning false",
+                        methodName, index, metaData.getClass().getName());
+                return false;
+            }
+            throw new RuntimeException(e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface SqlStringSupplier {
+        String get() throws SQLException;
+    }
+
+    @FunctionalInterface
+    private interface SqlBooleanSupplier {
+        boolean get() throws SQLException;
     }
 
     public String schemaName() {

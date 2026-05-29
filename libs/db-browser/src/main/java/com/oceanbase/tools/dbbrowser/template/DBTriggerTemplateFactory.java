@@ -72,4 +72,9 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForHive() {
+        throw new UnsupportedOperationException("Hive does not support triggers");
+    }
+
 }

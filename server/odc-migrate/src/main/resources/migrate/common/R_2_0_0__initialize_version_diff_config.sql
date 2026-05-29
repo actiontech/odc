@@ -287,3 +287,10 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
   '1.0',
   CURRENT_TIMESTAMP
 ) ON DUPLICATE KEY UPDATE `config_key`=`config_key`;
+
+-- Hive column data types
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`)
+values('column_data_type', 'HIVE',
+'TINYINT:NUMERIC, SMALLINT:NUMERIC, INT:NUMERIC, BIGINT:NUMERIC, FLOAT:NUMERIC, DOUBLE:NUMERIC, DECIMAL:NUMERIC, BOOLEAN:BOOLEAN, STRING:TEXT, VARCHAR:TEXT, CHAR:TEXT, BINARY:OBJECT, DATE:DATE, TIMESTAMP:TIMESTAMP, ARRAY<STRING>:OBJECT, ARRAY<INT>:OBJECT',
+'0', CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE `config_key`=`config_key`;

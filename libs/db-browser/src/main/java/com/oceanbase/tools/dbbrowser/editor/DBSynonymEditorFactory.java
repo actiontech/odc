@@ -72,4 +72,9 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
         return buildForOracle();
     }
 
+    @Override
+    public DBObjectEditor<DBSynonym> buildForHive() {
+        throw new UnsupportedOperationException("Hive does not support synonyms");
+    }
+
 }

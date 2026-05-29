@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.hive.HivePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLDBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLDBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan2277PartitionEditor;
@@ -95,6 +96,11 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
     @Override
     public DBTablePartitionEditor buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBTablePartitionEditor buildForHive() {
+        return new HivePartitionEditor();
     }
 
 }

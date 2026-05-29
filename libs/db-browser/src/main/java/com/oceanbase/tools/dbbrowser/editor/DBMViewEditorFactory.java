@@ -86,6 +86,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         return buildForOracle();
     }
 
+    @Override
+    public DBMViewEditor buildForHive() {
+        throw new UnsupportedOperationException("Hive does not support materialized views");
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

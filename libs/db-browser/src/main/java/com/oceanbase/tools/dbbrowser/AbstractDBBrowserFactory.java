@@ -50,6 +50,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForSqlServer();
             case DM:
                 return buildForDm();
+            case HIVE:
+                return buildForHive();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -74,5 +76,7 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForSqlServer();
 
     public abstract T buildForDm();
+
+    public abstract T buildForHive();
 
 }

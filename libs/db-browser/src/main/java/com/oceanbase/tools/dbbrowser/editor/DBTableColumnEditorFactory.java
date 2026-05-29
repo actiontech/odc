@@ -16,6 +16,7 @@
 package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.hive.HiveColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerColumnEditor;
@@ -70,6 +71,11 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
     @Override
     public DBTableColumnEditor buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBTableColumnEditor buildForHive() {
+        return new HiveColumnEditor();
     }
 
 }

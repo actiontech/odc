@@ -25,6 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.stats.dm.DmStatsAccessor;
+import com.oceanbase.tools.dbbrowser.stats.hive.HiveStatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.mysql.DorisStatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.mysql.MySQLNoLessThan5700StatsAccessor;
 import com.oceanbase.tools.dbbrowser.stats.mysql.OBMySQLNoLessThan400StatsAccessor;
@@ -126,6 +127,11 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
     @Override
     public DBStatsAccessor buildForDm() {
         return new DmStatsAccessor(getJdbcOperations());
+    }
+
+    @Override
+    public DBStatsAccessor buildForHive() {
+        return new HiveStatsAccessor(getJdbcOperations());
     }
 
     private JdbcOperations getJdbcOperations() {
