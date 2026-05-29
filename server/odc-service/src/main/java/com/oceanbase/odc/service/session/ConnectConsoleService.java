@@ -271,11 +271,12 @@ public class ConnectConsoleService {
         Verify.verify(results.size() == 1, "Expect results.size=1, but " + results.size());
         SqlExecuteResult result = results.get(0);
         /**
-         * editable will always be false because ResultSetMetaData#getTableName will return blank in oracle
-         * JDBC, but the resultSet can be edited in this single-table query scenario, so we just set it to
-         * true.
+         * editable will always be false because ResultSetMetaData#getTableName will return blank in
+         * certain JDBC drivers (Oracle, HANA), but the resultSet can be edited in this single-table
+         * query scenario, so we just set it to true.
          */
-        if (DialectType.ORACLE == connectionSession.getDialectType()) {
+        DialectType dt = connectionSession.getDialectType();
+        if (dt == DialectType.ORACLE || dt == DialectType.HANA) {
             if (result.getResultSetMetaData() != null) {
                 result.getResultSetMetaData().setEditable(true);
                 result.getResultSetMetaData().getFieldMetaDataList()

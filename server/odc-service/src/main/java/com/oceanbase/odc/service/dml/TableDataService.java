@@ -95,7 +95,7 @@ public class TableDataService {
             DialectType dialectType = connectionSession.getDialectType();
             if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
                 dmlBuilder = new MySQLDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
-            } else if (dialectType.isOracle() || dialectType.isDm()) {
+            } else if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else {
