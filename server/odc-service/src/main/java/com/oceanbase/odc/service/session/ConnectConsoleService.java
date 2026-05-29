@@ -184,6 +184,18 @@ public class ConnectConsoleService {
             asyncExecuteReq.setContinueExecutionOnError(true);
             asyncExecuteReq.setFullLinkTraceEnabled(false);
             return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+        } else if (dialectType.isPgFamily()) {
+            // GaussDB / openGauss / PostgreSQL use PostgreSQL wire protocol, where identifiers
+            // are quoted with double quotes (e.g. "schema"."table"), NOT MySQL back-ticks.
+            // Reusing MySQLSqlBuilder here previously produced
+            // SELECT t.* FROM `schema`.`table` t LIMIT 1000
+            // which triggered SQLState=42601 syntax error at or near "`" against openGauss.
+            // OracleSqlBuilder.identifier() wraps identifiers with '"' (see
+            // StringUtils.ORACLE_IDENTIFIER_WRAP_CHAR), which is exactly what PG expects.
+            // Only identifier() / schemaPrefixIfNotBlank() are exercised below, so the rest of
+            // OracleSqlBuilder's Oracle-specific behavior (value quoting, default values,
+            // LIKE ESCAPE) is never invoked here and is therefore safe to reuse.
+            sqlBuilder = new OracleSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }
