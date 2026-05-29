@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor;
@@ -104,7 +105,14 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
 
     @Override
     public DBTableEditor buildForDB2() {
-        throw new UnsupportedOperationException("DB2 not supported yet");
+        // fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): wire DB2-native editors so the table
+        // designer can emit DB2 ALTER TABLE / RENAME TABLE / COMMENT ON TABLE statements instead of
+        // throwing UnsupportedOperationException("DB2 not supported yet") which surfaced as HTTP 500
+        // on every "保存表结构" click in the workbench.
+        return new Db2TableEditor(getTableIndexEditor(),
+                getTableColumnEditor(),
+                getTableConstraintEditor(),
+                getTablePartitionEditor());
     }
 
     private DBTableIndexEditor getTableIndexEditor() {

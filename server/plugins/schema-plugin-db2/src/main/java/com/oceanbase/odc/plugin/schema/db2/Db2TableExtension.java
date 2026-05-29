@@ -23,6 +23,7 @@ import com.oceanbase.odc.common.unit.BinarySizeUnit;
 import com.oceanbase.odc.common.util.JdbcOperationsUtil;
 import com.oceanbase.odc.plugin.schema.db2.utils.DBAccessorUtil;
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLTableExtension;
+import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import com.oceanbase.tools.dbbrowser.model.DBTable;
 import com.oceanbase.tools.dbbrowser.model.DBTableStats;
@@ -132,5 +133,35 @@ public class Db2TableExtension extends OBMySQLTableExtension {
         // DB2 has no external-table support in this release. Return false instead of throwing so the
         // upstream sync flow doesn't 500.
         return false;
+    }
+
+    /**
+     * fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): route CREATE TABLE DDL generation through
+     * the DB2-native {@code DBTableEditor} (built by {@code DBTableEditorFactory.buildForDB2()})
+     * instead of inheriting the OB-MySQL path which invokes
+     * {@code OBMySQLInformationExtension.getDBVersion(connection)} →
+     * {@code show variables like 'version_comment'}. DB2 jcc rejects that probe with
+     * {@code ERRORCODE=-4476 (executeQuery used for update)}, collapsing the entire "保存表结构" workflow on
+     * the table designer with HTTP 500.
+     */
+    @Override
+    public String generateCreateDDL(@NonNull Connection connection, @NonNull DBTable table) {
+        DBTableEditor editor = DBAccessorUtil.getTableEditor(connection);
+        return editor.generateCreateObjectDDL(table);
+    }
+
+    /**
+     * fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): same rationale as
+     * {@link #generateCreateDDL(Connection, DBTable)}. Force the workbench's "修改表结构" flow to use the
+     * DB2 editor stack (column / index / constraint editors) — without this override the inherited
+     * OB-MySQL implementation walked the {@code DBAccessorUtil.getTableEditor(conn)} of the obmysql
+     * package and built {@link com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor} which
+     * emits MySQL-only ALTER TABLE MODIFY COLUMN grammar that DB2 cannot parse.
+     */
+    @Override
+    public String generateUpdateDDL(@NonNull Connection connection, @NonNull DBTable oldTable,
+            @NonNull DBTable newTable) {
+        DBTableEditor editor = DBAccessorUtil.getTableEditor(connection);
+        return editor.generateUpdateObjectDDL(oldTable, newTable);
     }
 }

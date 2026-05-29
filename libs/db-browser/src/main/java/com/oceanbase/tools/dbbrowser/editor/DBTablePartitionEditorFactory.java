@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2NoOpPartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLDBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLDBTablePartitionEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan2277PartitionEditor;
@@ -99,7 +100,12 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
 
     @Override
     public DBTablePartitionEditor buildForDB2() {
-        throw new UnsupportedOperationException("DB2 not supported yet");
+        // fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): return a no-op partition editor so
+        // DBTableEditor.generateUpdateObjectDDL can call partitionEditor.generateUpdateObjectDDL on
+        // an unpartitioned DB2 table without throwing. DB2 partition editing is intentionally out of
+        // scope per expand_odc_db2.md §14 — the no-op emits empty strings, which is the same shape
+        // the SQL Server editor uses for partitions it doesn't manage.
+        return new Db2NoOpPartitionEditor();
     }
 
 }

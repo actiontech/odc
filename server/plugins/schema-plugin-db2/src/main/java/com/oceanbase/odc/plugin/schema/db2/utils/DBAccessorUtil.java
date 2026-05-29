@@ -20,6 +20,7 @@ import java.sql.Connection;
 import com.oceanbase.odc.common.util.JdbcOperationsUtil;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.tools.dbbrowser.DBBrowser;
+import com.oceanbase.tools.dbbrowser.editor.DBTableEditor;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
 /**
@@ -37,6 +38,25 @@ public class DBAccessorUtil {
     public static DBSchemaAccessor getSchemaAccessor(Connection connection) {
         return DBBrowser.schemaAccessor()
                 .setJdbcOperations(JdbcOperationsUtil.getJdbcOperations(connection))
+                .setType(DialectType.DB2.getDBBrowserDialectTypeName())
+                .create();
+    }
+
+    /**
+     * DB2 table editor entry point (fix_report_20260529_100416 Bug-2, Issue dms-ee#839).
+     *
+     * <p>
+     * The inherited {@code OBMySQLTableExtension#getTableEditor(Connection)} routes through the
+     * OB-MySQL DBAccessorUtil which executes {@code "show variables like 'version_comment'"} — that
+     * statement fails on DB2 with {@code ERRORCODE=-4476 (executeQuery used for update)}, so every
+     * "保存表结构" click on a DB2 table designer used to 500 even after the editor factories were wired. Set
+     * {@code dbVersion} to {@code "11.5"} (the lowest DB2 LUW version we test against) instead of
+     * probing — none of the DB2 editor implementations branch on dbVersion, so the value is effectively
+     * a fixed placeholder that satisfies factory contract checks.
+     */
+    public static DBTableEditor getTableEditor(Connection connection) {
+        return DBBrowser.objectEditor().tableEditor()
+                .setDbVersion("11.5")
                 .setType(DialectType.DB2.getDBBrowserDialectTypeName())
                 .create();
     }
