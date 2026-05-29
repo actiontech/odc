@@ -184,6 +184,11 @@ public class ConnectConsoleService {
             asyncExecuteReq.setContinueExecutionOnError(true);
             asyncExecuteReq.setFullLinkTraceEnabled(false);
             return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+        } else if (dialectType.isPgFamily()) {
+            // GaussDB / openGauss use PostgreSQL wire protocol. MySQLSqlBuilder generates
+            // "SELECT t.* FROM schema.table t LIMIT n" which is valid PostgreSQL syntax,
+            // so it is reused here for PG-family dialects. This also covers POSTGRESQL.
+            sqlBuilder = new MySQLSqlBuilder();
         } else {
             throw new IllegalArgumentException("Unsupported dialect type, " + dialectType);
         }

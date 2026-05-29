@@ -276,3 +276,14 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_procedure','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_function','SQL_SERVER','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- GaussDB / openGauss column data types (PostgreSQL-compatible)
+-- Required so VersionDiffConfigService.getDatatypeList() returns a non-empty list for GAUSSDB sessions.
+-- Without this row, session.dataTypes is empty and the column editor's data type dropdown shows no options.
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values(
+  'column_data_type',
+  'GAUSSDB',
+  'smallint:NUMERIC, integer:NUMERIC, int:NUMERIC, bigint:NUMERIC, decimal:NUMERIC, numeric:NUMERIC, real:NUMERIC, float:NUMERIC, serial:NUMERIC, bigserial:NUMERIC, char:TEXT, varchar:TEXT, text:OBJECT, bytea:OBJECT, boolean:NUMERIC, date:DATE, time:TIME, timestamp:TIMESTAMP, timestamptz:TIMESTAMP, interval:TEXT, json:OBJECT, jsonb:OBJECT, uuid:OBJECT',
+  '1.0',
+  CURRENT_TIMESTAMP
+) ON DUPLICATE KEY UPDATE `config_key`=`config_key`;
