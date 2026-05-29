@@ -28,7 +28,15 @@ import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 import sun.misc.Unsafe;
 
 /**
- * Unit tests for {@link OBConsoleDataSourceFactory}.
+ * Unit tests for {@link OBConsoleDataSourceFactory}, including
+ * {@link OBConsoleDataSourceFactory#resolveEffectiveCatalogName(DialectType, String, String)}.
+ *
+ * <p>
+ * 覆盖 issue #850 中 PG 数据源 {@code catalog name can not be null} 阻塞性 BUG 的修复路径：上游（DMS）创建 PG 数据源时通常只传
+ * {@code default_schema=public} 而不传 {@code catalog_name}，导致 ODC 后端
+ * {@code DatabaseService.syncDataSourceSchemas} 100% 失败、前端资源树无法展开。修复方案在 PG 类型 + catalog 为空时 统一兜底到
+ * PG 内置默认数据库 {@code postgres}；不再以 defaultSchema 推断 catalog（schema 不是 database， 强行使用会触发
+ * {@code FATAL: database "<schema>" does not exist}）。
  */
 public class OBConsoleDataSourceFactoryTest {
 
@@ -152,11 +160,13 @@ public class OBConsoleDataSourceFactoryTest {
     }
 
     @Test
-    public void testResolveEffectiveCatalogName_PG_nullCatalog_customSchema_usesSchemaAsCatalog() {
-        // 兼容用户在 default_schema 字段中实际填了 database 名的场景
-        Assert.assertEquals("testdb",
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_customSchema_fallsBackToPostgresDb() {
+        // 即便用户填了"看似 database 名"的 defaultSchema（如 testdb / appdb），也不能再据此推断 catalog——
+        // 因为它可能是真实存在的 PG schema（如 schema_a），用作 catalog 会触发
+        // FATAL: database "<schema>" does not exist。统一兜底到 postgres 内置库。
+        Assert.assertEquals("postgres",
                 OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "testdb"));
-        Assert.assertEquals("appdb",
+        Assert.assertEquals("postgres",
                 OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", "appdb"));
     }
 

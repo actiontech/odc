@@ -138,19 +138,20 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
      * {@code DatabaseService.syncDataSourceSchemas} 100% 失败、前端资源树无法展开。
      *
      * <p>
-     * 兜底策略（仅当 dialectType=POSTGRESQL 且 {@code catalogName} 为空时生效）：
-     * <ol>
-     * <li>若 {@code defaultSchema} 非空且不等于 PG 内置默认 schema
-     * {@value com.oceanbase.odc.core.shared.constant.OdcConstants#POSTGRESQL_DEFAULT_SCHEMA} （兼容用户在
-     * default_schema 字段中实际填了 database 名的场景），则用 {@code defaultSchema} 作为 catalog 兜底；</li>
-     * <li>否则使用 PG 标准内置数据库
+     * 兜底策略（仅当 dialectType=POSTGRESQL 且 {@code catalogName} 为空时生效）：统一回落到 PG 标准内置数据库
      * {@value com.oceanbase.odc.core.shared.constant.OdcConstants#POSTGRESQL_DEFAULT_DATABASE}， 该库在所有
-     * PG 标准安装中默认存在，确保 schema 列表查询（{@code information_schema.schemata}）能够走通。</li>
-     * </ol>
+     * PG 标准安装中默认存在，确保 schema 列表查询（{@code information_schema.schemata}）能够走通。
      *
      * <p>
-     * 不直接用 {@code defaultSchema=public} 作 catalog 兜底，因为 PG 中 {@code public} 是 schema 名而不是 database 名，
-     * 几乎不会有名为 {@code public} 的 database，强行用之会抛 {@code FATAL: database "public" does not exist}。
+     * 历史上曾尝试"若 {@code defaultSchema} 非空且不等于 {@code public}，则用 {@code defaultSchema} 作为 catalog"
+     * 的兜底，初衷是兼容用户在 default_schema 字段中实际填了 database 名的场景。但该推断不可靠：当用户填的是 真实存在的 PG schema 名（例如
+     * {@code schema_a}）时，JDBC URL 会变成 {@code jdbc:postgresql://host:port/schema_a}，触发
+     * {@code FATAL: database "schema_a" does not exist}， 连接和资源同步全部失败。故移除该 defaultSchema 兜底，统一返回
+     * {@code postgres}。
+     *
+     * <p>
+     * 为避免 {@code catalogName} 为空，前端 PG 数据源配置已将 catalogName 字段设为必填项；后端兜底仅作为
+     * 极端情况的最后一道防线（例如老数据迁移、第三方接入未填）。
      *
      * <p>
      * 对其他数据源类型（MySQL/Oracle/SQLServer/OceanBase 等）保持原行为不变，{@code catalogName} 原样透传， 不影响其既有 JDBC URL
@@ -158,7 +159,8 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
      *
      * @param dialectType 数据源类型
      * @param catalogName 用户配置的 catalog（可空）
-     * @param defaultSchema 经过 {@link #getDefaultSchema(ConnectionConfig)} 处理后的默认 schema
+     * @param defaultSchema 经过 {@link #getDefaultSchema(ConnectionConfig)} 处理后的默认 schema（仅保留作为接口
+     *        兼容签名，不再参与 PG catalog 推断）
      * @return 实际用于 JDBC URL 的 catalog 名称
      * @since 4.3.4 (issue #850)
      */
@@ -168,10 +170,9 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             return catalogName;
         }
         if (DialectType.POSTGRESQL == dialectType) {
-            if (StringUtils.isNotBlank(defaultSchema)
-                    && !OdcConstants.POSTGRESQL_DEFAULT_SCHEMA.equalsIgnoreCase(defaultSchema)) {
-                return defaultSchema;
-            }
+            // 当 catalogName 为空时，统一回落到 PG 标准内置数据库 postgres。
+            // 不能用 defaultSchema 兜底：defaultSchema 是 schema 名，不是 database 名，
+            // 用它会触发 FATAL: database "<schema>" does not exist。
             return OdcConstants.POSTGRESQL_DEFAULT_DATABASE;
         }
         return catalogName;
