@@ -38,6 +38,7 @@
         <module>schema-plugin-gaussdb</module>
         <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-dm</module>
+        <module>schema-plugin-hana</module>
         <module>schema-plugin-mongodb</module>
         <module>schema-plugin-hive</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
@@ -232,6 +233,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-dm</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-hana</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
