@@ -288,6 +288,14 @@ insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min
   CURRENT_TIMESTAMP
 ) ON DUPLICATE KEY UPDATE `config_key`=`config_key`;
 
+-- support HANA datasource
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('column_data_type', 'HANA',
+'TINYINT:NUMERIC, SMALLINT:NUMERIC, INTEGER:NUMERIC, BIGINT:NUMERIC, DECIMAL:NUMERIC, SMALLDECIMAL:NUMERIC, REAL:NUMERIC, DOUBLE:NUMERIC, FLOAT:NUMERIC, BOOLEAN:NUMERIC, VARCHAR:TEXT, NVARCHAR:TEXT, ALPHANUM:TEXT, SHORTTEXT:TEXT, VARBINARY:TEXT, BLOB:OBJECT, CLOB:OBJECT, NCLOB:OBJECT, DATE:DATE, TIME:TIME, SECONDDATE:DATETIME, TIMESTAMP:TIMESTAMP, ST_GEOMETRY:OBJECT, ST_POINT:OBJECT, ARRAY:OBJECT',
+'0', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','HANA','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_procedure','HANA','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_function','HANA','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
 -- Hive column data types
 insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`)
 values('column_data_type', 'HIVE',
