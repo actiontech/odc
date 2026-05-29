@@ -40,7 +40,9 @@ public class DataConverters {
         if (DialectType.OB_ORACLE == dialectType) {
             initForOracleMode(serverTimeZoneId);
             converterList.add(new OBOracleGeometryConverter());
-        } else if (DialectType.ORACLE == dialectType || dialectType.isHana()) {
+        } else if (dialectType.isHana()) {
+            initForHanaMode(serverTimeZoneId);
+        } else if (DialectType.ORACLE == dialectType) {
             initForOracleMode(serverTimeZoneId);
         } else if (dialectType.isMysql()) {
             initForMysqlMode();
@@ -75,6 +77,16 @@ public class DataConverters {
         converterList.add(new OracleRowIDConverter());
         converterList.add(new OracleIntervalConverter());
         converterList.add(new OracleJsonConverter());
+    }
+
+    private void initForHanaMode(String serverTimeZoneId) {
+        converterList.add(new HanaStringConverter());
+        converterList.add(new OracleTimeStampTZConverter());
+        converterList.add(new OracleTimeStampConverter(serverTimeZoneId));
+        converterList.add(new OracleDateConverter());
+        converterList.add(new OracleClobConverter());
+        converterList.add(new OracleByteConverter());
+        converterList.add(new OracleIntervalConverter());
     }
 
     public DataConverter get(@NonNull DataType dataType) {
