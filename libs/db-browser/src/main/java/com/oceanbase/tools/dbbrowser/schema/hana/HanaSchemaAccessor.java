@@ -626,16 +626,12 @@ public class HanaSchemaAccessor implements DBSchemaAccessor {
     @Override
     public Map<String, List<DBTableConstraint>> listTableConstraints(String schemaName) {
         Map<String, List<DBTableConstraint>> tableName2Constraints = new LinkedHashMap<>();
-        String sql = "SELECT c.SCHEMA_NAME, c.TABLE_NAME, c.CONSTRAINT_NAME,"
-                + " c.IS_PRIMARY_KEY, c.IS_UNIQUE_KEY,"
-                + " cc.COLUMN_NAME, cc.POSITION"
-                + " FROM SYS.CONSTRAINTS c"
-                + " JOIN SYS.CONSTRAINT_COLUMNS cc"
-                + " ON c.SCHEMA_NAME = cc.SCHEMA_NAME"
-                + " AND c.TABLE_NAME = cc.TABLE_NAME"
-                + " AND c.CONSTRAINT_NAME = cc.CONSTRAINT_NAME"
-                + " WHERE c.SCHEMA_NAME = ?"
-                + " ORDER BY c.TABLE_NAME, c.CONSTRAINT_NAME, cc.POSITION";
+        String sql = "SELECT SCHEMA_NAME, TABLE_NAME, CONSTRAINT_NAME,"
+                + " IS_PRIMARY_KEY, IS_UNIQUE_KEY,"
+                + " COLUMN_NAME, POSITION"
+                + " FROM SYS.CONSTRAINTS"
+                + " WHERE SCHEMA_NAME = ?"
+                + " ORDER BY TABLE_NAME, CONSTRAINT_NAME, POSITION";
         jdbcOperations.query(sql, new Object[] {schemaName}, (rs, num) -> {
             String tableName = rs.getString("TABLE_NAME");
             String constraintName = rs.getString("CONSTRAINT_NAME");
@@ -664,17 +660,13 @@ public class HanaSchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableConstraint> listTableConstraints(String schemaName, String tableName) {
-        // First query basic constraints from SYS.CONSTRAINTS + SYS.CONSTRAINT_COLUMNS
-        String sql = "SELECT c.SCHEMA_NAME, c.TABLE_NAME, c.CONSTRAINT_NAME,"
-                + " c.IS_PRIMARY_KEY, c.IS_UNIQUE_KEY,"
-                + " cc.COLUMN_NAME, cc.POSITION"
-                + " FROM SYS.CONSTRAINTS c"
-                + " JOIN SYS.CONSTRAINT_COLUMNS cc"
-                + " ON c.SCHEMA_NAME = cc.SCHEMA_NAME"
-                + " AND c.TABLE_NAME = cc.TABLE_NAME"
-                + " AND c.CONSTRAINT_NAME = cc.CONSTRAINT_NAME"
-                + " WHERE c.SCHEMA_NAME = ? AND c.TABLE_NAME = ?"
-                + " ORDER BY c.CONSTRAINT_NAME, cc.POSITION";
+        // Query basic constraints from SYS.CONSTRAINTS (view already contains column info)
+        String sql = "SELECT SCHEMA_NAME, TABLE_NAME, CONSTRAINT_NAME,"
+                + " IS_PRIMARY_KEY, IS_UNIQUE_KEY,"
+                + " COLUMN_NAME, POSITION"
+                + " FROM SYS.CONSTRAINTS"
+                + " WHERE SCHEMA_NAME = ? AND TABLE_NAME = ?"
+                + " ORDER BY CONSTRAINT_NAME, POSITION";
         Map<String, DBTableConstraint> name2Constraint = new LinkedHashMap<>();
         jdbcOperations.query(sql, new Object[] {schemaName, tableName}, (rs, num) -> {
             String constraintName = rs.getString("CONSTRAINT_NAME");
@@ -686,17 +678,13 @@ public class HanaSchemaAccessor implements DBSchemaAccessor {
             return null;
         });
 
-        // Query foreign key constraints from SYS.REFERENTIAL_CONSTRAINTS
-        String fkSql = "SELECT rc.CONSTRAINT_NAME, rc.REFERENCED_SCHEMA_NAME,"
-                + " rc.REFERENCED_TABLE_NAME, rc.UPDATE_RULE, rc.DELETE_RULE,"
-                + " cc.COLUMN_NAME, cc.POSITION"
-                + " FROM SYS.REFERENTIAL_CONSTRAINTS rc"
-                + " JOIN SYS.CONSTRAINT_COLUMNS cc"
-                + " ON rc.SCHEMA_NAME = cc.SCHEMA_NAME"
-                + " AND rc.TABLE_NAME = cc.TABLE_NAME"
-                + " AND rc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME"
-                + " WHERE rc.SCHEMA_NAME = ? AND rc.TABLE_NAME = ?"
-                + " ORDER BY rc.CONSTRAINT_NAME, cc.POSITION";
+        // Query foreign key constraints from SYS.REFERENTIAL_CONSTRAINTS (view contains column info)
+        String fkSql = "SELECT CONSTRAINT_NAME, REFERENCED_SCHEMA_NAME,"
+                + " REFERENCED_TABLE_NAME, UPDATE_RULE, DELETE_RULE,"
+                + " COLUMN_NAME, POSITION"
+                + " FROM SYS.REFERENTIAL_CONSTRAINTS"
+                + " WHERE SCHEMA_NAME = ? AND TABLE_NAME = ?"
+                + " ORDER BY CONSTRAINT_NAME, POSITION";
         Map<String, DBTableConstraint> fkName2Constraint = new LinkedHashMap<>();
         jdbcOperations.query(fkSql, new Object[] {schemaName, tableName}, (rs, num) -> {
             String constraintName = rs.getString("CONSTRAINT_NAME");
