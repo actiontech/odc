@@ -16,6 +16,7 @@
 package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2IndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.hana.HanaIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.hive.HiveIndexEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLNoLessThan5700IndexEditor;
@@ -90,9 +91,13 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     @Override
     public DBTableIndexEditor buildForHive() {
         return new HiveIndexEditor();
+    }
 
+    @Override
     public DBTableIndexEditor buildForDB2() {
-        throw new UnsupportedOperationException("DB2 not supported yet");
+        // fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): return Db2IndexEditor which emits
+        // schema-qualified CREATE [UNIQUE] INDEX / DROP INDEX statements per DB2 LUW grammar.
+        return new Db2IndexEditor();
     }
 
 }

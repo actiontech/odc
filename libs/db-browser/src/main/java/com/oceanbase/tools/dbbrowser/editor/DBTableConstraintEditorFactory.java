@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2ConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.hana.HanaConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.hive.HiveConstraintEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLConstraintEditor;
@@ -103,9 +104,15 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
     @Override
     public DBTableConstraintEditor buildForHive() {
         return new HiveConstraintEditor();
+    }
 
+    @Override
     public DBTableConstraintEditor buildForDB2() {
-        throw new UnsupportedOperationException("DB2 not supported yet");
+        // fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): replace the throw with the DB2-native
+        // constraint editor. Adding / removing PK / UNIQUE on the workbench table designer used to
+        // 500 the entire ALTER TABLE flow because DBTableEditor.generateUpdateObjectDDL invokes
+        // constraintEditor.generateUpdateObjectListDDL unconditionally.
+        return new Db2ConstraintEditor();
     }
 
 }
