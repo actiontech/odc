@@ -87,6 +87,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
     }
 
     @Override
+    public DBMViewEditor buildForHana() {
+        throw new UnsupportedOperationException("HANA materialized view editor not supported");
+    }
+
+    @Override
     public DBMViewEditor buildForHive() {
         throw new UnsupportedOperationException("Hive does not support materialized views");
     }

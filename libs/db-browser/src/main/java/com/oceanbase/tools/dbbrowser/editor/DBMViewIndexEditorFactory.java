@@ -78,6 +78,11 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     }
 
     @Override
+    public DBTableIndexEditor buildForHana() {
+        throw new UnsupportedOperationException("HANA materialized view index editor not supported");
+    }
+
+    @Override
     public DBTableIndexEditor buildForHive() {
         throw new UnsupportedOperationException("Hive does not support materialized view indexes");
     }

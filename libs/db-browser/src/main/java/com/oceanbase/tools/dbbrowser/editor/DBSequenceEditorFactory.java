@@ -73,6 +73,11 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
     }
 
     @Override
+    public DBObjectEditor<DBSequence> buildForHana() {
+        throw new UnsupportedOperationException("HANA sequence editor not supported");
+    }
+
+    @Override
     public DBObjectEditor<DBSequence> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support sequences");
     }

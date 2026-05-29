@@ -19,6 +19,7 @@ import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleFunctionTemplate;
+import com.oceanbase.tools.dbbrowser.template.hana.HanaFunctionTemplate;
 import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerFunctionTemplate;
 
 public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBFunction>> {
@@ -71,6 +72,11 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
     @Override
     public DBObjectTemplate<DBFunction> buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBObjectTemplate<DBFunction> buildForHana() {
+        return new HanaFunctionTemplate();
     }
 
     @Override

@@ -17,6 +17,7 @@ package com.oceanbase.tools.dbbrowser.template;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBView;
+import com.oceanbase.tools.dbbrowser.template.hana.HanaViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.hive.HiveViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLViewTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleViewTemplate;
@@ -72,6 +73,11 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
     @Override
     public DBObjectTemplate<DBView> buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBObjectTemplate<DBView> buildForHana() {
+        return new HanaViewTemplate();
     }
 
     @Override

@@ -18,6 +18,7 @@ package com.oceanbase.tools.dbbrowser.editor;
 import org.apache.commons.lang3.Validate;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.hana.HanaTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.hive.HiveTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
@@ -101,6 +102,14 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
     @Override
     public DBTableEditor buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBTableEditor buildForHana() {
+        return new HanaTableEditor(getTableIndexEditor(),
+                getTableColumnEditor(),
+                getTableConstraintEditor(),
+                getTablePartitionEditor());
     }
 
     @Override

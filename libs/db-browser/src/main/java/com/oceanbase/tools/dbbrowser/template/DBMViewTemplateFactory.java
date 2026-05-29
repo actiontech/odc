@@ -79,6 +79,11 @@ public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTem
     }
 
     @Override
+    public DBObjectTemplate<DBMaterializedView> buildForHana() {
+        throw new UnsupportedOperationException("HANA materialized view template not supported");
+    }
+
+    @Override
     public DBObjectTemplate<DBMaterializedView> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support materialized views");
     }

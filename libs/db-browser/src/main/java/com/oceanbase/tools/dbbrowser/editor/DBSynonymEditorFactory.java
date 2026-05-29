@@ -73,6 +73,11 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
     }
 
     @Override
+    public DBObjectEditor<DBSynonym> buildForHana() {
+        throw new UnsupportedOperationException("HANA synonym editor not supported");
+    }
+
+    @Override
     public DBObjectEditor<DBSynonym> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support synonyms");
     }

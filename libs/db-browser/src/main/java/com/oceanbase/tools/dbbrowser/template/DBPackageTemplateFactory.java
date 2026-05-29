@@ -85,6 +85,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     }
 
     @Override
+    public DBObjectTemplate<DBPackage> buildForHana() {
+        throw new UnsupportedOperationException("HANA package template not supported");
+    }
+
+    @Override
     public DBObjectTemplate<DBPackage> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support packages");
     }

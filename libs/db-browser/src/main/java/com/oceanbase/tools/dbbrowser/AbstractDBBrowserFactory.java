@@ -50,6 +50,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
                 return buildForSqlServer();
             case DM:
                 return buildForDm();
+            case HANA:
+                return buildForHana();
             case HIVE:
                 return buildForHive();
             default:
@@ -76,6 +78,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForSqlServer();
 
     public abstract T buildForDm();
+
+    public abstract T buildForHana();
 
     public abstract T buildForHive();
 

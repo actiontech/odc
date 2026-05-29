@@ -99,6 +99,13 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
     }
 
     @Override
+    public DBTablePartitionEditor buildForHana() {
+        // HANA does not support partition editing via this interface;
+        // reuse SqlServerPartitionEditor which returns empty strings (no-op).
+        return new SqlServerPartitionEditor();
+    }
+
+    @Override
     public DBTablePartitionEditor buildForHive() {
         return new HivePartitionEditor();
     }

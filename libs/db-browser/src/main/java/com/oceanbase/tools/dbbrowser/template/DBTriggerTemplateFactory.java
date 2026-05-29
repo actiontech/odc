@@ -73,6 +73,11 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     }
 
     @Override
+    public DBObjectTemplate<DBTrigger> buildForHana() {
+        throw new UnsupportedOperationException("HANA trigger template not supported");
+    }
+
+    @Override
     public DBObjectTemplate<DBTrigger> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support triggers");
     }

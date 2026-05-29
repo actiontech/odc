@@ -72,6 +72,11 @@ public class DBTypeTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
     }
 
     @Override
+    public DBObjectTemplate<DBType> buildForHana() {
+        throw new UnsupportedOperationException("HANA type template not supported");
+    }
+
+    @Override
     public DBObjectTemplate<DBType> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support user-defined types");
     }

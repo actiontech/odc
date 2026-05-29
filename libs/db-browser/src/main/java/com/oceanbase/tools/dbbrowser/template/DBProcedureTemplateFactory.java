@@ -19,6 +19,7 @@ import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
 import com.oceanbase.tools.dbbrowser.model.DBProcedure;
 import com.oceanbase.tools.dbbrowser.template.mysql.MySQLProcedureTemplate;
 import com.oceanbase.tools.dbbrowser.template.oracle.OracleProcedureTemplate;
+import com.oceanbase.tools.dbbrowser.template.hana.HanaProcedureTemplate;
 import com.oceanbase.tools.dbbrowser.template.sqlserver.SqlServerProcedureTemplate;
 
 public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemplate<DBProcedure>> {
@@ -71,6 +72,11 @@ public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjec
     @Override
     public DBObjectTemplate<DBProcedure> buildForDm() {
         return buildForOracle();
+    }
+
+    @Override
+    public DBObjectTemplate<DBProcedure> buildForHana() {
+        return new HanaProcedureTemplate();
     }
 
     @Override
