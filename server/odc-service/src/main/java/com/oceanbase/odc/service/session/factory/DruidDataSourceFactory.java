@@ -127,6 +127,10 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
      * {@code ConnectionPluginUtil}, not available in offline unit tests).
      */
     static String resolveValidationQuery(DialectType dialectType) {
+        if (dialectType.isHana()) {
+            // HANA does not support SELECT without FROM; use DUMMY pseudo-table
+            return "select 1 from DUMMY";
+        }
         if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
                 || dialectType.isPgFamily() || dialectType.isSqlServer() || dialectType.isHive()) {
             return "select 1";

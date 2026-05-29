@@ -108,6 +108,7 @@ import com.oceanbase.odc.service.session.util.SqlRewriteUtil;
 import com.oceanbase.tools.dbbrowser.parser.result.BasicResult;
 import com.oceanbase.tools.dbbrowser.parser.result.ParseSqlResult;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.util.HanaSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.HiveSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.OracleSqlBuilder;
@@ -176,6 +177,8 @@ public class ConnectConsoleService {
         } else if (dialectType.isSqlServer()) {
             throw new UnsupportedOperationException(
                     "db-browser:1.2.3 lacks SqlServerSqlBuilder; SqlServer dialect SQL builder is not available in this version");
+        } else if (dialectType.isHana()) {
+            sqlBuilder = new HanaSqlBuilder();
         } else if (dialectType.isMongoDB()) {
             Integer queryLimit = checkQueryLimit(req.getQueryLimit());
             String sql = formatMongoCollectionRef(req.getTableOrViewName()) + ".find({})";

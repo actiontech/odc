@@ -329,6 +329,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case OB_ORACLE:
             case ORACLE:
             case DM:
+            case HANA:
                 return "\"" + schema + "\"";
             case OB_MYSQL:
             case MYSQL:
@@ -387,6 +388,14 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(getDbUser(connectionConfig), connectionConfig.getDialectType());
+            case HANA:
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return getSchema(defaultSchema, connectionConfig.getDialectType());
+                }
+                // HANA defaults schema to the username (uppercased)
+                String hanaUser = connectionConfig.getUsername();
+                return getSchema(hanaUser != null ? hanaUser.toUpperCase() : "SYSTEM",
+                        connectionConfig.getDialectType());
             case HIVE:
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return defaultSchema;
