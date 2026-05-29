@@ -40,7 +40,7 @@ public class DataConverters {
         if (DialectType.OB_ORACLE == dialectType) {
             initForOracleMode(serverTimeZoneId);
             converterList.add(new OBOracleGeometryConverter());
-        } else if (DialectType.ORACLE == dialectType) {
+        } else if (DialectType.ORACLE == dialectType || dialectType.isHana()) {
             initForOracleMode(serverTimeZoneId);
         } else if (dialectType.isMysql()) {
             initForMysqlMode();

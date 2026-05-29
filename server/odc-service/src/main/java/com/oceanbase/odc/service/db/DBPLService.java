@@ -258,7 +258,7 @@ public class DBPLService {
                 Collections.singleton(DatabasePermissionType.CHANGE));
         ConnectionCallback<CallProcedureResp> callback;
         DialectType dialectType = session.getDialectType();
-        if (dialectType.isOracle() || dialectType.isDm()) {
+        if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
             callback = new OBOracleCallProcedureBlockCallBack(req, -1);
         } else if (dialectType.isMysql()) {
             callback = new OBMysqlCallProcedureCallBack(req, -1);
@@ -293,7 +293,7 @@ public class DBPLService {
                 Collections.singleton(DatabasePermissionType.CHANGE));
         ConnectionCallback<CallFunctionResp> callback;
         DialectType dialectType = session.getDialectType();
-        if (dialectType.isOracle() || dialectType.isDm()) {
+        if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
             callback = new OBOracleCallFunctionBlockCallBack(req, -1);
         } else if (dialectType.isMysql()) {
             DefaultJdbcRowMapper defaultJdbcRowMapper = new DefaultJdbcRowMapper(session);
