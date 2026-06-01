@@ -140,7 +140,9 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
     @Override
     public DBStatsAccessor buildForHive() {
         return new HiveStatsAccessor(getJdbcOperations());
+    }
 
+    @Override
     public DBStatsAccessor buildForDB2() {
         return new Db2StatsAccessor(getJdbcOperations());
     }

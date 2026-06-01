@@ -79,7 +79,9 @@ public class DBTypeTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
     @Override
     public DBObjectTemplate<DBType> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support user-defined types");
+    }
 
+    @Override
     public DBObjectTemplate<DBType> buildForDB2() {
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
