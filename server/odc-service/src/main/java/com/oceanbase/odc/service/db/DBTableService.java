@@ -235,6 +235,9 @@ public class DBTableService {
     }
 
     public String checkUpdateDDL(DialectType dialectType, String ddl) {
+        if (ddl == null || ddl.isEmpty()) {
+            return null;
+        }
         boolean createIndex = false;
         boolean dropIndex = false;
         for (String s : SqlUtils.split(dialectType, ddl, ";")) {
