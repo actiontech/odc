@@ -20,9 +20,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
@@ -63,35 +67,63 @@ public class HanaConnectionExtension extends OBMySQLConnectionExtension {
         StringBuilder jdbcUrl = new StringBuilder();
         jdbcUrl.append("jdbc:sap://").append(host).append(":").append(port).append("/");
 
-        // Build query parameters: catalogName -> databaseName, defaultSchema -> currentSchema
-        Map<String, String> jdbcParams = properties.getJdbcParameters();
-        if (jdbcParams == null) {
-            jdbcParams = new java.util.LinkedHashMap<>();
-        } else {
-            jdbcParams = new java.util.LinkedHashMap<>(jdbcParams);
+        // Build HANA-specific query parameters
+        Map<String, String> hanaParams = new LinkedHashMap<>();
+        if (StringUtils.isNotBlank(catalogName)) {
+            hanaParams.put("databaseName", catalogName);
         }
-        if (StringUtils.isNotBlank(catalogName) && !jdbcParams.containsKey("databaseName")) {
-            jdbcParams.put("databaseName", catalogName);
-        }
-        if (StringUtils.isNotBlank(defaultSchema) && !jdbcParams.containsKey("currentSchema")) {
-            jdbcParams.put("currentSchema", defaultSchema);
+        if (StringUtils.isNotBlank(defaultSchema)) {
+            hanaParams.put("currentSchema", defaultSchema);
         }
 
-        String parameters = getJdbcUrlParameters(jdbcParams);
+        String parameters = getJdbcUrlParameters(hanaParams);
         if (StringUtils.isNotBlank(parameters)) {
             jdbcUrl.append("?").append(parameters);
         }
         return jdbcUrl.toString();
     }
 
+    /**
+     * Override to discard MySQL/OceanBase-specific JDBC URL parameters injected by
+     * {@code OBConsoleDataSourceFactory.getJdbcParams()} (e.g. useSSL, maxAllowedPacket,
+     * allowMultiQueries, etc.). The SAP HANA ngdbc driver does not recognize these parameters and their
+     * presence causes connection failures or timeouts.
+     * <p>
+     * Only HANA-specific parameters (databaseName, currentSchema) are retained.
+     */
+    @Override
+    protected String getJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
+        Map<String, String> hanaParams = appendDefaultJdbcUrlParameters(jdbcUrlParams);
+        return Objects.isNull(hanaParams) || hanaParams.isEmpty() ? null
+                : hanaParams.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&"));
+    }
+
     @Override
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
-        // HANA does not need the OceanBase-specific default parameters
-        if (jdbcUrlParams == null) {
-            jdbcUrlParams = new java.util.HashMap<>();
+        // Discard the incoming map which contains MySQL-specific parameters from
+        // OBConsoleDataSourceFactory.getJdbcParams(). Only retain HANA-specific params.
+        Map<String, String> hanaParams = new HashMap<>();
+        if (jdbcUrlParams != null) {
+            // Whitelist: only keep known HANA JDBC parameters
+            for (String key : HANA_JDBC_PARAM_WHITELIST) {
+                if (jdbcUrlParams.containsKey(key)) {
+                    hanaParams.put(key, jdbcUrlParams.get(key));
+                }
+            }
         }
-        return jdbcUrlParams;
+        return hanaParams;
     }
+
+    /**
+     * Known SAP HANA ngdbc JDBC parameters that may be passed through to the URL.
+     */
+    private static final java.util.Set<String> HANA_JDBC_PARAM_WHITELIST = new java.util.HashSet<>(
+            java.util.Arrays.asList(
+                    "databaseName", "currentSchema", "encrypt", "validateCertificate",
+                    "hostNameInCertificate", "trustStore", "trustStorePassword",
+                    "keyStore", "keyStorePassword", "reconnect", "communicationTimeout",
+                    "packetSize", "splitBatchCommands", "locale", "sessionVariable"));
 
     @Override
     public TestResult test(String jdbcUrl, Properties properties,
