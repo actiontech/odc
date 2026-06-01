@@ -57,11 +57,27 @@ public class HanaConnectionExtension extends OBMySQLConnectionExtension {
         Validate.notEmpty(host, "host can not be null");
         Integer port = properties.getPort();
         Validate.notNull(port, "port can not be null");
+        String catalogName = properties.getCatalogName();
+        String defaultSchema = properties.getDefaultSchema();
 
         StringBuilder jdbcUrl = new StringBuilder();
         jdbcUrl.append("jdbc:sap://").append(host).append(":").append(port).append("/");
 
-        String parameters = getJdbcUrlParameters(properties.getJdbcParameters());
+        // Build query parameters: catalogName -> databaseName, defaultSchema -> currentSchema
+        Map<String, String> jdbcParams = properties.getJdbcParameters();
+        if (jdbcParams == null) {
+            jdbcParams = new java.util.LinkedHashMap<>();
+        } else {
+            jdbcParams = new java.util.LinkedHashMap<>(jdbcParams);
+        }
+        if (StringUtils.isNotBlank(catalogName) && !jdbcParams.containsKey("databaseName")) {
+            jdbcParams.put("databaseName", catalogName);
+        }
+        if (StringUtils.isNotBlank(defaultSchema) && !jdbcParams.containsKey("currentSchema")) {
+            jdbcParams.put("currentSchema", defaultSchema);
+        }
+
+        String parameters = getJdbcUrlParameters(jdbcParams);
         if (StringUtils.isNotBlank(parameters)) {
             jdbcUrl.append("?").append(parameters);
         }
