@@ -208,8 +208,14 @@ public class Db2SchemaAccessorTest {
     }
 
     /**
-     * Case listTableIndexes_uniqueRuleMapping: 模拟 SYSCAT.INDEXES 2 行 UNIQUERULE='P' 与 'D'， 期望前者
-     * unique=true（P/U 都视为 unique），后者 unique=false。
+     * Case listTableIndexes_uniqueRuleMapping: 模拟 SYSCAT.INDEXES JOIN SYSCAT.INDEXCOLUSE， 两个索引（一个 PK +
+     * 一个普通），各 1 列，期望 PK 的 unique=true 且 primary=true，普通索引 unique=false。
+     *
+     * <p>
+     * fix_report_20260601_031142 P0-2A: listTableIndexes is now a JOIN aggregation — each row carries
+     * one (index, column) pair and the accessor groups by INDNAME, so the stub must include COLNAME /
+     * COLSEQ. ordinalPosition 必须非空（DBTableIndexEditor.generateUpdateObjectListDDL 用它区分"已有 vs
+     * 新建索引"），columnNames 必须非空（Db2IndexEditor.generateCreateObjectDDL 用它输出 CREATE INDEX 列表）。
      */
     @Test
     public void listTableIndexes_uniqueRuleMapping() throws SQLException {
@@ -219,12 +225,16 @@ public class Db2SchemaAccessorTest {
         primary.put("TABSCHEMA", "DB2INST1");
         primary.put("TABNAME", "ORDERS");
         primary.put("UNIQUERULE", "P");
+        primary.put("COLNAME", "ID");
+        primary.put("COLSEQ", 1);
         Map<String, Object> duplicate = new LinkedHashMap<>();
         duplicate.put("INDSCHEMA", "DB2INST1");
         duplicate.put("INDNAME", "IDX_ORDERS_DATE");
         duplicate.put("TABSCHEMA", "DB2INST1");
         duplicate.put("TABNAME", "ORDERS");
         duplicate.put("UNIQUERULE", "D");
+        duplicate.put("COLNAME", "ORDER_DATE");
+        duplicate.put("COLSEQ", 1);
         stubQueryByName(Arrays.asList(primary, duplicate));
 
         List<DBTableIndex> indexes = accessor.listTableIndexes("DB2INST1", "ORDERS");
@@ -232,8 +242,70 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals(2, indexes.size());
         Assert.assertEquals("PK_ORDERS", indexes.get(0).getName());
         Assert.assertTrue("UNIQUERULE=P should map to unique=true", indexes.get(0).getUnique());
+        Assert.assertTrue("UNIQUERULE=P should map to primary=true", indexes.get(0).getPrimary());
         Assert.assertEquals("IDX_ORDERS_DATE", indexes.get(1).getName());
         Assert.assertFalse("UNIQUERULE=D should map to unique=false", indexes.get(1).getUnique());
+        Assert.assertFalse("UNIQUERULE=D should map to primary=false", indexes.get(1).getPrimary());
+    }
+
+    /**
+     * fix_report_20260601_031142 P0-2A regression: listTableIndexes must populate columnNames (never
+     * null) and ordinalPosition (1-based per index, not per column) for every returned index.
+     *
+     * <p>
+     * Without columnNames, Db2IndexEditor.generateCreateObjectDDL NPEs on `.stream()`. Without
+     * ordinalPosition, DBTableIndexEditor.generateUpdateObjectListDDL treats every old index as "new"
+     * and re-emits CREATE INDEX for it on every column edit.
+     */
+    @Test
+    public void listTableIndexes_backFillsColumnNamesAndOrdinalPosition() throws SQLException {
+        // PK_ORDERS has 2 composite columns (COLSEQ 1, 2); IDX_ORDERS_DATE has 1 column.
+        Map<String, Object> pkRow1 = new LinkedHashMap<>();
+        pkRow1.put("INDSCHEMA", "DB2INST1");
+        pkRow1.put("INDNAME", "PK_ORDERS");
+        pkRow1.put("TABSCHEMA", "DB2INST1");
+        pkRow1.put("TABNAME", "ORDERS");
+        pkRow1.put("UNIQUERULE", "P");
+        pkRow1.put("COLNAME", "ID");
+        pkRow1.put("COLSEQ", 1);
+        Map<String, Object> pkRow2 = new LinkedHashMap<>();
+        pkRow2.put("INDSCHEMA", "DB2INST1");
+        pkRow2.put("INDNAME", "PK_ORDERS");
+        pkRow2.put("TABSCHEMA", "DB2INST1");
+        pkRow2.put("TABNAME", "ORDERS");
+        pkRow2.put("UNIQUERULE", "P");
+        pkRow2.put("COLNAME", "ORDER_NO");
+        pkRow2.put("COLSEQ", 2);
+        Map<String, Object> idxRow = new LinkedHashMap<>();
+        idxRow.put("INDSCHEMA", "DB2INST1");
+        idxRow.put("INDNAME", "IDX_ORDERS_DATE");
+        idxRow.put("TABSCHEMA", "DB2INST1");
+        idxRow.put("TABNAME", "ORDERS");
+        idxRow.put("UNIQUERULE", "D");
+        idxRow.put("COLNAME", "ORDER_DATE");
+        idxRow.put("COLSEQ", 1);
+        stubQueryByName(Arrays.asList(pkRow1, pkRow2, idxRow));
+
+        List<DBTableIndex> indexes = accessor.listTableIndexes("DB2INST1", "ORDERS");
+
+        Assert.assertEquals("two distinct indexes after grouping by INDNAME", 2, indexes.size());
+
+        DBTableIndex pk = indexes.get(0);
+        Assert.assertEquals("PK_ORDERS", pk.getName());
+        Assert.assertNotNull("columnNames must never be null — Db2IndexEditor NPE guard",
+                pk.getColumnNames());
+        Assert.assertEquals(2, pk.getColumnNames().size());
+        Assert.assertEquals("ID", pk.getColumnNames().get(0));
+        Assert.assertEquals("ORDER_NO", pk.getColumnNames().get(1));
+        Assert.assertEquals("ordinalPosition is 1-based per table, not per column",
+                Integer.valueOf(1), pk.getOrdinalPosition());
+
+        DBTableIndex idx = indexes.get(1);
+        Assert.assertEquals("IDX_ORDERS_DATE", idx.getName());
+        Assert.assertNotNull(idx.getColumnNames());
+        Assert.assertEquals(1, idx.getColumnNames().size());
+        Assert.assertEquals("ORDER_DATE", idx.getColumnNames().get(0));
+        Assert.assertEquals(Integer.valueOf(2), idx.getOrdinalPosition());
     }
 
     /**
@@ -273,6 +345,12 @@ public class Db2SchemaAccessorTest {
         Assert.assertEquals("PK_ORDERS", constraints.get(0).getName());
         Assert.assertEquals(DBConstraintType.UNIQUE_KEY, constraints.get(1).getType());
         Assert.assertEquals(DBConstraintType.FOREIGN_KEY, constraints.get(2).getType());
+        // fix_report_20260601_031142 P0-2C: ordinalPosition must be filled (1-based) so
+        // DBTableConstraintEditor.generateUpdateObjectListDDL recognises existing constraints
+        // during column edits and does not emit spurious ADD CONSTRAINT statements.
+        Assert.assertEquals(Integer.valueOf(1), constraints.get(0).getOrdinalPosition());
+        Assert.assertEquals(Integer.valueOf(2), constraints.get(1).getOrdinalPosition());
+        Assert.assertEquals(Integer.valueOf(3), constraints.get(2).getOrdinalPosition());
     }
 
     /**

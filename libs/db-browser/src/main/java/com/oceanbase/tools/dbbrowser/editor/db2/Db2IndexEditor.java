@@ -53,6 +53,23 @@ public class Db2IndexEditor extends DBTableIndexEditor {
 
     @Override
     public String generateCreateObjectDDL(@NotNull DBTableIndex index) {
+        // fix_report_20260601_031142 (Issue dms-ee#839, P0-2B): historically this method assumed
+        // index.getColumnNames() was always populated, but in the "edit a column" flow upstream
+        // code (DBTableIndexEditor.generateUpdateObjectListDDL) can route legacy DBTableIndex
+        // instances here whose columnNames is null — most commonly when listTableIndexes had
+        // not yet been hardened (see P0-2A) or when an external caller constructs a sparse
+        // DBTableIndex. Calling .stream() on null aborts with NPE which surfaces to the user as
+        // "POST generateUpdateTableDDL HTTP 400/500 message=null", blocking every table edit on
+        // tables that carry indexes.
+        //
+        // Defence: emit an empty string (no DDL) rather than throw. The decision matches the
+        // upstream contract — generateUpdateObjectListDDL concatenates the per-index DDL into
+        // a script and an empty string is the natural "do nothing" payload, so a half-populated
+        // index never silently mutates the schema.
+        List<String> columnNames = index.getColumnNames();
+        if (columnNames == null || columnNames.isEmpty()) {
+            return "";
+        }
         SqlBuilder sqlBuilder = sqlBuilder();
         sqlBuilder.append("CREATE ");
         if (index.getType() == DBIndexType.UNIQUE) {
@@ -61,7 +78,7 @@ public class Db2IndexEditor extends DBTableIndexEditor {
         sqlBuilder.append("INDEX ").append(getFullyQualifiedIndexName(index))
                 .append(" ON ").append(getFullyQualifiedTableName(index))
                 .append(" (");
-        List<String> quotedColumns = index.getColumnNames().stream()
+        List<String> quotedColumns = columnNames.stream()
                 .map(StringUtils::quoteOracleIdentifier)
                 .collect(Collectors.toList());
         sqlBuilder.append(String.join(", ", quotedColumns));

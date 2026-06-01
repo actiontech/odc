@@ -17,8 +17,10 @@ package com.oceanbase.tools.dbbrowser.schema.db2;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.jdbc.core.JdbcOperations;
 
@@ -26,6 +28,7 @@ import com.oceanbase.tools.dbbrowser.model.DBColumnGroupElement;
 import com.oceanbase.tools.dbbrowser.model.DBConstraintType;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBFunction;
+import com.oceanbase.tools.dbbrowser.model.DBIndexType;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshParameter;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecord;
 import com.oceanbase.tools.dbbrowser.model.DBMViewRefreshRecordParam;
@@ -549,6 +552,7 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
         // exercised by the DML builder path.
         String sql = "SELECT TABSCHEMA, TABNAME, CONSTNAME, TYPE FROM SYSCAT.TABCONST "
                 + "WHERE TABSCHEMA = ? AND TABNAME = ? ORDER BY CONSTNAME";
+        AtomicInteger constraintCounter = new AtomicInteger(1);
         List<DBTableConstraint> constraints = jdbcOperations.query(sql,
                 new Object[] {schemaName, tableName}, (rs, rowNum) -> {
                     DBTableConstraint constraint = new DBTableConstraint();
@@ -557,6 +561,15 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
                     constraint.setName(rs.getString("CONSTNAME"));
                     String type = rs.getString("TYPE");
                     constraint.setType(mapDb2ConstraintType(type));
+                    // fix_report_20260601_031142 (Issue dms-ee#839, P0-2C): mirror P0-2A's
+                    // ordinalPosition treatment for indexes. DBTableConstraintEditor.
+                    // generateUpdateObjectListDDL (editor/DBTableConstraintEditor.java:182–209)
+                    // also treats `ordinalPosition == null` as "this is a new constraint" and
+                    // emits ADD CONSTRAINT for every existing PK/UK/FK/CHECK whenever the user
+                    // edits a column. Without an ordinalPosition the user gets a noisy
+                    // DROP/ADD CONSTRAINT script (or worse, conflicting ADDs that fail at
+                    // execution). 1-based ordinal per the SqlServer convention.
+                    constraint.setOrdinalPosition(constraintCounter.getAndIncrement());
                     return constraint;
                 });
         if (constraints == null || constraints.isEmpty()) {
@@ -630,18 +643,70 @@ public class Db2SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBTableIndex> listTableIndexes(String schemaName, String tableName) {
-        String sql = "SELECT INDSCHEMA, INDNAME, TABSCHEMA, TABNAME, UNIQUERULE "
-                + "FROM SYSCAT.INDEXES WHERE TABSCHEMA = ? AND TABNAME = ? ORDER BY INDNAME";
-        return jdbcOperations.query(sql, new Object[] {schemaName, tableName}, (rs, rowNum) -> {
-            DBTableIndex index = new DBTableIndex();
-            index.setSchemaName(rs.getString("INDSCHEMA"));
-            index.setName(rs.getString("INDNAME"));
-            index.setTableName(rs.getString("TABNAME"));
-            String uniqueRule = rs.getString("UNIQUERULE");
-            // DB2 UNIQUERULE: D=Duplicates allowed, U=Unique, P=Primary
-            index.setUnique(uniqueRule != null && !"D".equalsIgnoreCase(uniqueRule.trim()));
-            return index;
+        // fix_report_20260601_031142 (Issue dms-ee#839, P0-2A): the previous implementation only
+        // hit SYSCAT.INDEXES and never filled columnNames / ordinalPosition, so when
+        // DBTableIndexEditor.generateUpdateObjectListDDL (libs/db-browser .../editor/
+        // DBTableIndexEditor.java) ran the diff for "table has indexes, user edits a column":
+        //
+        // 1. every old index arrived with ordinalPosition=null
+        // 2. DBTableIndexEditor treats null ordinalPosition as "this is a new index" and called
+        // Db2IndexEditor.generateCreateObjectDDL(index)
+        // 3. Db2IndexEditor.generateCreateObjectDDL does `index.getColumnNames().stream()` →
+        // NullPointerException → POST /databases/{db}/tables/generateUpdateTableDDL fails
+        // with HTTP 400/500 (message=null), blocking every "edit a column" operation.
+        //
+        // This is the same class of defect as fix-L's constraint-side NPE (back-filled in
+        // listTableConstraints above): the upstream editor relies on both ordinalPosition (to
+        // tell "existing" from "new") and columnNames (to actually emit DDL).
+        //
+        // Mirror SqlServerSchemaAccessor.listTableIndexes (lines 3781–3868): JOIN the index
+        // catalog with its column-usage table, aggregate by index name, assign ordinalPosition
+        // as the index's slot within the table (AtomicInteger), and always store columnNames as
+        // a List (never null) so downstream stream() / .stream() calls never see null.
+        //
+        // DB2 UNIQUERULE legend (SYSCAT.INDEXES): D=Duplicates allowed (NORMAL),
+        // U=Unique (UNIQUE), P=Primary key (UNIQUE + primary=true). DBIndexType doesn't model
+        // PRIMARY separately — the primary flag distinguishes it from a plain UNIQUE index.
+        String sql = "SELECT i.INDSCHEMA, i.INDNAME, i.TABSCHEMA, i.TABNAME, i.UNIQUERULE, "
+                + "ic.COLNAME, ic.COLSEQ "
+                + "FROM SYSCAT.INDEXES i "
+                + "JOIN SYSCAT.INDEXCOLUSE ic "
+                + "  ON i.INDSCHEMA = ic.INDSCHEMA AND i.INDNAME = ic.INDNAME "
+                + "WHERE i.TABSCHEMA = ? AND i.TABNAME = ? "
+                + "ORDER BY i.INDNAME, ic.COLSEQ";
+        Map<String, DBTableIndex> indexMap = new LinkedHashMap<>();
+        AtomicInteger indexCounter = new AtomicInteger(1);
+        jdbcOperations.query(sql, new Object[] {schemaName, tableName}, (rs, rowNum) -> {
+            String indName = rs.getString("INDNAME");
+            DBTableIndex index = indexMap.get(indName);
+            if (index == null) {
+                index = new DBTableIndex();
+                index.setSchemaName(rs.getString("INDSCHEMA"));
+                index.setName(indName);
+                index.setTableName(rs.getString("TABNAME"));
+                // ordinalPosition = index's slot within the table (1-based). Matches what
+                // SqlServerSchemaAccessor does on line 3833 with AtomicInteger.
+                index.setOrdinalPosition(indexCounter.getAndIncrement());
+                String uniqueRule = rs.getString("UNIQUERULE");
+                String rule = uniqueRule == null ? "" : uniqueRule.trim();
+                boolean isPrimary = "P".equalsIgnoreCase(rule);
+                boolean isUnique = isPrimary || "U".equalsIgnoreCase(rule);
+                index.setPrimary(isPrimary);
+                index.setUnique(isUnique);
+                index.setNonUnique(!isUnique);
+                index.setType(isUnique ? DBIndexType.UNIQUE : DBIndexType.NORMAL);
+                // Always initialise columnNames as an empty mutable list so the per-row branch
+                // below can append; never leave it null (the fix's primary safety guarantee).
+                index.setColumnNames(new ArrayList<>());
+                indexMap.put(indName, index);
+            }
+            String colName = rs.getString("COLNAME");
+            if (colName != null) {
+                index.getColumnNames().add(colName);
+            }
+            return null;
         });
+        return new ArrayList<>(indexMap.values());
     }
 
     @Override
