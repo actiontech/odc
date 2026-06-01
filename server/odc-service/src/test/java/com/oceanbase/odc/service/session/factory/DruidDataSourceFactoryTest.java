@@ -31,6 +31,9 @@ import com.oceanbase.odc.core.shared.constant.DialectType;
  * first BACKEND_DS_KEY lookup ({@code DBTableService.listTables}); GaussDB commercial happens to
  * honour {@code DUAL} as a vendor extension but we still want a single portable validation query
  * for the whole PG family.
+ * <p>
+ * Also covers B-24 — DB2 validation query must be {@code "select 1 from SYSIBM.SYSDUMMY1"} (DB2
+ * enforces a FROM clause, design.md §2.5).
  */
 public class DruidDataSourceFactoryTest {
 
@@ -80,6 +83,18 @@ public class DruidDataSourceFactoryTest {
     }
 
     @Test
+    public void testResolveValidationQuery_db2_uses_sysibm_sysdummy1() {
+        Assert.assertEquals("select 1 from SYSIBM.SYSDUMMY1",
+                DruidDataSourceFactory.resolveValidationQuery(DialectType.DB2));
+    }
+
+    @Test
+    public void testResolveValidationQuery_hana_uses_dummy() {
+        Assert.assertEquals("select 1 from DUMMY",
+                DruidDataSourceFactory.resolveValidationQuery(DialectType.HANA));
+    }
+
+    @Test
     public void testResolveValidationQuery_ob_oracle_uses_select_1_from_dual() {
         // Oracle / OB_ORACLE legitimately support DUAL; pin them.
         Assert.assertEquals("select 1 from dual",
@@ -90,5 +105,17 @@ public class DruidDataSourceFactoryTest {
     public void testResolveValidationQuery_oracle_uses_select_1_from_dual() {
         Assert.assertEquals("select 1 from dual",
                 DruidDataSourceFactory.resolveValidationQuery(DialectType.ORACLE));
+    }
+
+    @Test
+    public void testResolveValidationQuery_dm_uses_select_1_from_dual() {
+        Assert.assertEquals("select 1 from dual",
+                DruidDataSourceFactory.resolveValidationQuery(DialectType.DM));
+    }
+
+    @Test
+    public void testResolveValidationQuery_nullDialect_defaultsToOracleStyle() {
+        Assert.assertEquals("select 1 from dual",
+                DruidDataSourceFactory.resolveValidationQuery(null));
     }
 }

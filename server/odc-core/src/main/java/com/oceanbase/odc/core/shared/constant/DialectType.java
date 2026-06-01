@@ -33,6 +33,7 @@ public enum DialectType {
     GAUSSDB,
     SQL_SERVER,
     DM,
+    DB2,
     HANA,
     MONGODB,
     HIVE,
@@ -99,6 +100,10 @@ public enum DialectType {
 
     public boolean isDm() {
         return DM == this;
+    }
+
+    public boolean isDb2() {
+        return DB2 == this;
     }
 
     public boolean isHana() {

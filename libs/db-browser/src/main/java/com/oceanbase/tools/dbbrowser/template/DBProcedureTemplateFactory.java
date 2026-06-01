@@ -83,6 +83,9 @@ public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjec
     @Override
     public DBObjectTemplate<DBProcedure> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support stored procedures");
+
+    public DBObjectTemplate<DBProcedure> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

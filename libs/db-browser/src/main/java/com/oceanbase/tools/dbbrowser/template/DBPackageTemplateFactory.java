@@ -92,6 +92,9 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     @Override
     public DBObjectTemplate<DBPackage> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support packages");
+
+    public DBObjectTemplate<DBPackage> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
     private JdbcOperations getJdbcOperations() {

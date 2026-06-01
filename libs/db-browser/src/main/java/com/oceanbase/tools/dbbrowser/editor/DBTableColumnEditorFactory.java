@@ -16,6 +16,7 @@
 package com.oceanbase.tools.dbbrowser.editor;
 
 import com.oceanbase.tools.dbbrowser.AbstractDBBrowserFactory;
+import com.oceanbase.tools.dbbrowser.editor.db2.Db2ColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.hana.HanaColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.hive.HiveColumnEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLColumnEditor;
@@ -83,6 +84,15 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
     @Override
     public DBTableColumnEditor buildForHive() {
         return new HiveColumnEditor();
+    }
+
+    @Override
+    public DBTableColumnEditor buildForDB2() {
+        // fix_report_20260529_100416 Bug-2 (Issue dms-ee#839): replace the throw with the DB2-native
+        // column editor so ALTER TABLE ... ADD COLUMN / ALTER COLUMN / DROP COLUMN flow on the table
+        // designer compiles into DB2 LUW grammar (per-attribute SET DATA TYPE / SET NOT NULL
+        // sub-actions) instead of throwing on every column edit.
+        return new Db2ColumnEditor();
     }
 
 }

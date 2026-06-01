@@ -50,6 +50,15 @@ public class DataConverters {
             initForMysqlMode();
         } else if (dialectType.isTidb()) {
             initForMysqlMode();
+        } else if (dialectType.isDb2()) {
+            // fix-I bug F (peer of ConnectConsoleService): TableDataService#editTableData routes
+            // through MySQLDMLBuilder for DB2 (design.md §2.5 — DB2 and MySQL agree on basic
+            // identifier/string quoting for the editor MVP). When the resulting toSQLString call
+            // lands here, DialectType.DB2 would hit the default "Illegal DialectType" branch and
+            // sink the data-edit save path with a 500. Reuse the MySQL converter set so VARCHAR /
+            // numeric / blob conversions produce DB2-compatible literals (DB2's string/numeric
+            // literal grammar is a strict superset of MySQL's in the columns we round-trip).
+            initForMysqlMode();
         } else {
             throw new IllegalArgumentException("Illegal DialectType " + dialectType);
         }

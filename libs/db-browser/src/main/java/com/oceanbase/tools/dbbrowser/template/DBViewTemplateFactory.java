@@ -84,6 +84,9 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
     @Override
     public DBObjectTemplate<DBView> buildForHive() {
         return new HiveViewTemplate();
+
+    public DBObjectTemplate<DBView> buildForDB2() {
+        throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
 }

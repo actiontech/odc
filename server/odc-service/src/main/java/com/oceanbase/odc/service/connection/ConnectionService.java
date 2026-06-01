@@ -72,6 +72,7 @@ import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.Verify;
 import com.oceanbase.odc.core.shared.constant.ConnectionStatus;
 import com.oceanbase.odc.core.shared.constant.ConnectionVisibleScope;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.shared.constant.ErrorCodes;
 import com.oceanbase.odc.core.shared.constant.OrganizationType;
 import com.oceanbase.odc.core.shared.constant.PermissionType;
@@ -297,6 +298,7 @@ public class ConnectionService {
             try {
                 environmentAdapter.adaptConfig(connection);
                 connectionSSLAdaptor.adapt(connection);
+                adaptDb2DatabaseToCatalog(connection);
                 if (!connection.getType().isDefaultSchemaRequired()) {
                     connection.setDefaultSchema(null);
                 }
@@ -326,6 +328,7 @@ public class ConnectionService {
                 }
                 connectionEncryption.encryptPasswords(connection);
                 ConnectionEntity entity = modelToEntity(connection);
+                clearDb2DefaultSchemaOnEntity(entity);
                 ConnectionEntity savedEntity = repository.saveAndFlush(entity);
                 ConnectionConfig config = entityToModel(savedEntity, true, true);
                 config.setAttributes(connection.getAttributes());
@@ -340,6 +343,22 @@ public class ConnectionService {
         });
         log.info("Connection created, connection={}", created);
         return created;
+    }
+
+    /**
+     * For DB2 entities {@code modelToEntity} calls {@link ConnectionConfig#getDefaultSchema()} whose
+     * DB2 fallback synthesises {@code user.toUpperCase()} when the raw field is null. That synthesised
+     * value is consumed at JDBC-URL build time but should never be persisted as the "database name" of
+     * the data source — the database name is the catalog, already preserved by
+     * {@link #adaptDb2DatabaseToCatalog} into {@code catalogName}. Wipe the column here so
+     * {@code OBConsoleDataSourceFactory.getDefaultSchema(connectionConfig)} re-derives the schema each
+     * time from the user rather than from a misleading persisted value.
+     */
+    private static void clearDb2DefaultSchemaOnEntity(ConnectionEntity entity) {
+        if (entity == null || entity.getDialectType() != DialectType.DB2) {
+            return;
+        }
+        entity.setDefaultSchema(null);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -501,6 +520,50 @@ public class ConnectionService {
         }
     }
 
+    /**
+     * Promote the DB2 database name carried via {@code defaultSchema} into the {@code catalogName}
+     * field before {@link com.oceanbase.odc.core.shared.constant.ConnectType#isDefaultSchemaRequired()}
+     * clears {@code defaultSchema} for non-sharding dialects.
+     *
+     * <p>
+     * DMS-EE (compat-RISK-5 D-02) carries the DB2 catalog/database name via the {@code defaultSchema}
+     * field of {@link com.oceanbase.odc.service.connection.ConnectionTestService} create-datasource
+     * request body because the {@code CreateDatasourceRequest} schema does not yet expose
+     * {@code catalogName}. Without this adapter the value would be silently dropped by
+     * {@code if (!connection.getType().isDefaultSchemaRequired()) connection.setDefaultSchema(null);},
+     * leaving downstream JDBC URL construction with neither catalog nor database (see
+     * Db2ConnectionExtension.generateJdbcUrl). The plugin-layer fallback (catalogName→defaultSchema)
+     * has no value to fall back to in that case.
+     *
+     * <p>
+     * Semantics:
+     * <ul>
+     * <li>only acts on {@link DialectType#DB2};
+     * <li>only fills {@code catalogName} when it is currently blank, never overwrites an explicitly
+     * provided catalog;
+     * <li>preserves {@code defaultSchema} as-is so explicit schema overrides still work — the
+     * downstream {@code isDefaultSchemaRequired} branch clears it as before.
+     * </ul>
+     */
+    static void adaptDb2DatabaseToCatalog(ConnectionConfig connection) {
+        if (connection == null) {
+            return;
+        }
+        if (connection.getDialectType() != DialectType.DB2) {
+            return;
+        }
+        if (StringUtils.isNotBlank(connection.getCatalogName())) {
+            return;
+        }
+        // Read the raw field rather than the resolved getter to distinguish "the caller set a
+        // database name" from "the dialect-specific fallback would synthesise user.toUpperCase()".
+        String rawDefaultSchema = connection.getRawDefaultSchema();
+        if (StringUtils.isBlank(rawDefaultSchema)) {
+            return;
+        }
+        connection.setCatalogName(rawDefaultSchema);
+    }
+
     private Map<Long, CheckState> getIndividualSpaceStatus(Set<Long> ids, Map<Long, ConnectionConfig> connMap) {
         Map<Long, CheckState> connId2State = new HashMap<>();
         for (Long connId : ids) {
@@ -642,6 +705,7 @@ public class ConnectionService {
             try {
                 environmentAdapter.adaptConfig(connection);
                 connectionSSLAdaptor.adapt(connection);
+                adaptDb2DatabaseToCatalog(connection);
                 ConnectionConfig saved = internalGet(id);
                 connectionValidator.validateForUpdate(connection, saved);
                 if (needCheckPermission) {
@@ -679,6 +743,7 @@ public class ConnectionService {
                 connection.fillEncryptedPasswordFromSavedIfNull(saved);
 
                 ConnectionEntity entity = modelToEntity(connection);
+                clearDb2DefaultSchemaOnEntity(entity);
                 ConnectionEntity savedEntity = repository.saveAndFlush(entity);
 
                 // for workaround createTime/updateTime not refresh in server mode,

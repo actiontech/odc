@@ -310,3 +310,33 @@ values('column_data_type', 'HIVE',
 'TINYINT:NUMERIC, SMALLINT:NUMERIC, INT:NUMERIC, BIGINT:NUMERIC, FLOAT:NUMERIC, DOUBLE:NUMERIC, DECIMAL:NUMERIC, BOOLEAN:BOOLEAN, STRING:TEXT, VARCHAR:TEXT, CHAR:TEXT, BINARY:OBJECT, DATE:DATE, TIMESTAMP:TIMESTAMP, ARRAY<STRING>:OBJECT, ARRAY<INT>:OBJECT',
 '0', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE `config_key`=`config_key`;
+
+-- support DB2 datasource (fix-I, Issue dms-ee#839)
+-- enableView is the front-end gate for the "视图" tree node under each DB2 schema (case 2.4).
+-- Without this row VersionDiffConfigService#getSupportFeatures returns an empty supports[] for
+-- the DB2 ConnectType and the odc-client resource tree silently omits the view category even
+-- after the ViewExtensionPoint is registered in schema-plugin-db2. min_version='0' mirrors the
+-- SQL_SERVER pattern (always-on) — DB2 view metadata lives in SYSCAT.VIEWS across all DB2 11.5+
+-- builds we support.
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_view','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- support DB2 session kill (fix-N, Issue dms-ee#839)
+-- support_kill_session / support_kill_query gate the "Kill / Kill Query" UI affordances
+-- in the ODC session management panel (case 6.2). Without these rows the front-end's
+-- supportFeature.enableKillSession / enableKillQuery stay false and the row-action
+-- buttons are hidden / disabled even though fix-M already wired Db2StatsAccessor +
+-- Db2SessionExtension to issue `FORCE APPLICATION (handle)` against DB2 11.5 LUW.
+-- min_version='0' mirrors the SQL_SERVER / DORIS always-on pattern — DB2 ADMIN_CMD
+-- 'FORCE APPLICATION' is available on every DB2 11.5+ build we support.
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_session','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('support_kill_query','DB2','true','0',CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;
+
+-- DB2 LUW column_data_type seed (fix_report_20260529_100416 Bug-1, Issue dms-ee#839)
+-- Bug-1: 表设计器"添加列"列类型下拉框为空。
+-- 根因: VersionDiffConfigService#getColumnDataTypes 通过 config_key='column_data_type' + db_mode='DB2' 读取本表，
+-- 没有这一行就返回空集，前端 ColumnSelector 渲染为空下拉。SQL_SERVER / ORACLE / MYSQL 都各自有等价 seed（见 §274, §255, §202）。
+-- 列出 DB2 LUW 11.5 文档里 ALTER TABLE / CREATE TABLE 允许出现的列类型（按 ODC type 分桶: NUMERIC/TEXT/OBJECT/DATE/TIME/TIMESTAMP/BOOLEAN/INTERVAL）。
+-- min_version='9.7' 与 SQL_SERVER 同样的 always-on 语义（DB2 9.7 起所有目标版本都支持这些类型）。
+insert into `odc_version_diff_config`(`config_key`,`db_mode`,`config_value`,`min_version`,`gmt_create`) values('column_data_type', 'DB2',
+'SMALLINT:NUMERIC, INTEGER:NUMERIC, INT:NUMERIC, BIGINT:NUMERIC, DECIMAL:NUMERIC, NUMERIC:NUMERIC, REAL:NUMERIC, DOUBLE:NUMERIC, FLOAT:NUMERIC, DECFLOAT:NUMERIC, CHAR:TEXT, VARCHAR:TEXT, LONG VARCHAR:TEXT, CLOB:OBJECT, GRAPHIC:TEXT, VARGRAPHIC:TEXT, DBCLOB:OBJECT, BLOB:OBJECT, BINARY:OBJECT, VARBINARY:OBJECT, DATE:DATE, TIME:TIME, TIMESTAMP:TIMESTAMP, BOOLEAN:BOOLEAN, XML:OBJECT',
+'9.7', CURRENT_TIMESTAMP) ON DUPLICATE KEY update `config_key`=`config_key`;

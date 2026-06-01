@@ -39,6 +39,7 @@ public class GeneralLobMapperTest {
         DataTypeFactory factory = new CommonDataTypeFactory("blob");
         DataType dataType = factory.generate();
         GeneralLobMapper mapper = new GeneralLobMapper();
+        // No Blob handle exposed → falls back to InputStream#available()
         Assert.assertEquals("(blob) 12 B", mapper.mapCell(new LobCellData(12, dataType)));
     }
 
@@ -48,6 +49,43 @@ public class GeneralLobMapperTest {
         DataType dataType = factory.generate();
         GeneralLobMapper mapper = new GeneralLobMapper();
         Assert.assertNull(mapper.mapCell(new LobCellData(-1, dataType)));
+    }
+
+    @Test
+    public void mapCell_blobWithHandle_returnsBlobLength() throws IOException, SQLException {
+        // fix-K: prefer Blob#length() over InputStream#available() when the driver gives one.
+        DataTypeFactory factory = new CommonDataTypeFactory("blob");
+        DataType dataType = factory.generate();
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        Assert.assertEquals("(blob) 7 B", mapper.mapCell(new LobCellData(7L, dataType, true)));
+    }
+
+    @Test
+    public void mapCell_clob_usesClobLengthInsteadOfBinaryStream() throws IOException, SQLException {
+        // fix-K: DB2 jcc throws ERRORCODE=-4461 (SQLSTATE=42815) when binary stream is requested
+        // for a CLOB column. The mapper must go through Clob#length() instead.
+        DataTypeFactory factory = new CommonDataTypeFactory("clob");
+        DataType dataType = factory.generate();
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        Assert.assertEquals("(clob) 33 B", mapper.mapCell(new LobCellData(33L, dataType, false)));
+    }
+
+    @Test
+    public void mapCell_dbclob_db2DoubleByteCharacterLob_usesClobLength() throws IOException, SQLException {
+        // fix-K: DB2-only DBCLOB (double-byte CLOB) must also avoid getBinaryStream(); jcc returns
+        // the same -4461 / 42815 error code for any character-LOB type.
+        DataTypeFactory factory = new CommonDataTypeFactory("dbclob");
+        DataType dataType = factory.generate();
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        Assert.assertEquals("(dbclob) 9 B", mapper.mapCell(new LobCellData(9L, dataType, false)));
+    }
+
+    @Test
+    public void mapCell_clobZeroLength_returnsZeroByteText() throws IOException, SQLException {
+        DataTypeFactory factory = new CommonDataTypeFactory("clob");
+        DataType dataType = factory.generate();
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        Assert.assertEquals("(clob) 0 B", mapper.mapCell(new LobCellData(0L, dataType, false)));
     }
 
     @Test
@@ -61,6 +99,21 @@ public class GeneralLobMapperTest {
     public void supports_clob_supports() throws IOException, SQLException {
         GeneralLobMapper mapper = new GeneralLobMapper();
         DataTypeFactory factory = new CommonDataTypeFactory("clob");
+        Assert.assertTrue(mapper.supports(factory.generate()));
+    }
+
+    @Test
+    public void supports_dbclob_supports() throws IOException, SQLException {
+        // fix-K: DB2 DBCLOB now recognized so the data tab handles double-byte LOBs.
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        DataTypeFactory factory = new CommonDataTypeFactory("dbclob");
+        Assert.assertTrue(mapper.supports(factory.generate()));
+    }
+
+    @Test
+    public void supports_nclob_supports() throws IOException, SQLException {
+        GeneralLobMapper mapper = new GeneralLobMapper();
+        DataTypeFactory factory = new CommonDataTypeFactory("nclob");
         Assert.assertTrue(mapper.supports(factory.generate()));
     }
 
@@ -93,4 +146,3 @@ public class GeneralLobMapperTest {
     }
 
 }
-

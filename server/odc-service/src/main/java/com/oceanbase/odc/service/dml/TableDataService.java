@@ -98,6 +98,12 @@ public class TableDataService {
             } else if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
                 dmlBuilder =
                         new OracleDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
+            } else if (dialectType.isDb2()) {
+                // fix-L commit-2 (Issue dms-ee#839, bug N2): DB2 now has its own DML builder that
+                // emits ANSI double-quoted identifiers (DB2 native) instead of MySQL backticks.
+                // Previously DB2 was routed through MySQLDMLBuilder which produced backtick SQL
+                // (`SCHEMA`.`TABLE`) that DB2 rejects with SQLCODE=-7 / SQLSTATE=42601.
+                dmlBuilder = new Db2DMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else {
                 throw new IllegalArgumentException("Illegal dialect type, " + dialectType);
             }
