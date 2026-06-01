@@ -226,9 +226,13 @@ public class ConnectionTesting {
     }
 
     private JdbcUrlProperty getJdbcUrlProperties(ConnectionConfig config, String schema) {
+        // 对 PG 类型做 catalog 兜底，避免 PostgresConnectionExtension 抛 "catalog name can not be null"
+        // 详见 OBConsoleDataSourceFactory#resolveEffectiveCatalogName（issue #850）
+        String effectiveCatalogName = OBConsoleDataSourceFactory.resolveEffectiveCatalogName(
+                config.getDialectType(), config.getCatalogName(), schema);
         return new JdbcUrlProperty(config.getHost(), config.getPort(), schema,
                 OBConsoleDataSourceFactory.getJdbcParams(config), config.getSid(),
-                config.getServiceName(), config.getCatalogName());
+                config.getServiceName(), effectiveCatalogName);
     }
 
     private Properties getTestConnectionProperties(ConnectionConfig config) {

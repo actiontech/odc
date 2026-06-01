@@ -89,6 +89,18 @@ public class OdcConstants {
      * not blow up with {@code catalog name can not be null} during schema sync.
      */
     public static final String GAUSSDB_DEFAULT_CATALOG = "postgres";
+    /**
+     * PostgreSQL 默认数据库（catalog）名称。
+     *
+     * <p>
+     * PostgreSQL 的 JDBC URL 必须指定数据库名（即 catalog），而 PG 是 catalog/schema 分离的：用户在 DMS 端通常只填
+     * default_schema（如 "public"），未指定 catalog/database。{@code "postgres"} 是 PG 标准安装中默认存在的内置数据库， 在
+     * catalogName 为空时用作兜底，使 schema 同步（{@code information_schema.schemata} 跨 schema 列出当前 catalog 的
+     * schema 列表）能够走通。
+     *
+     * @since 4.3.4 (issue #850)
+     */
+    public static final String POSTGRESQL_DEFAULT_DATABASE = "postgres";
     public static final String SQL_SERVER_DEFAULT_SCHEMA = "master";
     public static final String ODC_BACK_URL_PARAM = "odc_back_url";
 

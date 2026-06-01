@@ -83,6 +83,13 @@ public class DefaultJdbcRowMapper extends BaseDialectBasedRowMapper {
                     ConnectionSessionUtil.getNlsTimestampTZFormat(session)));
             mapperList.add(new OracleNlsFormatTimestampLTZMapper(
                     ConnectionSessionUtil.getNlsTimestampTZFormat(session)));
+        } else if (dialectType.isPostgreSql()) {
+            // PostgreSQL specific type mappers
+            mapperList.add(new PGBooleanMapper());
+            mapperList.add(new PGNumericMapper());
+            mapperList.add(new PGByteaMapper());
+            mapperList.add(new PGArrayMapper());
+            mapperList.add(new PGTimestampTZMapper());
         }
         mapperList.add(new GeneralLobMapper());
     }

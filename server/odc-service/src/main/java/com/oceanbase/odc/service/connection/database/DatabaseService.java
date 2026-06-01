@@ -1314,6 +1314,16 @@ public class DatabaseService {
                 .containsIgnoreCase(errorMessage, "tenant expected 1 but was")) {
             failedReason = ConnectionSyncErrorReason.TENANT_NOT_EXISTS;
             deleteDatabaseIfInstanceNotExists(dataSourceId, organization.getType());
+        } else if (StringUtils.containsIgnoreCase(errorMessage, "CannotGetJdbcConnectionException")
+                || StringUtils.containsIgnoreCase(errorMessage, "Failed to obtain JDBC Connection")
+                || StringUtils.containsIgnoreCase(errorMessage, "FATAL: database")) {
+            // PG (and other JDBC dialects) connection failure: catalog 不存在 / 网络不通 / 认证失败等，
+            // 走通用 JDBC 连接失败兜底，把该数据源下旧的 connect_database 记录标记为 not-existed，
+            // 让前端"同步"按钮重新触发拉取，避免界面上残留已不存在的数据库。
+            log.warn(
+                    "JDBC connection failed during sync, marking all databases as not-existed for dataSourceId={}",
+                    dataSourceId);
+            deleteDatabaseIfInstanceNotExists(dataSourceId, organization.getType());
         }
         connectionSyncHistoryService.upsert(dataSourceId, ConnectionSyncResult.FAILURE, organization.getId(),
                 failedReason, errorMessage);

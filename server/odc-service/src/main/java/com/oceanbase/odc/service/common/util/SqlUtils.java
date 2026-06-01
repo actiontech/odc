@@ -29,6 +29,7 @@ import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.sql.split.OffsetString;
+import com.oceanbase.odc.core.sql.split.PostgreSqlSplitter;
 import com.oceanbase.odc.core.sql.split.SqlCommentProcessor;
 import com.oceanbase.odc.core.sql.split.SqlServerSqlSplitter;
 import com.oceanbase.odc.core.sql.split.SqlSplitter;
@@ -128,6 +129,14 @@ public class SqlUtils {
             SqlServerSqlSplitter splitter = new SqlServerSqlSplitter(processor.getDelimiter());
             return splitter.split(sql);
         }
+        if (dialectType.isPostgreSql()) {
+            // PostgreSQL needs special splitting for:
+            // - dollar-quoting: $$...$$ and $tag$...$tag$
+            // - E-string: E'...' with backslash escapes
+            // - nested block comments
+            PostgreSqlSplitter splitter = new PostgreSqlSplitter(processor.getDelimiter());
+            return splitter.split(sql);
+        }
         if ((dialectType.isOracle() || dialectType.isDm())
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             SqlSplitter sqlSplitter = new SqlSplitter(PlSqlLexer.class, processor.getDelimiter(), false);
@@ -175,6 +184,9 @@ public class SqlUtils {
         PreConditions.notBlank(processor.getDelimiter(), "delimiter", "Empty or blank delimiter is not allowed");
         if (Objects.nonNull(dialectType) && dialectType.isSqlServer()) {
             return SqlServerSqlSplitter.iterator(input, charset, processor.getDelimiter());
+        }
+        if (Objects.nonNull(dialectType) && dialectType.isPostgreSql()) {
+            return PostgreSqlSplitter.iterator(input, charset, processor.getDelimiter());
         }
         if (Objects.nonNull(dialectType) && dialectType.isOracle()
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {

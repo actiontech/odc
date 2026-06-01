@@ -28,17 +28,20 @@ import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 import sun.misc.Unsafe;
 
 /**
- * Unit tests for {@link OBConsoleDataSourceFactory#getSchema(String, DialectType)} and
- * {@link OBConsoleDataSourceFactory#getDefaultSchema(ConnectionConfig)}.
+ * Unit tests for {@link OBConsoleDataSourceFactory}, including
+ * {@link OBConsoleDataSourceFactory#resolveEffectiveCatalogName(DialectType, String, String)}.
+ *
  * <p>
- * Covers compat_risks CR-4d (GAUSSDB default schema fallback) and pins the POSTGRESQL / OB_MYSQL
- * paths as regression baselines.
+ * 覆盖 issue #850 中 PG 数据源 {@code catalog name can not be null} 阻塞性 BUG 的修复路径：上游（DMS）创建 PG 数据源时通常只传
+ * {@code default_schema=public} 而不传 {@code catalog_name}，导致 ODC 后端
+ * {@code DatabaseService.syncDataSourceSchemas} 100% 失败、前端资源树无法展开。修复方案在 PG 类型 + catalog 为空时 统一兜底到
+ * PG 内置默认数据库 {@code postgres}；不再以 defaultSchema 推断 catalog（schema 不是 database， 强行使用会触发
+ * {@code FATAL: database "<schema>" does not exist}）。
  */
 public class OBConsoleDataSourceFactoryTest {
 
     private ConnectionConfig newConfig(DialectType dialectType, String defaultSchema) {
         ConnectionConfig config = new ConnectionConfig();
-        // ConnectionConfig#getDialectType() is derived from #type; populate via setType(ConnectType).
         config.setType(ConnectType.from(dialectType));
         config.setDefaultSchema(defaultSchema);
         return config;
@@ -118,5 +121,91 @@ public class OBConsoleDataSourceFactoryTest {
         String keepAliveSql = (String) method.invoke(factory, DialectType.MONGODB);
 
         Assert.assertEquals("db.runCommand({ ping: 1 })", keepAliveSql);
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_ExplicitCatalog_PostgreSQL_returnsAsIs() {
+        Assert.assertEquals("mydb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "mydb", "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_ExplicitCatalog_MySQL_returnsAsIs() {
+        Assert.assertEquals("mydb",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.MYSQL, "mydb",
+                        "information_schema"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_publicSchema_fallsBackToPostgresDb() {
+        // 复现 issue #850 现场：DMS 创建 PG 数据源仅传 default_schema=public，catalog 为 null
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_publicSchemaCaseInsensitive_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "Public"));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "PUBLIC"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_emptyCatalog_publicSchema_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", "public"));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "  ", "public"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_customSchema_fallsBackToPostgresDb() {
+        // 即便用户填了"看似 database 名"的 defaultSchema（如 testdb / appdb），也不能再据此推断 catalog——
+        // 因为它可能是真实存在的 PG schema（如 schema_a），用作 catalog 会触发
+        // FATAL: database "<schema>" does not exist。统一兜底到 postgres 内置库。
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, "testdb"));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", "appdb"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_PG_nullCatalog_nullSchema_fallsBackToPostgresDb() {
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, null, null));
+        Assert.assertEquals("postgres",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.POSTGRESQL, "", ""));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_MySQL_nullCatalog_doesNotFallback() {
+        // 不能影响其他数据源类型——MySQL 不强校验 catalog
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.MYSQL, null, "information_schema"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_Oracle_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.ORACLE, null, "ORCL"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_OBMySQL_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.OB_MYSQL, null, "test"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_SqlServer_nullCatalog_doesNotFallback() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.SQL_SERVER, null, "master"));
+    }
+
+    @Test
+    public void testResolveEffectiveCatalogName_NullDialect_emptyCatalog_returnsEmpty() {
+        Assert.assertNull(
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(null, null, "any"));
     }
 }

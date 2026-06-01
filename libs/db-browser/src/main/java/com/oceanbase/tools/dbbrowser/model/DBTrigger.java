@@ -38,8 +38,10 @@ public class DBTrigger implements DBObject {
     private List<DBTriggerEvent> triggerEvents;
     // 等效于之前的 tableOwner
     private String schemaMode;
-    // 等效于之前的 tableName
+    // 等效于之前的 tableName，用于存储关联的表名
     private String schemaName;
+    // 表名，用于触发器关联的表（独立字段，避免与 schemaName 混淆）
+    private String tableName;
     private Boolean rowLevel = true;
     private boolean enable;
     private String sqlExpression;
@@ -59,8 +61,16 @@ public class DBTrigger implements DBObject {
         return DBObjectType.TRIGGER;
     }
 
+    /**
+     * 获取表名
+     * <p>
+     * 返回 tableName 字段（如果设置了），否则返回 schemaName 字段以保持向后兼容
+     * </p>
+     *
+     * @return 表名
+     */
     public String getTableName() {
-        return this.schemaName;
+        return this.tableName != null ? this.tableName : this.schemaName;
     }
 
     public String getTableOwner() {

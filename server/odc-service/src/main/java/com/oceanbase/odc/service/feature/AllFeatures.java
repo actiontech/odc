@@ -23,6 +23,7 @@ public class AllFeatures {
     private static final Features OB_MYSQL = new OBMySQLFeatures();
     private static final Features ODP_SHARDING = new ODPShardingFeatures();
     private static final Features MYSQL = new MySQLFeatures();
+    private static final Features POSTGRESQL = new PostgreSQLFeatures();
 
     public static Features getByConnectType(ConnectType connectType) {
         PreConditions.notNull(connectType, "connectType");
@@ -35,6 +36,8 @@ public class AllFeatures {
             case MYSQL:
             case TIDB:
                 return MYSQL;
+            case POSTGRESQL:
+                return POSTGRESQL;
             default:
                 return DEFAULT;
         }

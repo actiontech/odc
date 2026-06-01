@@ -24,6 +24,7 @@ import com.oceanbase.tools.dbbrowser.editor.mysql.MySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLLessThan400TableEditor;
 import com.oceanbase.tools.dbbrowser.editor.mysql.OBMySQLTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.oracle.OracleTableEditor;
+import com.oceanbase.tools.dbbrowser.editor.postgre.PostgresTableEditor;
 import com.oceanbase.tools.dbbrowser.editor.sqlserver.SqlServerTableEditor;
 import com.oceanbase.tools.dbbrowser.util.VersionUtils;
 
@@ -88,7 +89,10 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
 
     @Override
     public DBTableEditor buildForPostgres() {
-        throw new UnsupportedOperationException("Not supported yet");
+        return new PostgresTableEditor(getTableIndexEditor(),
+                getTableColumnEditor(),
+                getTableConstraintEditor(),
+                getTablePartitionEditor());
     }
 
     @Override
