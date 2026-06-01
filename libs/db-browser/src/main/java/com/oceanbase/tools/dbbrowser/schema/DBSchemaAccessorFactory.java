@@ -189,7 +189,9 @@ public class DBSchemaAccessorFactory extends AbstractDBBrowserFactory<DBSchemaAc
     @Override
     public DBSchemaAccessor buildForHive() {
         return new HiveSchemaAccessor(getJdbcOperations());
+    }
 
+    @Override
     public DBSchemaAccessor buildForDB2() {
         return new Db2SchemaAccessor(getJdbcOperations());
     }

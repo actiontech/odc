@@ -98,7 +98,9 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
     @Override
     public DBObjectOperator buildForHive() {
         return new HiveObjectOperator(getJdbcOperations());
+    }
 
+    @Override
     public DBObjectOperator buildForDB2() {
         return new Db2ObjectOperator(getJdbcOperations());
     }

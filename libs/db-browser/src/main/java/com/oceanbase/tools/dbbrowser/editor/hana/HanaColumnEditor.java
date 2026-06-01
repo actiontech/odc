@@ -225,7 +225,12 @@ public class HanaColumnEditor extends DBTableColumnEditor {
     protected static class HanaNullNotNullModifier implements DBColumnModifier {
         @Override
         public void appendModifier(DBTableColumn column, SqlBuilder sqlBuilder) {
-            sqlBuilder.append(column.getNullable() ? " NULL" : " NOT NULL");
+            Boolean nullable = column.getNullable();
+            if (nullable == null || nullable) {
+                sqlBuilder.append(" NULL");
+            } else {
+                sqlBuilder.append(" NOT NULL");
+            }
         }
     }
 

@@ -164,6 +164,12 @@ public class DBTableService {
                     .setDbVersion("4.0.0")
                     .setType(session.getDialectType().getDBBrowserDialectTypeName()).create()
                     .generateCreateObjectDDL(table);
+        } else if (session.getDialectType().isHana()) {
+            // HANA: use offline DDL generation (no BACKEND_DS connection needed)
+            ddl = DBBrowser.objectEditor().tableEditor()
+                    .setDbVersion("4.0.0")
+                    .setType(DialectType.HANA.getDBBrowserDialectTypeName()).create()
+                    .generateCreateObjectDDL(table);
         } else {
             ddl = session.getSyncJdbcExecutor(
                     ConnectionSessionConstants.BACKEND_DS_KEY)
@@ -186,38 +192,34 @@ public class DBTableService {
      */
     public GenerateTableDDLResp generateUpdateDDL(@NotNull ConnectionSession session,
             @NotNull GenerateUpdateTableDDLReq req) {
-        String ddl; // 用于存储生成的DDL语句
+        String ddl;
 
-        // ========== 分支1: 逻辑会话处理 ==========
-        // 逻辑会话是指不直接连接真实数据库的会话，通常用于离线DDL生成或逻辑建模场景
         if (ConnectionSessionUtil.isLogicalSession(session)) {
-            // 使用DBBrowser工具链式构建表编辑器，生成更新DDL
             ddl = DBBrowser.objectEditor().tableEditor()
-                    .setDbVersion("4.0.0") // 设置数据库版本为4.0.0
-                    .setType(session.getDialectType().getDBBrowserDialectTypeName()) // 设置数据库方言类型（如MySQL、Oracle等）
-                    .create() // 创建表编辑器实例
-                    .generateUpdateObjectDDL(req.getPrevious(), req.getCurrent()); // 对比前后表结构差异，生成ALTER TABLE等更新DDL
-        }
-        // ========== 分支2: 物理会话处理 ==========
-        // 物理会话是指直接连接真实数据库的会话，需要通过数据库扩展点生成DDL
-        else {
-            // 通过JDBC执行器获取数据库连接，调用表扩展点生成DDL
+                    .setDbVersion("4.0.0")
+                    .setType(session.getDialectType().getDBBrowserDialectTypeName())
+                    .create()
+                    .generateUpdateObjectDDL(req.getPrevious(), req.getCurrent());
+        } else if (session.getDialectType().isHana()) {
+            // HANA: use offline DDL generation (no BACKEND_DS connection needed).
+            // The table editor compares previous/current structures and emits
+            // ALTER TABLE statements without requiring a live JDBC connection.
+            ddl = DBBrowser.objectEditor().tableEditor()
+                    .setDbVersion("4.0.0")
+                    .setType(DialectType.HANA.getDBBrowserDialectTypeName())
+                    .create()
+                    .generateUpdateObjectDDL(req.getPrevious(), req.getCurrent());
+        } else {
             ddl = session.getSyncJdbcExecutor(
-                    ConnectionSessionConstants.BACKEND_DS_KEY) // 使用后端数据源执行器
-                    .execute((ConnectionCallback<String>) con ->
-                    // 获取对应数据库类型的表扩展点，执行generateUpdateDDL方法
-                    getTableExtensionPoint(session).generateUpdateDDL(con,
+                    ConnectionSessionConstants.BACKEND_DS_KEY)
+                    .execute((ConnectionCallback<String>) con -> getTableExtensionPoint(session).generateUpdateDDL(con,
                             req.getPrevious(), req.getCurrent()));
         }
 
-        // ========== 构建响应对象 ==========
         return GenerateTableDDLResp.builder()
-                .sql(ddl) // 设置生成的DDL SQL语句
-                // 设置当前表标识（修改后的表）：包含schema名称和表名
+                .sql(ddl)
                 .currentIdentity(TableIdentity.of(req.getCurrent().getSchemaName(), req.getCurrent().getName()))
-                // 设置之前表标识（修改前的表）：包含schema名称和表名
                 .previousIdentity(TableIdentity.of(req.getPrevious().getSchemaName(), req.getPrevious().getName()))
-                // 检查DDL中是否包含索引操作（创建/删除），并返回相应的提示信息
                 .tip(checkUpdateDDL(session.getDialectType(), ddl))
                 .build();
     }
@@ -235,6 +237,9 @@ public class DBTableService {
     }
 
     public String checkUpdateDDL(DialectType dialectType, String ddl) {
+        if (ddl == null || ddl.isEmpty()) {
+            return null;
+        }
         boolean createIndex = false;
         boolean dropIndex = false;
         for (String s : SqlUtils.split(dialectType, ddl, ";")) {

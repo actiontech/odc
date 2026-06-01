@@ -31,16 +31,14 @@ import org.junit.Test;
 /**
  * Unit tests for PostgreSQL Version Diff Config
  * 
- * This test verifies that the PostgreSQL configuration is properly added
- * to the odc_version_diff_config table via migration script.
+ * This test verifies that the PostgreSQL configuration is properly added to the
+ * odc_version_diff_config table via migration script.
  * 
- * Related issue: E-001 - 视图/函数/存储过程分组不可见
- * Fix: Add PostgreSQL support_view, support_function, support_procedure configs
+ * Related issue: E-001 - 视图/函数/存储过程分组不可见 Fix: Add PostgreSQL support_view, support_function,
+ * support_procedure configs
  * 
- * 设计文档参考:
- * - 需求文档 AC-005.4: 对象类型分组展示
- * - 需求文档 AC-005.8: 后端 supportFeature 标志正确反映 PostgreSQL 支持的对象类型
- * - 任务7描述: VersionDiffConfigService.getSupportFeatures() 从 odc_version_diff_config 表读取配置
+ * 设计文档参考: - 需求文档 AC-005.4: 对象类型分组展示 - 需求文档 AC-005.8: 后端 supportFeature 标志正确反映 PostgreSQL 支持的对象类型 -
+ * 任务7描述: VersionDiffConfigService.getSupportFeatures() 从 odc_version_diff_config 表读取配置
  */
 public class PostgreSQLVersionDiffConfigTest {
 
@@ -49,15 +47,14 @@ public class PostgreSQLVersionDiffConfigTest {
             "server/odc-migrate/src/main/resources/migrate/common/V_4_3_4_13__add_postgresql_version_diff_config.sql";
 
     /**
-     * PostgreSQL config keys that must be present for resource tree to work correctly.
-     * These are the minimum required configs to fix E-001:
-     * - support_view: enables view group in resource tree
-     * - support_function: enables function group in resource tree
-     * - support_procedure: enables procedure group in resource tree
+     * PostgreSQL config keys that must be present for resource tree to work correctly. These are the
+     * minimum required configs to fix E-001: - support_view: enables view group in resource tree -
+     * support_function: enables function group in resource tree - support_procedure: enables procedure
+     * group in resource tree
      * 
-     * Note: support_sequence, support_trigger, support_type are set to false because
-     * ODC doesn't implement the corresponding ExtensionPoints yet (same as SQL Server).
-     * They are not included in REQUIRED_POSTGRESQL_CONFIGS because they are disabled.
+     * Note: support_sequence, support_trigger, support_type are set to false because ODC doesn't
+     * implement the corresponding ExtensionPoints yet (same as SQL Server). They are not included in
+     * REQUIRED_POSTGRESQL_CONFIGS because they are disabled.
      */
     private static final String[] REQUIRED_POSTGRESQL_CONFIGS = {
             "support_view",
@@ -88,8 +85,7 @@ public class PostgreSQLVersionDiffConfigTest {
     /**
      * Test case 2: Verify migration script contains required PostgreSQL support_view config
      * 
-     * 测试目标：验证迁移脚本包含 support_view 配置
-     * 需求引用：AC-005.4, AC-005.8, E-001 修复
+     * 测试目标：验证迁移脚本包含 support_view 配置 需求引用：AC-005.4, AC-005.8, E-001 修复
      */
     @Test
     public void testMigrationScript_containsSupportView() throws Exception {
@@ -101,8 +97,7 @@ public class PostgreSQLVersionDiffConfigTest {
     /**
      * Test case 3: Verify migration script contains required PostgreSQL support_function config
      * 
-     * 测试目标：验证迁移脚本包含 support_function 配置
-     * 需求引用：AC-005.4, AC-005.8, E-001 修复
+     * 测试目标：验证迁移脚本包含 support_function 配置 需求引用：AC-005.4, AC-005.8, E-001 修复
      */
     @Test
     public void testMigrationScript_containsSupportFunction() throws Exception {
@@ -114,8 +109,7 @@ public class PostgreSQLVersionDiffConfigTest {
     /**
      * Test case 4: Verify migration script contains required PostgreSQL support_procedure config
      * 
-     * 测试目标：验证迁移脚本包含 support_procedure 配置
-     * 需求引用：AC-005.4, AC-005.8, E-001 修复
+     * 测试目标：验证迁移脚本包含 support_procedure 配置 需求引用：AC-005.4, AC-005.8, E-001 修复
      */
     @Test
     public void testMigrationScript_containsSupportProcedure() throws Exception {
@@ -154,7 +148,7 @@ public class PostgreSQLVersionDiffConfigTest {
         String content = readMigrationScript();
         // Pattern to match support_view config
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_view'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_view'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -172,7 +166,7 @@ public class PostgreSQLVersionDiffConfigTest {
     public void testMigrationScript_supportFunction_isTrue() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_function'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_function'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -182,8 +176,8 @@ public class PostgreSQLVersionDiffConfigTest {
     }
 
     /**
-     * Test case 8: Verify support_procedure is set to true for PostgreSQL
-     * Note: PostgreSQL 11+ supports CREATE PROCEDURE
+     * Test case 8: Verify support_procedure is set to true for PostgreSQL Note: PostgreSQL 11+ supports
+     * CREATE PROCEDURE
      * 
      * 测试目标：验证 support_procedure 配置值为 true
      */
@@ -191,7 +185,7 @@ public class PostgreSQLVersionDiffConfigTest {
     public void testMigrationScript_supportProcedure_isTrue() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_procedure'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_procedure'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -228,9 +222,8 @@ public class PostgreSQLVersionDiffConfigTest {
     /**
      * Test case 10: Verify db_mode value is POSTGRESQL (matches DialectType.POSTGRESQL.name())
      * 
-     * 测试目标：验证 db_mode 值为 POSTGRESQL
-     * 重要：VersionDiffConfigService.getDbMode() 返回 connectType.getDialectType().name()
-     * 即 "POSTGRESQL"，迁移脚本必须使用相同的值
+     * 测试目标：验证 db_mode 值为 POSTGRESQL 重要：VersionDiffConfigService.getDbMode() 返回
+     * connectType.getDialectType().name() 即 "POSTGRESQL"，迁移脚本必须使用相同的值
      */
     @Test
     public void testMigrationScript_dbModeIsPostgreSql() throws Exception {
@@ -250,8 +243,8 @@ public class PostgreSQLVersionDiffConfigTest {
     }
 
     /**
-     * Test case 11: Verify support_procedure min_version is '11' for PostgreSQL
-     * PostgreSQL 11 introduced CREATE PROCEDURE syntax
+     * Test case 11: Verify support_procedure min_version is '11' for PostgreSQL PostgreSQL 11
+     * introduced CREATE PROCEDURE syntax
      * 
      * 测试目标：验证 support_procedure 的 min_version 为 '11'
      */
@@ -259,19 +252,19 @@ public class PostgreSQLVersionDiffConfigTest {
     public void testMigrationScript_supportProcedure_minVersionIs11() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "'support_procedure'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'true'\\s*,\\s*'([^']+)'", 
+                "'support_procedure'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'true'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
-        Assert.assertTrue("Should find support_procedure config for POSTGRESQL with min_version", 
+        Assert.assertTrue("Should find support_procedure config for POSTGRESQL with min_version",
                 matcher.find());
         Assert.assertEquals("support_procedure min_version should be '11' (PG 11 introduced CREATE PROCEDURE)",
                 "11", matcher.group(1));
     }
 
     /**
-     * Test case 12: Verify not supported features are set to false
-     * Features that PostgreSQL doesn't support natively should be false
+     * Test case 12: Verify not supported features are set to false Features that PostgreSQL doesn't
+     * support natively should be false
      * 
      * 测试目标：验证 PostgreSQL 不支持的特性被设置为 false
      */
@@ -299,17 +292,16 @@ public class PostgreSQLVersionDiffConfigTest {
     }
 
     /**
-     * Test case 12.1: Verify support_trigger is set to false for PostgreSQL
-     * ODC doesn't implement TriggerExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * Test case 12.1: Verify support_trigger is set to false for PostgreSQL ODC doesn't implement
+     * TriggerExtensionPoint for PostgreSQL yet (same as SQL Server)
      * 
-     * 测试目标：验证 support_trigger 配置值为 false
-     * 原因：ODC 未实现 PostgresTriggerExtension，与 SQL Server 保持一致
+     * 测试目标：验证 support_trigger 配置值为 false 原因：ODC 未实现 PostgresTriggerExtension，与 SQL Server 保持一致
      */
     @Test
     public void testMigrationScript_supportTrigger_isFalse() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_trigger'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_trigger'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -327,7 +319,7 @@ public class PostgreSQLVersionDiffConfigTest {
     public void testMigrationScript_supportTriggerDdl_isFalse() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_trigger_ddl'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_trigger_ddl'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -337,17 +329,16 @@ public class PostgreSQLVersionDiffConfigTest {
     }
 
     /**
-     * Test case 12.3: Verify support_sequence is set to false for PostgreSQL
-     * ODC doesn't implement SequenceExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * Test case 12.3: Verify support_sequence is set to false for PostgreSQL ODC doesn't implement
+     * SequenceExtensionPoint for PostgreSQL yet (same as SQL Server)
      * 
-     * 测试目标：验证 support_sequence 配置值为 false
-     * 原因：ODC 未实现 PostgresSequenceExtension，与 SQL Server 保持一致
+     * 测试目标：验证 support_sequence 配置值为 false 原因：ODC 未实现 PostgresSequenceExtension，与 SQL Server 保持一致
      */
     @Test
     public void testMigrationScript_supportSequence_isFalse() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_sequence'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_sequence'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -357,17 +348,16 @@ public class PostgreSQLVersionDiffConfigTest {
     }
 
     /**
-     * Test case 12.4: Verify support_type is set to false for PostgreSQL
-     * ODC doesn't implement TypeExtensionPoint for PostgreSQL yet (same as SQL Server)
+     * Test case 12.4: Verify support_type is set to false for PostgreSQL ODC doesn't implement
+     * TypeExtensionPoint for PostgreSQL yet (same as SQL Server)
      * 
-     * 测试目标：验证 support_type 配置值为 false
-     * 原因：ODC 未实现 PostgresTypeExtension，与 SQL Server 保持一致
+     * 测试目标：验证 support_type 配置值为 false 原因：ODC 未实现 PostgresTypeExtension，与 SQL Server 保持一致
      */
     @Test
     public void testMigrationScript_supportType_isFalse() throws Exception {
         String content = readMigrationScript();
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'support_type'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'", 
+                "values\\s*\\(\\s*'support_type'\\s*,\\s*'POSTGRESQL'\\s*,\\s*'([^']+)'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 
@@ -399,12 +389,12 @@ public class PostgreSQLVersionDiffConfigTest {
         while (currentDir != null && !new File(currentDir, "pom.xml").exists()) {
             currentDir = currentDir.getParentFile();
         }
-        
+
         // Navigate to the migration script
         if (currentDir != null) {
             return new File(currentDir, MIGRATION_SCRIPT_RELATIVE_PATH);
         }
-        
+
         // Fallback: try relative path from current directory
         return new File(MIGRATION_SCRIPT_RELATIVE_PATH);
     }
@@ -422,7 +412,7 @@ public class PostgreSQLVersionDiffConfigTest {
         // Pattern to match config_key for POSTGRESQL
         // Example: values('support_view','POSTGRESQL',...
         Pattern pattern = Pattern.compile(
-                "values\\s*\\(\\s*'([^']+)'\\s*,\\s*'POSTGRESQL'", 
+                "values\\s*\\(\\s*'([^']+)'\\s*,\\s*'POSTGRESQL'",
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(content);
 

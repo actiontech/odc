@@ -80,7 +80,9 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
     @Override
     public DBObjectTemplate<DBTrigger> buildForHive() {
         throw new UnsupportedOperationException("Hive does not support triggers");
+    }
 
+    @Override
     public DBObjectTemplate<DBTrigger> buildForDB2() {
         throw new UnsupportedOperationException("DB2 not supported yet");
     }

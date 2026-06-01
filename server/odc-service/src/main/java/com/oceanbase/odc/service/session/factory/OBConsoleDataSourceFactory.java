@@ -305,6 +305,9 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
     private String getKeepAliveSql(DialectType dialectType) {
         if (dialectType.isMongoDB()) {
             return "db.runCommand({ ping: 1 })";
+        } else if (dialectType.isHana()) {
+            // HANA does not support bare SELECT without FROM; use DUMMY pseudo-table
+            return "SELECT 1 FROM DUMMY";
         } else if (dialectType.isOracle()) {
             // Oracle and OceanBase Oracle support DUAL table
             return "SELECT 1 FROM DUAL";
