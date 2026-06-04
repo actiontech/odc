@@ -52,7 +52,7 @@ public class DBSessionService {
         if (ConnectionSessionUtil.isLogicalSession(connectionSession)) {
             return null;
         }
-        if (connectionSession.getDialectType().isMongoDB()) {
+        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()) {
             return DBSession.unknown();
         }
         try {

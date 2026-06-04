@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.oceanbase.odc.plugin.connect.redis;
+package com.oceanbase.odc.plugin.schema.redis;
 
 import com.oceanbase.odc.core.shared.constant.DialectType;
-import com.oceanbase.odc.plugin.connect.api.BaseConnectionPlugin;
+import com.oceanbase.odc.plugin.schema.api.BaseSchemaPlugin;
 
-public class RedisConnectionPlugin extends BaseConnectionPlugin {
+public class RedisSchemaPlugin extends BaseSchemaPlugin {
     @Override
     public DialectType getDialectType() {
         return DialectType.REDIS;

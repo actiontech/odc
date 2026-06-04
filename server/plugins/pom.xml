@@ -42,6 +42,7 @@
         <module>schema-plugin-dm</module>
         <module>schema-plugin-hana</module>
         <module>schema-plugin-mongodb</module>
+        <module>schema-plugin-redis</module>
         <module>schema-plugin-hive</module>
         <module>schema-plugin-db2</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
@@ -254,6 +255,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-mongodb</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-redis</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

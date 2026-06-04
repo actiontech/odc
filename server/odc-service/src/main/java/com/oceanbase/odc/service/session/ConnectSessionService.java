@@ -550,7 +550,7 @@ public class ConnectSessionService {
                 .sessionId(sessionId)
                 .supports(configService.getSupportFeatures(session))
                 .dataTypeUnits(configService.getDatatypeList(session));
-        if (!session.getDialectType().isMongoDB()) {
+        if (!session.getDialectType().isMongoDB() && !session.getDialectType().isRedis()) {
             builder.charsets(charsetService.listCharset(session))
                     .collations(charsetService.listCollation(session));
         }
