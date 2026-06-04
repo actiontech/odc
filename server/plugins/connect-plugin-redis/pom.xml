@@ -11,6 +11,13 @@
     </parent>
     <artifactId>connect-plugin-redis</artifactId>
     <packaging>jar</packaging>
+
+    <properties>
+        <root-project.basedir>${project.parent.parent.basedir}</root-project.basedir>
+        <plugin.class>com.oceanbase.odc.plugin.connect.redis.RedisConnectionPlugin</plugin.class>
+        <plugin.dependencies/>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.oceanbase</groupId>

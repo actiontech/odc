@@ -9,7 +9,8 @@ import java.util.Set;
 
 public class RedisCommandParser {
     private static final Set<String> DENYLIST = new HashSet<>(Arrays.asList(
-            "AUTH", "ACL", "CONFIG", "DEBUG", "FLUSHALL", "FLUSHDB", "MIGRATE", "MODULE", "REPLICAOF", "SHUTDOWN", "SLAVEOF"));
+            "AUTH", "ACL", "CONFIG", "DEBUG", "FLUSHALL", "FLUSHDB", "MIGRATE", "MODULE", "REPLICAOF", "SHUTDOWN",
+            "SLAVEOF"));
     private static final Set<String> WRITE_COMMANDS = new HashSet<>(Arrays.asList(
             "SET", "DEL", "HSET", "LPUSH", "RPUSH", "SADD", "ZADD", "XADD", "EXPIRE", "PEXPIRE", "INCR", "DECR"));
 
