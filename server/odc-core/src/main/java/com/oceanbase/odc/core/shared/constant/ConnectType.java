@@ -38,6 +38,7 @@ public enum ConnectType {
     DB2(DialectType.DB2),
     HANA(DialectType.HANA),
     MONGODB(DialectType.MONGODB),
+    REDIS(DialectType.REDIS),
     HIVE(DialectType.HIVE),
 
     // reserved for future version
@@ -79,6 +80,10 @@ public enum ConnectType {
 
     public boolean isCloud() {
         return this == CLOUD_OB_MYSQL || this == CLOUD_OB_ORACLE;
+    }
+
+    public boolean isRedis() {
+        return this == REDIS;
     }
 
 }

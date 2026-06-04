@@ -26,6 +26,7 @@
         <module>connect-plugin-dm</module>
         <module>connect-plugin-hana</module>
         <module>connect-plugin-mongodb</module>
+        <module>connect-plugin-redis</module>
         <module>connect-plugin-hive</module>
         <module>connect-plugin-db2</module>
         <module>schema-plugin-api</module>
