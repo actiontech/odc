@@ -89,7 +89,7 @@ public class DBTableService {
 
     public DBTable getTable(@NotNull ConnectionSession connectionSession, String schemaName,
             @NotBlank String tableName, @NotNull DBObjectType type) {
-        if (connectionSession.getDialectType().isMongoDB()) {
+        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()) {
             if (type == DBObjectType.TABLE) {
                 PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
                         () -> connectionSession.getSyncJdbcExecutor(getSchemaDataSourceKey(connectionSession))
@@ -97,7 +97,8 @@ public class DBTableService {
                                         .list(con, schemaName, DBObjectType.TABLE).stream()
                                         .anyMatch(identity -> tableName.equals(identity.getName()))));
             } else {
-                throw new UnsupportedOperationException("MongoDB does not support DB object type: " + type);
+                throw new UnsupportedOperationException(
+                        connectionSession.getDialectType() + " does not support DB object type: " + type);
             }
         } else {
             DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(connectionSession);
@@ -130,7 +131,7 @@ public class DBTableService {
      * get all table details in a schema
      */
     public Map<String, DBTable> getTables(@NotNull ConnectionSession connectionSession, String schemaName) {
-        if (connectionSession.getDialectType().isMongoDB()) {
+        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()) {
             return listTables(connectionSession, schemaName).stream()
                     .collect(Collectors.toMap(DBTable::getName, table -> table, (left, right) -> left));
         }

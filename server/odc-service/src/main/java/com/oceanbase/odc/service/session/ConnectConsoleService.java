@@ -191,6 +191,17 @@ public class ConnectConsoleService {
             asyncExecuteReq.setContinueExecutionOnError(true);
             asyncExecuteReq.setFullLinkTraceEnabled(false);
             return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
+        } else if (dialectType.isRedis()) {
+            Integer queryLimit = checkQueryLimit(req.getQueryLimit());
+            String sql = formatRedisScanCommand(req.getTableOrViewName(), queryLimit);
+            SqlAsyncExecuteReq asyncExecuteReq = new SqlAsyncExecuteReq();
+            asyncExecuteReq.setSql(sql);
+            asyncExecuteReq.setAddROWID(false);
+            asyncExecuteReq.setQueryLimit(queryLimit);
+            asyncExecuteReq.setShowTableColumnInfo(true);
+            asyncExecuteReq.setContinueExecutionOnError(true);
+            asyncExecuteReq.setFullLinkTraceEnabled(false);
+            return executeQueryTableOrViewData(sessionId, connectionSession, asyncExecuteReq);
         } else if (dialectType.isPostgreSql()) {
             sqlBuilder = new PostgresSqlBuilder();
         } else if (dialectType.isPgFamily()) {
@@ -322,12 +333,14 @@ public class ConnectConsoleService {
 
         // SQL Server needs batch-aware splitting by line-based GO
         // PostgreSQL needs special splitting for dollar-quoting, E-string, etc.
-        List<OffsetString> sqls = (request.ifSplitSqls()
-                || connectionSession.getDialectType().isSqlServer()
-                || connectionSession.getDialectType().isPostgreSql())
-                        ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
-                                sessionProperties.isOracleRemoveCommentPrefix())
-                        : Collections.singletonList(new OffsetString(0, request.getSql()));
+        List<OffsetString> sqls = connectionSession.getDialectType().isRedis()
+                ? Collections.singletonList(new OffsetString(0, request.getSql()))
+                : (request.ifSplitSqls()
+                        || connectionSession.getDialectType().isSqlServer()
+                        || connectionSession.getDialectType().isPostgreSql())
+                                ? SqlUtils.splitWithOffset(connectionSession, request.getSql(),
+                                        sessionProperties.isOracleRemoveCommentPrefix())
+                                : Collections.singletonList(new OffsetString(0, request.getSql()));
         if (sqls.size() == 0) {
             /**
              * if a sql only contains delimiter setting(eg. delimiter $$), code will do this
@@ -656,7 +669,8 @@ public class ConnectConsoleService {
         }
         if (Boolean.TRUE.equals(cxt.get(SHOW_TABLE_COLUMN_INFO))) {
             try (TraceStage s = watch.start(SqlExecuteStages.INIT_COLUMN_INFO)) {
-                if (connectionSession.getDialectType() != DialectType.MONGODB) {
+                if (connectionSession.getDialectType() != DialectType.MONGODB
+                        && connectionSession.getDialectType() != DialectType.REDIS) {
                     schemaAccessor = DBSchemaAccessors.create(connectionSession);
                     result.initColumnInfo(connectionSession, resultTable, schemaAccessor);
                 }
@@ -695,5 +709,13 @@ public class ConnectConsoleService {
             return "db." + collectionName;
         }
         return "db.getCollection(\"" + collectionName.replace("\\", "\\\\").replace("\"", "\\\"") + "\")";
+    }
+
+    private String formatRedisScanCommand(String tableName, Integer queryLimit) {
+        int limit = queryLimit == null || queryLimit <= 0 ? 100 : Math.min(queryLimit, 1000);
+        if (StringUtils.isBlank(tableName) || "keys".equals(tableName)) {
+            return "SCAN 0 COUNT " + limit;
+        }
+        return "SCAN 0 MATCH " + tableName.replace("\\", "\\\\").replace("\"", "\\\"") + ":* COUNT " + limit;
     }
 }
