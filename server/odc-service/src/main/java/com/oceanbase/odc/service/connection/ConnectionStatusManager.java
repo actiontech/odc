@@ -92,7 +92,9 @@ public class ConnectionStatusManager {
         if (Objects.nonNull(connection.getEnabled()) && !connection.getEnabled()) {
             return CheckState.of(ConnectionStatus.DISABLED);
         }
-        if (Objects.nonNull(connection.getType()) && connection.getType().getDialectType() == DialectType.MONGODB) {
+        if (Objects.nonNull(connection.getType())
+                && (connection.getType().getDialectType() == DialectType.MONGODB
+                        || connection.getType().getDialectType() == DialectType.REDIS)) {
             CheckState checkState = new CheckState();
             checkState.refresh(connectionTesting.test(buildTestConnectionReq(connection)));
             return checkState;
