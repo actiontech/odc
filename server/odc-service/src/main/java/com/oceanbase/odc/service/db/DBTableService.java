@@ -302,7 +302,7 @@ public class DBTableService {
     }
 
     private String getSchemaDataSourceKey(@NotNull ConnectionSession connectionSession) {
-        return connectionSession.getDialectType().isMongoDB()
+        return connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()
                 ? ConnectionSessionConstants.CONSOLE_DS_KEY
                 : ConnectionSessionConstants.BACKEND_DS_KEY;
     }
