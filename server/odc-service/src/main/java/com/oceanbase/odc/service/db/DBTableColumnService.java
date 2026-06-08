@@ -18,13 +18,17 @@ package com.oceanbase.odc.service.db;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.stereotype.Service;
 
 import com.oceanbase.odc.core.authority.util.SkipAuthorize;
 import com.oceanbase.odc.core.session.ConnectionSession;
+import com.oceanbase.odc.core.session.ConnectionSessionConstants;
+import com.oceanbase.odc.plugin.schema.api.TableExtensionPoint;
 import com.oceanbase.odc.service.db.browser.DBSchemaAccessors;
 import com.oceanbase.odc.service.db.browser.DBTableColumnEditors;
 import com.oceanbase.odc.service.db.model.OdcDBTableColumn;
+import com.oceanbase.odc.service.plugin.SchemaPluginUtil;
 import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
@@ -34,6 +38,14 @@ public class DBTableColumnService {
 
     public List<OdcDBTableColumn> list(ConnectionSession connectionSession,
             String databaseName, String tableName) {
+        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()) {
+            TableExtensionPoint tableExtensionPoint =
+                    SchemaPluginUtil.getTableExtension(connectionSession.getDialectType());
+            return connectionSession.getSyncJdbcExecutor(ConnectionSessionConstants.CONSOLE_DS_KEY)
+                    .execute((ConnectionCallback<List<DBTableColumn>>) connection -> tableExtensionPoint
+                            .getDetail(connection, databaseName, tableName).getColumns())
+                    .stream().map(OdcDBTableColumn::new).collect(Collectors.toList());
+        }
         DBSchemaAccessor accessor = DBSchemaAccessors.create(connectionSession);
         List<DBTableColumn> columns = accessor.listTableColumns(databaseName, tableName);
         return columns.stream().map(OdcDBTableColumn::new).collect(Collectors.toList());
