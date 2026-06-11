@@ -472,7 +472,21 @@ public class MySQLNoLessThan5700SchemaAccessor implements DBSchemaAccessor {
 
     @Override
     public List<DBPLObjectIdentity> listTriggers(String schemaName) {
-        throw new UnsupportedOperationException("Not supported yet");
+        MySQLSqlBuilder sb = new MySQLSqlBuilder();
+        sb.append(
+                "select TRIGGER_NAME as name, TRIGGER_SCHEMA as schema_name from `information_schema`.`TRIGGERS` where TRIGGER_SCHEMA=");
+        sb.value(schemaName);
+        sb.append(" order by TRIGGER_NAME asc;");
+
+        return jdbcOperations.query(sb.toString(), (rs, rowNum) -> {
+            DBPLObjectIdentity trigger = new DBPLObjectIdentity();
+            trigger.setName(rs.getString("name"));
+            trigger.setSchemaName(rs.getString("schema_name"));
+            trigger.setType(DBObjectType.TRIGGER);
+            trigger.setEnable(true);
+            trigger.setStatus("VALID");
+            return trigger;
+        });
     }
 
     @Override
@@ -1432,8 +1446,43 @@ public class MySQLNoLessThan5700SchemaAccessor implements DBSchemaAccessor {
     }
 
     @Override
-    public DBTrigger getTrigger(String schemaName, String packageName) {
-        throw new UnsupportedOperationException("Not supported yet");
+    public DBTrigger getTrigger(String schemaName, String triggerName) {
+        MySQLSqlBuilder metaSql = new MySQLSqlBuilder();
+        metaSql.append(
+                "select TRIGGER_SCHEMA, TRIGGER_NAME, EVENT_OBJECT_TABLE, ACTION_TIMING, EVENT_MANIPULATION from `information_schema`.`TRIGGERS` where TRIGGER_SCHEMA=");
+        metaSql.value(schemaName);
+        metaSql.append(" and TRIGGER_NAME=");
+        metaSql.value(triggerName);
+
+        DBTrigger trigger = new DBTrigger();
+        trigger.setTriggerName(triggerName);
+        trigger.setOwner(schemaName);
+        trigger.setEnable(true);
+        trigger.setStatus("VALID");
+        jdbcOperations.query(metaSql.toString(), (rs) -> {
+            trigger.setOwner(rs.getString("TRIGGER_SCHEMA"));
+            trigger.setTriggerName(rs.getString("TRIGGER_NAME"));
+            trigger.setSchemaName(rs.getString("EVENT_OBJECT_TABLE"));
+            trigger.setSchemaMode(rs.getString("TRIGGER_SCHEMA"));
+        });
+
+        MySQLSqlBuilder getDDL = new MySQLSqlBuilder();
+        getDDL.append("show create trigger ");
+        if (schemaName == null) {
+            getDDL.identifier(triggerName);
+        } else {
+            getDDL.identifier(schemaName);
+            getDDL.append(".");
+            getDDL.identifier(triggerName);
+        }
+        jdbcOperations.query(getDDL.toString(), (rs) -> {
+            String ddl = rs.getString("SQL Original Statement");
+            if (ddl == null) {
+                ddl = rs.getString("Create Trigger");
+            }
+            trigger.setDdl(ddl);
+        });
+        return trigger;
     }
 
     @Override
