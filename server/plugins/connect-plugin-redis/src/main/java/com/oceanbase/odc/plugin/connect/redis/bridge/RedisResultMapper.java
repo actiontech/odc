@@ -71,9 +71,9 @@ public class RedisResultMapper {
 
     private RedisTabularResult scan(Object reply) {
         List<List<Object>> rows = new ArrayList<>();
-        if (reply instanceof List && ((List<?>) reply).size() >= 2 && ((List<?>) reply).get(1) instanceof List) {
+        if (reply instanceof List && !((List<?>) reply).isEmpty()) {
             Object cursor = ((List<?>) reply).get(0);
-            for (Object key : (List<?>) ((List<?>) reply).get(1)) {
+            for (String key : RedisScanHelper.parseScanKeys(reply)) {
                 rows.add(Arrays.asList(cursor, key));
             }
         }
