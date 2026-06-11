@@ -22,6 +22,7 @@ import java.util.List;
 import org.pf4j.Extension;
 
 import com.oceanbase.odc.plugin.connect.redis.bridge.RedisBridgeUtil;
+import com.oceanbase.odc.plugin.connect.redis.bridge.RedisClient;
 import com.oceanbase.odc.plugin.schema.api.DatabaseExtensionPoint;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
@@ -29,13 +30,14 @@ import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 
 @Extension
 public class RedisDatabaseExtension implements DatabaseExtensionPoint {
+    private static final int DEFAULT_DATABASE_COUNT = 16;
+
     @Override
     public List<DBObjectIdentity> list(Connection connection) {
         List<DBObjectIdentity> result = new ArrayList<>();
-        result.add(DBObjectIdentity.of("0", DBObjectType.DATABASE, "0"));
-        String current = RedisBridgeUtil.requireContext(connection).getCurrentDatabase();
-        if (!"0".equals(current)) {
-            result.add(DBObjectIdentity.of(current, DBObjectType.DATABASE, current));
+        for (int index = 0; index < resolveDatabaseCount(connection); index++) {
+            String name = String.valueOf(index);
+            result.add(DBObjectIdentity.of(name, DBObjectType.DATABASE, name));
         }
         return result;
     }
@@ -57,5 +59,24 @@ public class RedisDatabaseExtension implements DatabaseExtensionPoint {
     @Override
     public void create(Connection connection, DBDatabase database, String password) {
         throw new UnsupportedOperationException("Redis plugin does not support create database from ODC");
+    }
+
+    static int resolveDatabaseCount(Connection connection) {
+        try {
+            RedisClient client = RedisBridgeUtil.requireContext(connection).getClient();
+            Object reply = client.command("CONFIG", "GET", "databases");
+            if (reply instanceof List) {
+                List<?> values = (List<?>) reply;
+                if (values.size() >= 2) {
+                    int count = Integer.parseInt(String.valueOf(values.get(1)));
+                    if (count > 0) {
+                        return count;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // fall back to Redis default logical database count
+        }
+        return DEFAULT_DATABASE_COUNT;
     }
 }

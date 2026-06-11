@@ -16,6 +16,7 @@
 package com.oceanbase.odc.plugin.schema.redis;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -24,7 +25,7 @@ import java.util.Set;
 
 import org.pf4j.Extension;
 
-import com.oceanbase.odc.plugin.connect.redis.bridge.RedisBridgeUtil;
+import com.oceanbase.odc.plugin.connect.redis.bridge.RedisScanHelper;
 import com.oceanbase.odc.plugin.schema.api.TableExtensionPoint;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
@@ -33,6 +34,9 @@ import com.oceanbase.tools.dbbrowser.model.DBTableColumn;
 
 @Extension
 public class RedisTableExtension implements TableExtensionPoint {
+    private static final int DEFAULT_SCAN_COUNT = 100;
+    static final String UNGROUPED_TABLE_NAME = "keys";
+
     @Override
     public List<DBObjectIdentity> list(Connection connection, String schemaName, DBObjectType tableType) {
         List<DBObjectIdentity> result = new ArrayList<>();
@@ -45,23 +49,21 @@ public class RedisTableExtension implements TableExtensionPoint {
     @Override
     public List<String> showNamesLike(Connection connection, String schemaName, String tableNameLike) {
         try {
-            Object reply = RedisBridgeUtil.requireContext(connection).getClient().command("SCAN", "0", "COUNT", "100");
+            selectDatabase(connection, schemaName);
+            List<String> scannedKeys = RedisScanHelper.scanKeysPreferStatement(connection, DEFAULT_SCAN_COUNT);
             Set<String> names = new LinkedHashSet<>();
-            if (reply instanceof List && ((List<?>) reply).size() >= 2 && ((List<?>) reply).get(1) instanceof List) {
-                for (Object keyObject : (List<?>) ((List<?>) reply).get(1)) {
-                    String key = String.valueOf(keyObject);
-                    String name = groupName(key);
-                    if (tableNameLike == null || tableNameLike.isEmpty() || name.contains(tableNameLike)) {
-                        names.add(name);
-                    }
+            for (String key : scannedKeys) {
+                String name = groupName(key);
+                if (tableNameLike == null || tableNameLike.isEmpty() || name.contains(tableNameLike)) {
+                    names.add(name);
                 }
             }
             if (names.isEmpty()) {
-                names.add("keys");
+                names.add(UNGROUPED_TABLE_NAME);
             }
             return new ArrayList<>(names);
         } catch (Exception e) {
-            return Collections.singletonList("keys");
+            return Collections.singletonList(UNGROUPED_TABLE_NAME);
         }
     }
 
@@ -97,11 +99,17 @@ public class RedisTableExtension implements TableExtensionPoint {
         return false;
     }
 
-    private String groupName(String key) {
+    static String groupName(String key) {
         int index = key.indexOf(':');
         if (index > 0) {
             return key.substring(0, index);
         }
-        return "keys";
+        return UNGROUPED_TABLE_NAME;
+    }
+
+    private void selectDatabase(Connection connection, String schemaName) throws SQLException {
+        if (schemaName != null && !schemaName.isEmpty()) {
+            connection.setSchema(schemaName);
+        }
     }
 }
