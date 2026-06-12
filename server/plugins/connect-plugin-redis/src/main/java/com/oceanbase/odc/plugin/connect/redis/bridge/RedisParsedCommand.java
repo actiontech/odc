@@ -1,0 +1,50 @@
+/*
+ * Copyright (c) 2023 OceanBase.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.oceanbase.odc.plugin.connect.redis.bridge;
+
+import java.util.Collections;
+import java.util.List;
+
+public class RedisParsedCommand {
+    private final String command;
+    private final List<String> args;
+    private final boolean write;
+
+    public RedisParsedCommand(String command, List<String> args, boolean write) {
+        this.command = command;
+        this.args = args == null ? Collections.emptyList() : Collections.unmodifiableList(args);
+        this.write = write;
+    }
+
+    public String getCommand() {
+        return command;
+    }
+
+    public List<String> getArgs() {
+        return args;
+    }
+
+    public boolean isWrite() {
+        return write;
+    }
+
+    public List<String> parts() {
+        java.util.ArrayList<String> parts = new java.util.ArrayList<>();
+        parts.add(command);
+        parts.addAll(args);
+        return parts;
+    }
+}

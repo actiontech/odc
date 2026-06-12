@@ -36,6 +36,7 @@ public enum DialectType {
     DB2,
     HANA,
     MONGODB,
+    REDIS,
     HIVE,
     FILE_SYSTEM,
     UNKNOWN,
@@ -112,6 +113,10 @@ public enum DialectType {
 
     public boolean isMongoDB() {
         return MONGODB == this;
+    }
+
+    public boolean isRedis() {
+        return REDIS == this;
     }
 
     public boolean isHive() {

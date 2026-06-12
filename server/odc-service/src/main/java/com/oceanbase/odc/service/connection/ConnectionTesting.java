@@ -167,7 +167,7 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isHana()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
-            } else if (type.getDialectType().isMongoDB()) {
+            } else if (type.getDialectType().isMongoDB() || type.getDialectType().isRedis()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDb2()) {
                 // DB2 default schema falls back to USER.toUpperCase() inside
@@ -211,7 +211,8 @@ public class ConnectionTesting {
             if (Objects.nonNull(type) && type.isODPSharding()) {
                 return new ConnectionTestResult(result, null);
             }
-            if (Objects.nonNull(type) && type.getDialectType() == DialectType.MONGODB) {
+            if (Objects.nonNull(type)
+                    && (type.getDialectType() == DialectType.MONGODB || type.getDialectType() == DialectType.REDIS)) {
                 return new ConnectionTestResult(result, type);
             }
             ConnectType connectType = ConnectTypeUtil.getConnectType(

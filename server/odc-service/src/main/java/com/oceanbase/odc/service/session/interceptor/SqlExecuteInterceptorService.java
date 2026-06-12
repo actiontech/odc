@@ -70,6 +70,9 @@ public class SqlExecuteInterceptorService {
 
     public boolean preHandle(@NonNull SqlAsyncExecuteReq request, @NonNull SqlAsyncExecuteResp response,
             @NonNull ConnectionSession session, @NonNull AsyncExecuteContext context) throws Exception {
+        if (session.getDialectType().isRedis()) {
+            return true;
+        }
         for (SqlExecuteInterceptor interceptor : interceptors) {
             if (interceptor.preHandle(request, response, session, context)) {
                 continue;
@@ -81,6 +84,9 @@ public class SqlExecuteInterceptorService {
 
     public void afterCompletion(@NonNull SqlExecuteResult response, @NonNull ConnectionSession session,
             @NonNull AsyncExecuteContext context) throws Exception {
+        if (session.getDialectType().isRedis()) {
+            return;
+        }
         for (SqlExecuteInterceptor interceptor : interceptors) {
             interceptor.afterCompletion(response, session, context);
         }
