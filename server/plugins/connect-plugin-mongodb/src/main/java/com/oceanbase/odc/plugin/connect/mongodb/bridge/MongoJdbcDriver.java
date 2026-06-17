@@ -15,6 +15,9 @@
  */
 package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -56,10 +59,25 @@ public class MongoJdbcDriver implements Driver {
         String password = properties == null ? null : properties.getProperty("password");
         if (username != null && !username.isEmpty()) {
             int schemeEnd = uri.indexOf("://") + 3;
-            uri = uri.substring(0, schemeEnd) + username + ":" + (password == null ? "" : password) + "@"
-                    + uri.substring(schemeEnd);
+            String encodedUser = encodeUserInfo(username);
+            String encodedPassword = password == null ? "" : encodeUserInfo(password);
+            uri = uri.substring(0, schemeEnd) + encodedUser + ":" + encodedPassword + "@" + uri.substring(schemeEnd);
         }
         return uri;
+    }
+
+    /**
+     * Percent-encode MongoDB URI userinfo, aligned with Go {@code url.QueryEscape} used by SQLE plugin.
+     */
+    static String encodeUserInfo(String value) {
+        if (value == null || value.isEmpty()) {
+            return value == null ? "" : value;
+        }
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8 is not supported", e);
+        }
     }
 
     @Override
