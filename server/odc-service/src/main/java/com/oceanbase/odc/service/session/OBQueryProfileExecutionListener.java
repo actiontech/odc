@@ -31,7 +31,6 @@ import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.core.sql.execute.model.JdbcGeneralResult;
 import com.oceanbase.odc.core.sql.execute.model.SqlTuple;
 import com.oceanbase.odc.core.sql.util.OBUtils;
-import com.oceanbase.odc.service.queryprofile.OBQueryProfileManager;
 import com.oceanbase.odc.service.session.model.AsyncExecuteContext;
 import com.oceanbase.tools.dbbrowser.parser.ParserUtil;
 import com.oceanbase.tools.dbbrowser.parser.constant.GeneralSqlType;
@@ -50,11 +49,9 @@ public class OBQueryProfileExecutionListener implements SqlExecutionListener {
 
     private final ConnectionSession session;
     private final List<String> sessionIds;
-    private final OBQueryProfileManager profileManager;
 
-    public OBQueryProfileExecutionListener(ConnectionSession session, OBQueryProfileManager profileManager) {
+    public OBQueryProfileExecutionListener(ConnectionSession session) {
         this.session = session;
-        this.profileManager = profileManager;
         sessionIds = getSessionIds();
     }
 
@@ -63,11 +60,7 @@ public class OBQueryProfileExecutionListener implements SqlExecutionListener {
 
     @Override
     public void onExecutionEnd(SqlTuple sqlTuple, List<JdbcGeneralResult> results, AsyncExecuteContext context) {
-        JdbcGeneralResult firstResult = results.get(0);
-        if (StringUtils.isNotEmpty(firstResult.getTraceId()) && isSqlTypeSupportProfile(sqlTuple)
-                && CollectionUtils.isNotEmpty(sessionIds)) {
-            profileManager.submit(session, firstResult.getTraceId(), sessionIds);
-        }
+        // Query profile is fetched on demand when user opens the profile dialog.
     }
 
     @Override

@@ -92,7 +92,6 @@ import com.oceanbase.odc.service.feature.AllFeatures;
 import com.oceanbase.odc.service.feature.VersionDiffConfigService;
 import com.oceanbase.odc.service.iam.auth.AuthenticationFacade;
 import com.oceanbase.odc.service.permission.database.model.DatabasePermissionType;
-import com.oceanbase.odc.service.queryprofile.OBQueryProfileManager;
 import com.oceanbase.odc.service.session.interceptor.SqlCheckInterceptor;
 import com.oceanbase.odc.service.session.interceptor.SqlConsoleInterceptor;
 import com.oceanbase.odc.service.session.interceptor.SqlExecuteInterceptorService;
@@ -151,8 +150,6 @@ public class ConnectConsoleService {
     private UserConfigFacade userConfigFacade;
     @Autowired
     private AuthenticationFacade authenticationFacade;
-    @Autowired
-    private OBQueryProfileManager profileManager;
     @Autowired
     private VersionDiffConfigService versionDiffConfigService;
     @Autowired
@@ -407,7 +404,7 @@ public class ConnectConsoleService {
         statementCallBack.setLocale(LocaleContextHolder.getLocale());
         if (connectionSession.getDialectType().isOceanbase() && sqlTuples.size() <= 10) {
             statementCallBack.getListeners()
-                    .add(new OBQueryProfileExecutionListener(connectionSession, profileManager));
+                    .add(new OBQueryProfileExecutionListener(connectionSession));
         }
 
         Future<List<JdbcGeneralResult>> futureResult = connectionSession.getAsyncJdbcExecutor(
