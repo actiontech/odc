@@ -101,6 +101,7 @@ import com.oceanbase.odc.service.permission.database.model.DatabasePermissionTyp
 import com.oceanbase.odc.service.session.factory.DefaultConnectSessionFactory;
 import com.oceanbase.odc.service.session.factory.DefaultConnectSessionIdGenerator;
 import com.oceanbase.odc.service.session.factory.LogicalConnectionSessionFactory;
+import com.oceanbase.odc.service.session.factory.OBConsoleDataSourceFactory;
 import com.oceanbase.odc.service.session.factory.StateHostGenerator;
 import com.oceanbase.tools.dbbrowser.model.DBSession;
 
@@ -283,7 +284,19 @@ public class ConnectSessionService {
                 ResourceType.ODC_CONNECTION, "" + dataSourceId);
         connection.setPermittedActions(actions);
         if (StringUtils.isNotEmpty(schemaName)) {
-            connection.setDefaultSchema(schemaName);
+            if (DialectType.SQL_SERVER == connection.getDialectType()) {
+                String[] catalogAndSchema = OBConsoleDataSourceFactory.resolveSqlServerCatalogAndSchema(
+                        connection.getCatalogName(), schemaName);
+                if (StringUtils.isNotBlank(catalogAndSchema[0])
+                        && StringUtils.isBlank(connection.getCatalogName())) {
+                    connection.setCatalogName(catalogAndSchema[0]);
+                }
+                connection.setDefaultSchema(StringUtils.isNotBlank(catalogAndSchema[1])
+                        ? catalogAndSchema[1]
+                        : schemaName);
+            } else {
+                connection.setDefaultSchema(schemaName);
+            }
         }
         return createPhysicalConnectionSession(connection, req);
     }

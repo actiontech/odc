@@ -204,6 +204,48 @@ public class OBConsoleDataSourceFactoryTest {
     }
 
     @Test
+    public void testResolveEffectiveCatalogName_SqlServer_databaseDotSchema_extractsCatalog() {
+        Assert.assertEquals("TestDB",
+                OBConsoleDataSourceFactory.resolveEffectiveCatalogName(DialectType.SQL_SERVER, null, "TestDB.dbo"));
+    }
+
+    @Test
+    public void testResolveSqlServerCatalogAndSchema_splitsDatabaseDotSchema() {
+        String[] parts = OBConsoleDataSourceFactory.resolveSqlServerCatalogAndSchema(null, "TestDB.dbo");
+        Assert.assertEquals("TestDB", parts[0]);
+        Assert.assertEquals("dbo", parts[1]);
+    }
+
+    @Test
+    public void testResolveSqlServerCatalogAndSchema_plainSchema_unchanged() {
+        String[] parts = OBConsoleDataSourceFactory.resolveSqlServerCatalogAndSchema(null, "dbo");
+        Assert.assertNull(parts[0]);
+        Assert.assertEquals("dbo", parts[1]);
+    }
+
+    @Test
+    public void testGetDefaultSchema_SqlServer_databaseDotSchema_returnsSchemaOnly() {
+        ConnectionConfig config = newConfig(DialectType.SQL_SERVER, "TestDB.dbo");
+        Assert.assertEquals("dbo", OBConsoleDataSourceFactory.getDefaultSchema(config));
+    }
+
+    @Test
+    public void testGetJdbcUrl_SqlServer_databaseDotSchema_usesCatalogAndSchema() {
+        ConnectionConfig config = new ConnectionConfig();
+        config.setType(ConnectType.from(DialectType.SQL_SERVER));
+        config.setDefaultSchema("TestDB.dbo");
+        config.setHost("127.0.0.1");
+        config.setPort(1433);
+        config.setUsername("sa");
+        config.setPassword("pwd");
+        OBConsoleDataSourceFactory factory = new OBConsoleDataSourceFactory(config, true);
+        String jdbcUrl = factory.getJdbcUrl();
+        Assert.assertTrue(jdbcUrl.contains("databaseName=TestDB"));
+        Assert.assertTrue(jdbcUrl.contains("currentSchema=dbo"));
+        Assert.assertFalse(jdbcUrl.contains("currentSchema=TestDB.dbo"));
+    }
+
+    @Test
     public void testResolveEffectiveCatalogName_NullDialect_emptyCatalog_returnsEmpty() {
         Assert.assertNull(
                 OBConsoleDataSourceFactory.resolveEffectiveCatalogName(null, null, "any"));

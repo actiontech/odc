@@ -105,11 +105,20 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         this.password = getPassword(connectionConfig);
         this.host = connectionConfig.getHost();
         this.port = connectionConfig.getPort();
-        this.defaultSchema = getDefaultSchema(connectionConfig);
+        if (DialectType.SQL_SERVER == connectionConfig.getDialectType()) {
+            String[] catalogAndSchema = resolveSqlServerCatalogAndSchema(
+                    connectionConfig.getCatalogName(), connectionConfig.getDefaultSchema());
+            this.catalogName = catalogAndSchema[0];
+            this.defaultSchema = StringUtils.isNotBlank(catalogAndSchema[1])
+                    ? getSchema(catalogAndSchema[1], DialectType.SQL_SERVER)
+                    : getDefaultSchema(connectionConfig);
+        } else {
+            this.defaultSchema = getDefaultSchema(connectionConfig);
+            this.catalogName = connectionConfig.getCatalogName();
+        }
         this.sid = connectionConfig.getSid();
         this.serviceName = connectionConfig.getServiceName();
         this.userRole = connectionConfig.getUserRole();
-        this.catalogName = connectionConfig.getCatalogName();
         this.parameters = getJdbcParams(connectionConfig);
         this.autoReConnect = autoReConnect;
         this.keepAlive = keepAlive;
@@ -175,7 +184,41 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             // 用它会触发 FATAL: database "<schema>" does not exist。
             return OdcConstants.POSTGRESQL_DEFAULT_DATABASE;
         }
+        if (DialectType.SQL_SERVER == dialectType) {
+            String[] catalogAndSchema = resolveSqlServerCatalogAndSchema(catalogName, defaultSchema);
+            return catalogAndSchema[0];
+        }
         return catalogName;
+    }
+
+    /**
+     * 解析 SQL Server 的 catalog/schema。上游（如 DMS 资源树）可能将 {@code database.schema}（如 {@code TestDB.dbo}）整段写入
+     * {@code defaultSchema}，需拆成 JDBC URL 所需的 {@code databaseName} 与 {@code currentSchema}，避免连接落在默认库且
+     * schema 无效导致 Error 208。
+     *
+     * @param catalogName 已配置的 catalog，可空
+     * @param defaultSchema 默认 schema，可能是 {@code database.schema} 或纯 schema 名
+     * @return {@code [catalogName, schemaName]}，任一元素可为 null
+     */
+    public static String[] resolveSqlServerCatalogAndSchema(String catalogName, String defaultSchema) {
+        if (StringUtils.isNotBlank(catalogName)) {
+            String schemaOnly = defaultSchema;
+            if (StringUtils.isNotBlank(defaultSchema) && defaultSchema.contains(".")) {
+                String[] parts = defaultSchema.split("\\.", 2);
+                if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])
+                        && parts[0].equals(catalogName)) {
+                    schemaOnly = parts[1];
+                }
+            }
+            return new String[] {catalogName, schemaOnly};
+        }
+        if (StringUtils.isNotBlank(defaultSchema) && defaultSchema.contains(".")) {
+            String[] parts = defaultSchema.split("\\.", 2);
+            if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])) {
+                return new String[] {parts[0], parts[1]};
+            }
+        }
+        return new String[] {null, defaultSchema};
     }
 
     public static String getUsername(@NonNull ConnectionConfig connectionConfig) {
@@ -436,7 +479,11 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                 return getSchema(OdcConstants.POSTGRESQL_DEFAULT_SCHEMA, connectionConfig.getDialectType());
             case SQL_SERVER:
                 if (StringUtils.isNotEmpty(defaultSchema)) {
-                    return getSchema(defaultSchema, connectionConfig.getDialectType());
+                    String[] catalogAndSchema = resolveSqlServerCatalogAndSchema(
+                            connectionConfig.getCatalogName(), defaultSchema);
+                    if (StringUtils.isNotBlank(catalogAndSchema[1])) {
+                        return getSchema(catalogAndSchema[1], connectionConfig.getDialectType());
+                    }
                 }
                 return getSchema(defaultSchema, connectionConfig.getDialectType());
             case DM:
