@@ -15,9 +15,9 @@
  */
 package com.oceanbase.odc.server.web.controller.v2;
 
+import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.collections.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.oceanbase.odc.core.session.ConnectionSession;
 import com.oceanbase.odc.core.session.ConnectionSessionUtil;
+import com.oceanbase.odc.core.shared.constant.ErrorCodes;
+import com.oceanbase.odc.core.shared.exception.OdcException;
 import com.oceanbase.odc.service.common.response.ListResponse;
 import com.oceanbase.odc.service.common.response.Responses;
 import com.oceanbase.odc.service.common.util.SidUtils;
@@ -37,6 +39,9 @@ import com.oceanbase.odc.service.state.model.StateName;
 import com.oceanbase.odc.service.state.model.StatefulRoute;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestController
 @RequestMapping("api/v2/connect/sessions")
 public class DBMetadataController {
@@ -54,10 +59,19 @@ public class DBMetadataController {
             @RequestParam(required = false, name = "identityNameLike") String identityNameLike) {
         ConnectionSession session = sessionService.nullSafeGet(SidUtils.getSessionId(sessionId), true);
         if (ConnectionSessionUtil.isLogicalSession(session)) {
-            return Responses.list(ListUtils.EMPTY_LIST);
+            return Responses.list(Collections.emptyList());
         }
-        return Responses
-                .list(identitiesService.list(session, schemaName, identityNameLike, types));
+        try {
+            return Responses.list(identitiesService.list(session, schemaName, identityNameLike, types));
+        } catch (OdcException e) {
+            if (ErrorCodes.ConnectionOccupied == e.getErrorCode()) {
+                log.info(
+                        "Connection is occupied when listing metadata identities, sessionId={}, schemaName={}, types={}",
+                        sessionId, schemaName, types);
+                return Responses.list(Collections.emptyList());
+            }
+            throw e;
+        }
     }
 
 }

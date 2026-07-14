@@ -27,6 +27,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.oceanbase.odc.core.shared.constant.ErrorCodes;
 import com.oceanbase.odc.core.shared.exception.BadRequestException;
 import com.oceanbase.odc.core.sql.execute.task.DefaultSqlExecuteTaskManager;
 import com.oceanbase.odc.core.task.TaskManager;
@@ -149,6 +150,26 @@ public class DefaultSqlExecuteTaskManagerTest {
                     Thread.sleep(1000);
                     return null;
                 });
+            }
+        }
+    }
+
+    @Test
+    public void submit_tooManyRunnable_connectionOccupiedErrorCodeRetained() throws Exception {
+        try (TaskManager manager = getTaskManager()) {
+            try {
+                for (int i = 0; i < 4; i++) {
+                    manager.submit(() -> {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            // eat exp
+                        }
+                    });
+                }
+                Assert.fail("Expected BadRequestException");
+            } catch (BadRequestException e) {
+                Assert.assertEquals(ErrorCodes.ConnectionOccupied, e.getErrorCode());
             }
         }
     }
