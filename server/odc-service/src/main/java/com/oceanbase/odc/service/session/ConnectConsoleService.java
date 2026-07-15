@@ -426,11 +426,12 @@ public class ConnectConsoleService {
                 (AsyncExecuteContext) ConnectionSessionUtil.getExecuteContext(connectionSession, requestId);
         int gettingResultTimeoutSeconds =
                 Objects.isNull(timeoutSeconds) ? DEFAULT_GET_RESULT_TIMEOUT_SECONDS : timeoutSeconds;
-        boolean shouldRemoveContext = context.isFinished();
+        boolean shouldRemoveContext = false;
         try {
             List<JdbcGeneralResult> resultList =
                     context.getMoreSqlExecutionResults(gettingResultTimeoutSeconds * 1000L);
-            if (resultList.isEmpty() && context.isFinished() && context.getFuture() != null) {
+            if (resultList.isEmpty() && context.isFinished() && context.getFuture() != null
+                    && context.markTerminalFutureConsumedIfAbsent()) {
                 try {
                     resultList = context.getFuture().get();
                 } catch (InterruptedException ex) {
@@ -444,6 +445,7 @@ public class ConnectConsoleService {
                     throw new IllegalStateException("Async execution failed", cause == null ? ex : cause);
                 }
             }
+            shouldRemoveContext = context.isFinished();
             List<SqlExecuteResult> results = resultList.stream().map(jdbcGeneralResult -> {
                 SqlExecuteResult result = generateResult(connectionSession, jdbcGeneralResult, context.getContextMap());
                 try (TraceStage stage = result.getSqlTuple().getSqlWatch().start(SqlExecuteStages.SQL_AFTER_CHECK)) {
