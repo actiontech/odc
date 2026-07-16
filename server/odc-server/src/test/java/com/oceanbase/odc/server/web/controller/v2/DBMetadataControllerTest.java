@@ -65,6 +65,18 @@ public class DBMetadataControllerTest {
     }
 
     @Test
+    public void listIdentities_badRequestConnectionOccupied_returnEmptyList() {
+        List<DBObjectType> types = Collections.singletonList(DBObjectType.TABLE);
+        Mockito.when(identitiesService.list(session, "db1", "t", types))
+                .thenThrow(new BadRequestException(ErrorCodes.ConnectionOccupied, new Object[] {}, "occupied"));
+
+        ListResponse<SchemaIdentities> response = controller.listIdentities("sid", types, "db1", "t");
+
+        Assert.assertTrue(response.getSuccessful());
+        Assert.assertTrue(response.getData().getContents().isEmpty());
+    }
+
+    @Test
     public void listIdentities_otherError_throwOriginalException() {
         List<DBObjectType> types = Collections.singletonList(DBObjectType.TABLE);
         BadRequestException exception = new BadRequestException("bad request");
