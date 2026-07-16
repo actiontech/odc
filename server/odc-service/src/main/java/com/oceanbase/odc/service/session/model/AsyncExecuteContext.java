@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.oceanbase.odc.core.sql.execute.model.JdbcGeneralResult;
 import com.oceanbase.odc.core.sql.execute.model.SqlTuple;
@@ -39,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AsyncExecuteContext {
     private final List<SqlTuple> sqlTuples;
     private final Queue<JdbcGeneralResult> results = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean terminalFutureConsumed = new AtomicBoolean(false);
     private final Map<String, Object> contextMap;
 
     private Future<List<JdbcGeneralResult>> future;
@@ -80,7 +82,14 @@ public class AsyncExecuteContext {
         while (!results.isEmpty()) {
             copiedResults.add(results.poll());
         }
+        if (!copiedResults.isEmpty() && isFinished()) {
+            terminalFutureConsumed.set(true);
+        }
         return copiedResults;
+    }
+
+    public boolean markTerminalFutureConsumedIfAbsent() {
+        return terminalFutureConsumed.compareAndSet(false, true);
     }
 
     public void addSqlExecutionResults(List<JdbcGeneralResult> results) {

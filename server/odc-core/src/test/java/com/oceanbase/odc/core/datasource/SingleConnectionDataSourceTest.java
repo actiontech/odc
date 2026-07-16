@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.oceanbase.odc.core.shared.constant.DialectType;
+import com.oceanbase.odc.core.shared.constant.ErrorCodes;
 import com.oceanbase.odc.core.shared.exception.ConflictException;
 import com.oceanbase.odc.test.database.TestDBConfiguration;
 import com.oceanbase.odc.test.database.TestDBConfigurations;
@@ -147,6 +148,7 @@ public class SingleConnectionDataSourceTest {
         slowSql.join();
         Assert.assertFalse(exceptions.isEmpty());
         Assert.assertTrue(exceptions.get(0) instanceof ConflictException);
+        Assert.assertEquals(ErrorCodes.ConnectionOccupied, ((ConflictException) exceptions.get(0)).getErrorCode());
     }
 
     @Test
