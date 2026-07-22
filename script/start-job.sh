@@ -81,8 +81,9 @@ function init_jvm_options() {
     local log_options="-Dlog4j.configurationFile=${app_log_config_file} -Dodc.log.directory=${app_log_directory}"
     local work_dir_options="-Duser.dir=${ODC_WORK_DIR:-${current_work_directory}}"
     local plugin_options="-Dplugin.dir=${plugin_directory}"
+    local fastjson_options="-Dfastjson.parser.safeMode=true"
 
-    app_options="${log_options} ${work_dir_options} ${plugin_options}"
+    app_options="${log_options} ${work_dir_options} ${plugin_options} ${fastjson_options}"
 
     local extra_args="${ODC_APP_EXTRA_ARGS}"
     app_args="${extra_args}"
