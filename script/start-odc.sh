@@ -127,8 +127,9 @@ function init_jvm_options() {
     local work_dir_options="-Duser.dir=${ODC_WORK_DIR:-${current_work_directory}}"
     local plugin_options="-Dplugin.dir=${plugin_directory}"
     local starter_options="-Dstarter.dir=${starter_directory}"
+    local fastjson_options="-Dfastjson.parser.safeMode=true"
 
-    app_options="${log_options} ${work_dir_options} ${plugin_options} ${starter_options}"
+    app_options="${log_options} ${work_dir_options} ${plugin_options} ${starter_options} ${fastjson_options}"
 
     local listen_port_args="--server.port=${server_port}"
     local obclient_args="--obclient.work.dir=${obclient_work_directory} --obclient.file.path=${obclient_file_path}"
