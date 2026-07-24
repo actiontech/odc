@@ -294,6 +294,10 @@ public class ConnectSessionService {
                 connection.setDefaultSchema(StringUtils.isNotBlank(catalogAndSchema[1])
                         ? catalogAndSchema[1]
                         : schemaName);
+            } else if (DialectType.POSTGRESQL == connection.getDialectType()
+                    || DialectType.GAUSSDB == connection.getDialectType()) {
+                // Tree node is a catalog; reconnect JDBC URL to that database (PG cannot USE mid-session).
+                OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(connection, schemaName);
             } else {
                 connection.setDefaultSchema(schemaName);
             }

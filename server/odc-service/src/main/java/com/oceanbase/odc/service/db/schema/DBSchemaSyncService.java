@@ -42,6 +42,7 @@ import com.oceanbase.odc.core.shared.exception.UnsupportedException;
 import com.oceanbase.odc.service.connection.ConnectionService;
 import com.oceanbase.odc.service.connection.database.model.Database;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
+import com.oceanbase.odc.service.connection.util.ConnectionMapper;
 import com.oceanbase.odc.service.db.schema.syncer.DBSchemaSyncer;
 import com.oceanbase.odc.service.session.factory.OBConsoleDataSourceFactory;
 
@@ -85,7 +86,9 @@ public class DBSchemaSyncService {
         }
         try {
             ConnectionConfig config = connectionService.getForConnectionSkipPermissionCheck(dataSourceId);
-            OBConsoleDataSourceFactory factory = new OBConsoleDataSourceFactory(config, true);
+            ConnectionConfig connectConfig = ConnectionMapper.INSTANCE.clone(config);
+            OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(connectConfig, database.getName());
+            OBConsoleDataSourceFactory factory = new OBConsoleDataSourceFactory(connectConfig, true);
             try (SingleConnectionDataSource dataSource = (SingleConnectionDataSource) factory.getDataSource();
                     Connection conn = dataSource.getConnection()) {
                 boolean success = true;

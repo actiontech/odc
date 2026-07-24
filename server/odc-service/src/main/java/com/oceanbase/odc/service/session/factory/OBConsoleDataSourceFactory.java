@@ -221,6 +221,30 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         return new String[] {null, defaultSchema};
     }
 
+    /**
+     * Bind a resource-tree database node to the PostgreSQL/GaussDB JDBC catalog.
+     * <p>
+     * PG cannot {@code USE} another database mid-connection; the catalog must be present in the JDBC
+     * URL. Tree nodes after multi-database sync are catalogs (from {@code pg_database}), so selecting
+     * node {@code wms_ftest} must reconnect to that catalog. Object metadata still lives under schemas
+     * (default {@code public}), which becomes {@code currentSchema}/{@code search_path}.
+     * </p>
+     *
+     * @param connectionConfig connection to mutate (caller should clone if shared)
+     * @param databaseName resource-tree database node name (catalog)
+     */
+    public static void applyPostgresCatalogForDatabase(ConnectionConfig connectionConfig, String databaseName) {
+        if (connectionConfig == null || StringUtils.isBlank(databaseName)) {
+            return;
+        }
+        DialectType dialectType = connectionConfig.getDialectType();
+        if (DialectType.POSTGRESQL != dialectType && DialectType.GAUSSDB != dialectType) {
+            return;
+        }
+        connectionConfig.setCatalogName(databaseName);
+        connectionConfig.setDefaultSchema(OdcConstants.POSTGRESQL_DEFAULT_SCHEMA);
+    }
+
     public static String getUsername(@NonNull ConnectionConfig connectionConfig) {
         String username = getDbUser(connectionConfig);
         if (DialectType.OB_ORACLE.equals(connectionConfig.getDialectType())) {
