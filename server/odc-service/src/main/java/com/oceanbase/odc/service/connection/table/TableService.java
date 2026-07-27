@@ -60,6 +60,7 @@ import com.oceanbase.odc.service.connection.database.model.Database;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
 import com.oceanbase.odc.service.connection.table.model.QueryTableParams;
 import com.oceanbase.odc.service.connection.table.model.Table;
+import com.oceanbase.odc.service.connection.util.ConnectionMapper;
 import com.oceanbase.odc.service.db.DBMaterializedViewService;
 import com.oceanbase.odc.service.db.schema.DBSchemaSyncService;
 import com.oceanbase.odc.service.db.schema.syncer.DBSchemaSyncer;
@@ -130,7 +131,8 @@ public class TableService {
             return Collections.emptyList();
         }
         Database database = databaseService.detail(params.getDatabaseId());
-        ConnectionConfig dataSource = database.getDataSource();
+        ConnectionConfig dataSource = ConnectionMapper.INSTANCE.clone(database.getDataSource());
+        OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(dataSource, database.getName());
         OBConsoleDataSourceFactory factory = new OBConsoleDataSourceFactory(dataSource, true);
         List<Table> tables = new ArrayList<>();
         try (SingleConnectionDataSource ds = (SingleConnectionDataSource) factory.getDataSource();

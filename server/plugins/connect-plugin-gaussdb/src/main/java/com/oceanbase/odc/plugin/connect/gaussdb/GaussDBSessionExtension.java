@@ -71,6 +71,12 @@ public class GaussDBSessionExtension extends OBMySQLSessionExtension {
 
     @Override
     public void switchSchema(Connection connection, String schemaName) throws SQLException {
+        // Align with PostgresSessionExtension: tree nodes are catalogs after multi-DB sync.
+        String currentDatabase = JdbcOperationsUtil.getJdbcOperations(connection)
+                .queryForObject("SELECT current_database()", String.class);
+        if (schemaName != null && schemaName.equals(currentDatabase)) {
+            schemaName = "public";
+        }
         String sql = "SET search_path TO " + quoteIdentifier(schemaName);
         JdbcOperationsUtil.getJdbcOperations(connection).execute(sql);
     }

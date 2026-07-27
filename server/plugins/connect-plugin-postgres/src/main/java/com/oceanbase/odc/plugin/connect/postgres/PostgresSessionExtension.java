@@ -58,6 +58,11 @@ public class PostgresSessionExtension extends OBMySQLSessionExtension {
      */
     @Override
     public void switchSchema(Connection connection, String schemaName) throws SQLException {
+        // Resource-tree nodes are catalogs; map catalog name to default schema public.
+        String currentDatabase = getCurrentDatabase(connection);
+        if (Objects.equals(schemaName, currentDatabase)) {
+            schemaName = "public";
+        }
         String currentSchema = getCurrentSchema(connection);
         if (Objects.equals(currentSchema, schemaName)) {
             return;
