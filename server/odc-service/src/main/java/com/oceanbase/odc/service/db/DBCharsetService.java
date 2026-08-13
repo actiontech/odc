@@ -15,6 +15,7 @@
  */
 package com.oceanbase.odc.service.db;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -29,11 +30,18 @@ import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 public class DBCharsetService {
 
     public List<String> listCharset(ConnectionSession connectionSession) {
+        // KingBase lacks Oracle V_$NLS_VALID_VALUES; empty list unblocks session create / SQL console.
+        if (connectionSession.getDialectType().isKingBase()) {
+            return Collections.emptyList();
+        }
         DBSchemaAccessor accessor = DBSchemaAccessors.create(connectionSession);
         return accessor.showCharset();
     }
 
     public List<String> listCollation(ConnectionSession connectionSession) {
+        if (connectionSession.getDialectType().isKingBase()) {
+            return Collections.emptyList();
+        }
         DBSchemaAccessor accessor = DBSchemaAccessors.create(connectionSession);
         return accessor.showCollation();
     }

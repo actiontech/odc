@@ -99,4 +99,26 @@ public class SqlUtilsTest {
         Assert.assertEquals(2, offsetStrings.size());
         Assert.assertEquals(39, offsetStrings.get(1).getOffset());
     }
+
+    @Test
+    public void split_KingBase_semicolonAndSlash_usesOracleFamily() {
+        String sql = "SELECT 1 FROM dual;\nSELECT 2 FROM dual\n/\nSELECT 3 FROM dual;";
+        List<String> bySemicolon = SqlUtils.split(DialectType.KINGBASE, sql, ";");
+        Assert.assertTrue(bySemicolon.size() >= 2);
+        Assert.assertTrue(DialectType.KINGBASE.isOracleSqlFamily());
+        Assert.assertFalse(DialectType.KINGBASE.isOracle());
+        List<String> bySlash = SqlUtils.split(DialectType.KINGBASE, "SELECT 1 FROM dual\n/\nSELECT 2 FROM dual\n/",
+                "/");
+        Assert.assertEquals(2, bySlash.size());
+    }
+
+    @Test
+    public void commentProcessor_KingBase_oracleLineMode() {
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.KINGBASE, true, true);
+        processor.setDelimiter(";");
+        StringBuffer buffer = new StringBuffer();
+        List<OffsetString> parts = processor.split(buffer, "SELECT 1 FROM dual; -- c\nSELECT 2 FROM dual;");
+        Assert.assertEquals(2, parts.size());
+        Assert.assertTrue(parts.get(0).getStr().toUpperCase().contains("DUAL"));
+    }
 }

@@ -35,6 +35,7 @@ public enum ConnectType {
     GAUSSDB(DialectType.GAUSSDB),
     SQL_SERVER(DialectType.SQL_SERVER),
     DM(DialectType.DM),
+    KINGBASE(DialectType.KINGBASE),
     DB2(DialectType.DB2),
     HANA(DialectType.HANA),
     MONGODB(DialectType.MONGODB),
@@ -71,7 +72,12 @@ public enum ConnectType {
     }
 
     public boolean isDefaultSchemaRequired() {
-        return isODPSharding();
+        // KingBase JDBC URL path requires the database name (defaultSchema).
+        return isODPSharding() || this == KINGBASE;
+    }
+
+    public boolean isKingBase() {
+        return this == KINGBASE;
     }
 
     public static ConnectType from(DialectType dialectType) {

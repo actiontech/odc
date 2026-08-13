@@ -33,6 +33,7 @@ public enum DialectType {
     GAUSSDB,
     SQL_SERVER,
     DM,
+    KINGBASE,
     DB2,
     HANA,
     MONGODB,
@@ -101,6 +102,18 @@ public enum DialectType {
 
     public boolean isDm() {
         return DM == this;
+    }
+
+    public boolean isKingBase() {
+        return KINGBASE == this;
+    }
+
+    /**
+     * Oracle-family SQL surface (statement split, comments, DUAL keepalive, double-quote identifiers).
+     * Independent of JDBC driver selection — do not use this to pick ojdbc.
+     */
+    public boolean isOracleSqlFamily() {
+        return isOracle() || isDm() || isKingBase();
     }
 
     public boolean isDb2() {

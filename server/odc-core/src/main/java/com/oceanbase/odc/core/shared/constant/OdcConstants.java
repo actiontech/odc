@@ -141,6 +141,10 @@ public class OdcConstants {
      */
     public static final String DM_DRIVER_CLASS_NAME = "dm.jdbc.driver.DmDriver";
     /**
+     * KingBase (金仓) driver class name — official kingbase8 JDBC, not ojdbc / postgresql.
+     */
+    public static final String KINGBASE_DRIVER_CLASS_NAME = "com.kingbase8.Driver";
+    /**
      * MongoDB bridge driver class name
      */
     public static final String MONGODB_DRIVER_CLASS_NAME =

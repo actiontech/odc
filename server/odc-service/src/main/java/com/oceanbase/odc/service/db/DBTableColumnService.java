@@ -46,8 +46,12 @@ public class DBTableColumnService {
                             .getDetail(connection, databaseName, tableName).getColumns())
                     .stream().map(OdcDBTableColumn::new).collect(Collectors.toList());
         }
+        // KingBase: ALL_TAB_COLS.OWNER is lowercase while ALL_TABLES.OWNER is uppercase.
+        String schemaForColumns = connectionSession.getDialectType().isKingBase() && databaseName != null
+                ? databaseName.toLowerCase(java.util.Locale.ROOT)
+                : databaseName;
         DBSchemaAccessor accessor = DBSchemaAccessors.create(connectionSession);
-        List<DBTableColumn> columns = accessor.listTableColumns(databaseName, tableName);
+        List<DBTableColumn> columns = accessor.listTableColumns(schemaForColumns, tableName);
         return columns.stream().map(OdcDBTableColumn::new).collect(Collectors.toList());
     }
 

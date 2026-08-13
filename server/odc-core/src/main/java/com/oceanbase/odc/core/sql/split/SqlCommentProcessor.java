@@ -163,15 +163,14 @@ public class SqlCommentProcessor {
             for (List<OrderChar> item : lines) {
                 if (Objects.nonNull(this.dialectType) && this.dialectType.isMysql()) {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
-                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isOracle()) {
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isOracleSqlFamily()) {
+                    // Oracle / DM / KingBase (oracle mode): PL/SQL-style comments and ; / delimiters
                     addLineOracle(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isDoris()) {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isSqlServer()) {
                     // TODO: 这里暂时使用MySQL的逻辑，避免抛出异常
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
-                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isDm()) {
-                    addLineOracle(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isTidb()) {
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isPgFamily()) {
@@ -810,7 +809,7 @@ public class SqlCommentProcessor {
                         processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));
-                    } else if (processor.dialectType.isOracle()) {
+                    } else if (processor.dialectType.isOracleSqlFamily()) {
                         processor.addLineOracle(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));

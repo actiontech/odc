@@ -165,6 +165,8 @@ public class ConnectionTesting {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isDm()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isKingBase()) {
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isHana()) {
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else if (type.getDialectType().isMongoDB() || type.getDialectType().isRedis()) {
@@ -213,6 +215,12 @@ public class ConnectionTesting {
             }
             if (Objects.nonNull(type)
                     && (type.getDialectType() == DialectType.MONGODB || type.getDialectType() == DialectType.REDIS)) {
+                return new ConnectionTestResult(result, type);
+            }
+            // KingBase driver lives in connect-plugin-kingbase PluginClassLoader only; skipping
+            // ConnectTypeUtil (system DriverManager) avoids "No suitable driver" after a successful
+            // plugin-side test. Dialect sniffing is OB-oriented and must not reclassify KingBase.
+            if (Objects.nonNull(type) && type.getDialectType().isKingBase()) {
                 return new ConnectionTestResult(result, type);
             }
             ConnectType connectType = ConnectTypeUtil.getConnectType(

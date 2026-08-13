@@ -162,7 +162,8 @@ public class ConnectConsoleService {
         DialectType dialectType = connectionSession.getConnectType().getDialectType();
         if (dialectType.isMysql()) {
             sqlBuilder = new MySQLSqlBuilder();
-        } else if (dialectType.isOracle()) {
+        } else if (dialectType.isOracle() || dialectType.isKingBase()) {
+            // KingBase oracle mode: reuse OracleSqlBuilder + ROWNUM (must NOT fall into isDm throw).
             sqlBuilder = new OracleSqlBuilder();
         } else if (dialectType.isDm()) {
             throw new UnsupportedOperationException(
@@ -234,7 +235,13 @@ public class ConnectConsoleService {
             sqlBuilder.append(" t.ROWID, ");
         }
         sqlBuilder.append(" t.* ").append(" FROM ");
-        sqlBuilder.schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
+        if (connectionSession.getDialectType().isKingBase()) {
+            // KingBase oracle-mode ALL_TABLES owners are not physical PG schemas; schema-qualified
+            // "OWNER"."TABLE" resolves to missing relation. Use bare table + ROWNUM (search_path).
+            sqlBuilder.identifier(req.getTableOrViewName()).append(" t");
+        } else {
+            sqlBuilder.schemaPrefixIfNotBlank(req.getSchemaName()).identifier(req.getTableOrViewName()).append(" t");
+        }
 
         if (DialectType.OB_ORACLE == connectionSession.getDialectType()) {
             String version = ConnectionSessionUtil.getVersion(connectionSession);
@@ -244,7 +251,8 @@ public class ConnectConsoleService {
                 sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
             }
         } else if (DialectType.ORACLE == connectionSession.getDialectType()
-                || DialectType.DM == connectionSession.getDialectType()) {
+                || DialectType.DM == connectionSession.getDialectType()
+                || DialectType.KINGBASE == connectionSession.getDialectType()) {
             sqlBuilder.append(" WHERE ROWNUM <= ").append(queryLimit.toString());
         } else if (connectionSession.getDialectType().isDb2()) {
             // fix-I bug F: DB2 uses ANSI {@code FETCH FIRST n ROWS ONLY}, not MySQL-style LIMIT.
