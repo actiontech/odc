@@ -54,6 +54,12 @@ public class DBSchemaAccessorsTest {
     }
 
     @Test
+    public void testToDbBrowserType_gbase8a_routes_to_mysql() throws Exception {
+        // S3 / AC-3: session open requires SchemaAccessor; db-browser has no GBASE_8A case.
+        Assert.assertEquals("MYSQL", invokeToDbBrowserType(DialectType.GBASE_8A));
+    }
+
+    @Test
     public void testToDbBrowserType_postgresql_unchanged() throws Exception {
         // PG must keep its own POSTGRESQL routing untouched (KF-3 zero PG regression).
         Assert.assertEquals("POSTGRESQL", invokeToDbBrowserType(DialectType.POSTGRESQL));

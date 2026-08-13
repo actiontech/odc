@@ -175,6 +175,18 @@ public class SqlCommentProcessorTest {
     }
 
     @Test
+    public void splitGBase8aSql_ReturnsList() {
+        // S3 / AC-3: GBASE_8A must reuse MySQL-family split (';';type is illegal" / Oracle PL path).
+        SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.GBASE_8A, false, false);
+        StringBuffer buffer = new StringBuffer();
+        String script = "SELECT 1;\nSELECT 2;";
+        List<OffsetString> sqls = processor.split(buffer, script);
+        Assert.assertEquals(2, sqls.size());
+        Assert.assertEquals("SELECT 1", sqls.get(0).getStr());
+        Assert.assertEquals("SELECT 2", sqls.get(1).getStr());
+    }
+
+    @Test
     public void splitPostgreSqlSql_ReturnsList() {
         // P4 regression: same as splitGaussDBSql_ReturnsList but for the POSTGRESQL dialect.
         SqlCommentProcessor processor = new SqlCommentProcessor(DialectType.POSTGRESQL, false, false);

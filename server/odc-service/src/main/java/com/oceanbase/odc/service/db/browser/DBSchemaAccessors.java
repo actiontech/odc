@@ -85,9 +85,9 @@ public class DBSchemaAccessors {
      * Resolve the dialect string consumed by {@code db-browser:1.2.3}'s
      * {@code AbstractDBBrowserFactory#create} switch table, which only recognises a fixed set of 10
      * strings (ORACLE / MYSQL / DORIS / TIDB / OB_ORACLE / OB_MYSQL / ODP_SHARDING_OB_MYSQL /
-     * POSTGRESQL / SQL_SERVER / DM). The raw {@link DialectType#name()} for GAUSSDB is not in that set
-     * and triggers {@code IllegalStateException: "Not supported for the type, GAUSSDB"} at
-     * {@code AbstractDBBrowserFactory.java:54}.
+     * POSTGRESQL / SQL_SERVER / DM / …). The raw {@link DialectType#name()} for GAUSSDB / GBASE_8A is
+     * not in that set and triggers {@code IllegalStateException: "Not supported for the type, …"} at
+     * {@code AbstractDBBrowserFactory.java:61}.
      * <p>
      * GaussDB and openGauss both speak the PG wire protocol and the
      * {@link com.oceanbase.tools.dbbrowser.schema.postgre.PostgresSchemaAccessor} only uses standard
@@ -96,6 +96,9 @@ public class DBSchemaAccessors {
      * openGauss in docs/test/screenshots/task-004-fix-2/). We therefore route GAUSSDB to the POSTGRESQL
      * branch here, keeping {@link DialectType#getDBBrowserDialectTypeName} itself unchanged (so plugin
      * routing / extension registry / existing DialectTypeTest assertions are not affected).
+     * <p>
+     * GBase-8a speaks MySQL wire protocol; route to MYSQL so console session open
+     * ({@code DatasourceColumnAccessor}) succeeds. Full object-tree schema plugin remains AC-6.
      * <p>
      * Scope of this hack is the SchemaAccessor only because case 2.2.1 / 2.2.2 of Task-004-FIX-2
      * unblocks tables view by routing this single factory; the other seven db-browser factory facades
@@ -113,6 +116,11 @@ public class DBSchemaAccessors {
         // SQL (dual / all_*/dba_* style). JDBC remains kingbase8 via connect-plugin-kingbase.
         if (dialectType == DialectType.KINGBASE) {
             return DialectType.ORACLE.getDBBrowserDialectTypeName();
+        }
+        // GBase-8a speaks MySQL wire protocol; db-browser has no GBASE_8A case.
+        // Route to MYSQL so console session init (DatasourceColumnAccessor) can open.
+        if (dialectType == DialectType.GBASE_8A) {
+            return DialectType.MYSQL.getDBBrowserDialectTypeName();
         }
         return dialectType.getDBBrowserDialectTypeName();
     }

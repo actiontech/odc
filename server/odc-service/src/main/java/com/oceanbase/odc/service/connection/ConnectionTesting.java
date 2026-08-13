@@ -175,6 +175,9 @@ public class ConnectionTesting {
                 // DB2 default schema falls back to USER.toUpperCase() inside
                 // OBConsoleDataSourceFactory.getDefaultSchema (case DB2 below); see B-20 / B-19.
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isGBase8a()) {
+                // GBase-8a: MySQL-wire; defaultSchema from DMS AdditionalParams.database
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }
@@ -214,7 +217,10 @@ public class ConnectionTesting {
                 return new ConnectionTestResult(result, null);
             }
             if (Objects.nonNull(type)
-                    && (type.getDialectType() == DialectType.MONGODB || type.getDialectType() == DialectType.REDIS)) {
+                    && (type.getDialectType() == DialectType.MONGODB || type.getDialectType() == DialectType.REDIS
+                            || type.getDialectType().isGBase8a())) {
+                // GBase-8a uses official jdbc:gbase driver on plugin ClassLoader; skip
+                // ConnectTypeUtil (DriverManager) auto-detect which cannot see that driver.
                 return new ConnectionTestResult(result, type);
             }
             // KingBase driver lives in connect-plugin-kingbase PluginClassLoader only; skipping

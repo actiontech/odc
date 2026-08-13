@@ -71,6 +71,13 @@ public class DruidDataSourceFactoryTest {
     }
 
     @Test
+    public void testResolveValidationQuery_gbase8a_uses_select_1() {
+        // S3 / AC-3: GBase-8a keep-alive must not fall back to "select 1 from dual".
+        Assert.assertEquals("select 1",
+                DruidDataSourceFactory.resolveValidationQuery(DialectType.GBASE_8A));
+    }
+
+    @Test
     public void testResolveValidationQuery_doris_uses_select_1() {
         Assert.assertEquals("select 1",
                 DruidDataSourceFactory.resolveValidationQuery(DialectType.DORIS));
