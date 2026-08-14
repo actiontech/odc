@@ -24,6 +24,7 @@
         <module>connect-plugin-gaussdb</module>
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
+        <module>connect-plugin-kingbase</module>
         <module>connect-plugin-hana</module>
         <module>connect-plugin-mongodb</module>
         <module>connect-plugin-redis</module>
@@ -40,6 +41,7 @@
         <module>schema-plugin-gaussdb</module>
         <module>schema-plugin-sqlserver</module>
         <module>schema-plugin-dm</module>
+        <module>schema-plugin-kingbase</module>
         <module>schema-plugin-hana</module>
         <module>schema-plugin-mongodb</module>
         <module>schema-plugin-redis</module>
@@ -218,6 +220,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-kingbase</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>connect-plugin-hana</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -237,6 +245,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-dm</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-kingbase</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

@@ -71,6 +71,11 @@ public class DBSchemaAccessorsTest {
     }
 
     @Test
+    public void testToDbBrowserType_kingbase_routes_to_oracle() throws Exception {
+        Assert.assertEquals("ORACLE", invokeToDbBrowserType(DialectType.KINGBASE));
+    }
+
+    @Test
     public void testCreate_gaussdb_returnsPostgresSchemaAccessor() {
         JdbcOperations jdbc = Mockito.mock(JdbcOperations.class);
         DBSchemaAccessor accessor =

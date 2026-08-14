@@ -375,8 +375,8 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
         } else if (dialectType.isHana()) {
             // HANA does not support bare SELECT without FROM; use DUMMY pseudo-table
             return "SELECT 1 FROM DUMMY";
-        } else if (dialectType.isOracle()) {
-            // Oracle and OceanBase Oracle support DUAL table
+        } else if (dialectType.isOracleSqlFamily()) {
+            // Oracle / OB Oracle / DM / KingBase (oracle mode) support DUAL
             return "SELECT 1 FROM DUAL";
         } else {
             // MySQL, OceanBase MySQL, SQL Server, PostgreSQL, Doris, etc. use SELECT 1
@@ -461,6 +461,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case ODP_SHARDING_OB_MYSQL:
             case POSTGRESQL:
             case GAUSSDB:
+            case KINGBASE:
             case SQL_SERVER:
             case HIVE:
                 return schema;
@@ -515,6 +516,12 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());
                 }
                 return getSchema(getDbUser(connectionConfig), connectionConfig.getDialectType());
+            case KINGBASE:
+                // JDBC path database name; required and unquoted (not Oracle sid / quoted schema).
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return getSchema(defaultSchema, connectionConfig.getDialectType());
+                }
+                return null;
             case HANA:
                 if (StringUtils.isNotEmpty(defaultSchema)) {
                     return getSchema(defaultSchema, connectionConfig.getDialectType());

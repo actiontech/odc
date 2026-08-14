@@ -109,6 +109,11 @@ public class DBSchemaAccessors {
         if (dialectType == DialectType.GAUSSDB) {
             return DialectType.POSTGRESQL.getDBBrowserDialectTypeName();
         }
+        // KingBase (oracle mode): db-browser has no KINGBASE branch; reuse Oracle schema accessor
+        // SQL (dual / all_*/dba_* style). JDBC remains kingbase8 via connect-plugin-kingbase.
+        if (dialectType == DialectType.KINGBASE) {
+            return DialectType.ORACLE.getDBBrowserDialectTypeName();
+        }
         return dialectType.getDBBrowserDialectTypeName();
     }
 

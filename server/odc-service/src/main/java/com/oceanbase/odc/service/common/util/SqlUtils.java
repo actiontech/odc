@@ -137,7 +137,7 @@ public class SqlUtils {
             PostgreSqlSplitter splitter = new PostgreSqlSplitter(processor.getDelimiter());
             return splitter.split(sql);
         }
-        if ((dialectType.isOracle() || dialectType.isDm())
+        if (dialectType.isOracleSqlFamily()
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             SqlSplitter sqlSplitter = new SqlSplitter(PlSqlLexer.class, processor.getDelimiter(), false);
             sqlSplitter.setRemoveCommentPrefix(removeCommentPrefix);
@@ -188,7 +188,7 @@ public class SqlUtils {
         if (Objects.nonNull(dialectType) && dialectType.isPostgreSql()) {
             return PostgreSqlSplitter.iterator(input, charset, processor.getDelimiter());
         }
-        if (Objects.nonNull(dialectType) && dialectType.isOracle()
+        if (Objects.nonNull(dialectType) && dialectType.isOracleSqlFamily()
                 && (";".equals(processor.getDelimiter()) || "/".equals(processor.getDelimiter()))) {
             return SqlSplitter.iterator(input, charset, processor.getDelimiter(), false);
         } else {
