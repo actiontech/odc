@@ -145,6 +145,10 @@ public class OdcConstants {
      */
     public static final String KINGBASE_DRIVER_CLASS_NAME = "com.kingbase8.Driver";
     /**
+     * GBase-8a official JDBC driver class name ({@code jdbc:gbase://…})
+     */
+    public static final String GBASE_8A_DRIVER_CLASS_NAME = "com.gbase.jdbc.Driver";
+    /**
      * MongoDB bridge driver class name
      */
     public static final String MONGODB_DRIVER_CLASS_NAME =

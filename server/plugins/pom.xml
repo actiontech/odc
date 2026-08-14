@@ -25,6 +25,7 @@
         <module>connect-plugin-sqlserver</module>
         <module>connect-plugin-dm</module>
         <module>connect-plugin-kingbase</module>
+        <module>connect-plugin-gbase8a</module>
         <module>connect-plugin-hana</module>
         <module>connect-plugin-mongodb</module>
         <module>connect-plugin-redis</module>
@@ -36,6 +37,7 @@
         <module>schema-plugin-mysql</module>
         <module>schema-plugin-doris</module>
         <module>schema-plugin-tidb</module>
+        <module>schema-plugin-gbase8a</module>
         <module>schema-plugin-oracle</module>
         <module>schema-plugin-postgres</module>
         <module>schema-plugin-gaussdb</module>
@@ -190,6 +192,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-gbase8a</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-oracle</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -221,6 +229,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>connect-plugin-kingbase</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-gbase8a</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>

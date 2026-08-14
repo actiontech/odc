@@ -34,11 +34,20 @@ public class AllFeaturesTest {
     }
 
     @Test
+    public void getByConnectType_gbase8a_returnsSameAsMysql() {
+        Features mysqlFeatures = AllFeatures.getByConnectType(ConnectType.MYSQL);
+        Features gbaseFeatures = AllFeatures.getByConnectType(ConnectType.GBASE_8A);
+        Assert.assertNotNull(gbaseFeatures);
+        Assert.assertSame(mysqlFeatures, gbaseFeatures);
+    }
+
+    @Test
     public void getByConnectType_variousTypes_returnsNonNull() {
         Map<ConnectType, Class<? extends Features>> cases = new LinkedHashMap<>();
         cases.put(ConnectType.OB_MYSQL, OBMySQLFeatures.class);
         cases.put(ConnectType.MYSQL, MySQLFeatures.class);
         cases.put(ConnectType.TIDB, MySQLFeatures.class);
+        cases.put(ConnectType.GBASE_8A, MySQLFeatures.class);
         cases.put(ConnectType.ODP_SHARDING_OB_MYSQL, ODPShardingFeatures.class);
 
         for (Map.Entry<ConnectType, Class<? extends Features>> entry : cases.entrySet()) {

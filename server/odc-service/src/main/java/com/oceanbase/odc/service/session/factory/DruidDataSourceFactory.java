@@ -97,13 +97,18 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
          */
         dataSource.setSocketTimeout(DEFAULT_TIMEOUT_MILLIS);
         dataSource.setConnectTimeout(DEFAULT_TIMEOUT_MILLIS);
-        // fix arbitrary file reading vulnerability
-        Properties properties = Optional.ofNullable(dataSource.getConnectProperties()).orElseGet(Properties::new);
-        properties.setProperty("allowLoadLocalInfile", "false");
-        properties.setProperty("allowUrlInLocalInfile", "false");
-        properties.setProperty("allowLoadLocalInfileInPath", "");
-        properties.setProperty("autoDeserialize", "false");
-        dataSource.setConnectProperties(properties);
+        // fix arbitrary file reading vulnerability (MySQL Connector/J props).
+        // Official GBase JDBC rejects these with "driver not support property …" and breaks
+        // BACKEND_DS_KEY (listTables / object tree). URL-side filtering is in
+        // GBase8aConnectionExtension; connectProperties must skip them here too.
+        if (!getConnectType().getDialectType().isGBase8a()) {
+            Properties properties = Optional.ofNullable(dataSource.getConnectProperties()).orElseGet(Properties::new);
+            properties.setProperty("allowLoadLocalInfile", "false");
+            properties.setProperty("allowUrlInLocalInfile", "false");
+            properties.setProperty("allowLoadLocalInfileInPath", "");
+            properties.setProperty("autoDeserialize", "false");
+            dataSource.setConnectProperties(properties);
+        }
         try {
             setConnectAndSocketTimeoutFromJdbcUrl(dataSource);
         } catch (Exception e) {
@@ -140,7 +145,9 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
             return "select 1 from SYSIBM.SYSDUMMY1";
         }
         if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
+                || dialectType.isGBase8a()
                 || dialectType.isPgFamily() || dialectType.isSqlServer() || dialectType.isHive()) {
+            // GBase-8a is MySQL-wire; keep-alive must be SELECT 1 (not FROM dual).
             return "select 1";
         }
         return "select 1 from dual";

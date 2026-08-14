@@ -172,6 +172,9 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isTidb()) {
             sqlBuilder = new MySQLSqlBuilder();
+        } else if (dialectType.isGBase8a()) {
+            // MySQL wire protocol + backtick identifiers; table data uses LIMIT (not ROWNUM).
+            sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isHive()) {
             sqlBuilder = new HiveSqlBuilder();
         } else if (dialectType.isSqlServer()) {

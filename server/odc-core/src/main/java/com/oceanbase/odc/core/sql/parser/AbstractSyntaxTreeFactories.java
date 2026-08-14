@@ -38,6 +38,9 @@ public class AbstractSyntaxTreeFactories {
             return new OBMySQLAstFactory(timeoutMillis);
         } else if (dialectType.isTidb()) {
             return new OBMySQLAstFactory(timeoutMillis);
+        } else if (dialectType.isGBase8a()) {
+            // GBase-8a: MySQL-wire / USE `db`; independent DialectType, not isMysql().
+            return new OBMySQLAstFactory(timeoutMillis);
         }
         return null;
     }

@@ -41,6 +41,8 @@ public enum ConnectType {
     MONGODB(DialectType.MONGODB),
     REDIS(DialectType.REDIS),
     HIVE(DialectType.HIVE),
+    // Independent GBase-8a identity for DMS→ODC sync; do not reuse MYSQL/ORACLE/KINGBASE.
+    GBASE_8A(DialectType.GBASE_8A),
 
     // reserved for future version
     ODP_SHARDING_OB_ORACLE(DialectType.OB_ORACLE),
@@ -72,8 +74,8 @@ public enum ConnectType {
     }
 
     public boolean isDefaultSchemaRequired() {
-        // KingBase JDBC URL path requires the database name (defaultSchema).
-        return isODPSharding() || this == KINGBASE;
+        // KingBase JDBC URL path and GBase-8a DMS AdditionalParams.database both require defaultSchema.
+        return isODPSharding() || this == KINGBASE || this == GBASE_8A;
     }
 
     public boolean isKingBase() {

@@ -39,6 +39,7 @@ public enum DialectType {
     MONGODB,
     REDIS,
     HIVE,
+    GBASE_8A,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -134,6 +135,10 @@ public enum DialectType {
 
     public boolean isHive() {
         return HIVE == this;
+    }
+
+    public boolean isGBase8a() {
+        return GBASE_8A == this;
     }
 
 }

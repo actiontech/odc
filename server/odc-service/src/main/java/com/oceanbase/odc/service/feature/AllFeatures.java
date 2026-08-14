@@ -35,6 +35,7 @@ public class AllFeatures {
                 return ODP_SHARDING;
             case MYSQL:
             case TIDB:
+            case GBASE_8A:
                 return MYSQL;
             case POSTGRESQL:
                 return POSTGRESQL;

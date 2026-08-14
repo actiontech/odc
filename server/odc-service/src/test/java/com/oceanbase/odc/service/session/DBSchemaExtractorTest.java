@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,6 +61,15 @@ public class DBSchemaExtractorTest {
             }
             System.out.println("Test case: " + testCase.getId() + " passed.");
         }
+    }
+
+    @Test
+    public void extractSwitchedSchemaName_gbase8a_useDatabase() {
+        Optional<String> schema = DBSchemaExtractor.extractSwitchedSchemaName(
+                Collections.singletonList(SqlTuple.newTuple("USE `information_schema`")),
+                DialectType.GBASE_8A);
+        Assert.assertTrue(schema.isPresent());
+        Assert.assertEquals("information_schema", schema.get());
     }
 
     @Test

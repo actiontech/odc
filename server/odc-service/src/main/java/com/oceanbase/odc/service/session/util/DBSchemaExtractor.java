@@ -97,7 +97,8 @@ public class DBSchemaExtractor {
                     sqlTuple.initAst(AbstractSyntaxTreeFactories.getAstFactory(dialectType, 0));
                     ast = sqlTuple.getAst();
                 }
-                if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
+                if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
+                        || dialectType.isGBase8a()) {
                     OBMySQLUseDatabaseStmtVisitor visitor = new OBMySQLUseDatabaseStmtVisitor();
                     visitor.visit(ast.getRoot());
                     if (!visitor.getSchemaSet().isEmpty()) {
@@ -148,7 +149,7 @@ public class DBSchemaExtractor {
             String defaultSchema) {
         Set<DBSchemaIdentity> identities = new HashSet<>();
         BasicResult basicResult = ast.getParseResult();
-        if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
+        if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb() || dialectType.isGBase8a()) {
             if (basicResult.isPlDdl() || basicResult instanceof ParseMysqlPLResult) {
                 OBMySQLPLRelationFactorVisitor visitor = new OBMySQLPLRelationFactorVisitor();
                 visitor.visit(ast.getRoot());

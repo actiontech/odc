@@ -120,7 +120,9 @@ public class SqlCommentProcessor {
         List<List<OrderChar>> lines = splitLine(originalSql);
         Holder<Integer> bufferOrder = new Holder<>(0);
         for (List<OrderChar> item : lines) {
-            if (Objects.nonNull(dbMode) && dbMode.isMysql()) {
+            // MySQL-family wire dialects (incl. TiDB / Doris / GBase-8a) share ';' / comment rules.
+            if (Objects.nonNull(dbMode) && (dbMode.isMysql() || dbMode.isTidb() || dbMode.isDoris()
+                    || dbMode.isGBase8a())) {
                 sqlCommentProcessor.addLineMysql(offsetStrings, buffer, bufferOrder, item);
             } else {
                 sqlCommentProcessor.addLineOracle(offsetStrings, buffer, bufferOrder, item);
@@ -172,6 +174,9 @@ public class SqlCommentProcessor {
                     // TODO: 这里暂时使用MySQL的逻辑，避免抛出异常
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isTidb()) {
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isGBase8a()) {
+                    // GBase-8a: MySQL-wire protocol; console split/comments follow MySQL family (not Oracle PL).
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isPgFamily()) {
                     // PostgreSQL / GaussDB / openGauss use ';' as standard statement separator
@@ -805,24 +810,16 @@ public class SqlCommentProcessor {
                 }
                 String line;
                 while (holder.isEmpty() && (line = reader.readLine()) != null) {
-                    if (processor.dialectType.isMysql()) {
+                    if (processor.dialectType.isMysql() || processor.dialectType.isTidb()
+                            || processor.dialectType.isDoris() || processor.dialectType.isGBase8a()
+                            || processor.dialectType.isHive() || processor.dialectType.isHana()
+                            || processor.dialectType.isPgFamily() || processor.dialectType.isDb2()
+                            || processor.dialectType.isSqlServer() || processor.dialectType.isMongoDB()) {
                         processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));
                     } else if (processor.dialectType.isOracleSqlFamily()) {
                         processor.addLineOracle(holder, buffer, bufferOrder, line.chars()
-                                .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
-                                .collect(Collectors.toList()));
-                    } else if (processor.dialectType.isDoris()) {
-                        processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
-                                .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
-                                .collect(Collectors.toList()));
-                    } else if (processor.dialectType.isHive()) {
-                        processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
-                                .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
-                                .collect(Collectors.toList()));
-                    } else if (processor.dialectType.isHana()) {
-                        processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));
                     }

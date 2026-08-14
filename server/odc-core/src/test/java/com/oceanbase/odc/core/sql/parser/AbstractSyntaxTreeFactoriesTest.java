@@ -40,6 +40,7 @@ public class AbstractSyntaxTreeFactoriesTest {
         cases.put(DialectType.OB_MYSQL, OBMySQLAstFactory.class);
         cases.put(DialectType.DORIS, OBMySQLAstFactory.class);
         cases.put(DialectType.TIDB, OBMySQLAstFactory.class);
+        cases.put(DialectType.GBASE_8A, OBMySQLAstFactory.class);
         cases.put(DialectType.OB_ORACLE, OBOracleAstFactory.class);
 
         for (Map.Entry<DialectType, Class<? extends AbstractSyntaxTreeFactory>> entry : cases.entrySet()) {
