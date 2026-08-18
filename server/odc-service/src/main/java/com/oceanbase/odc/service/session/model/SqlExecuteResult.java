@@ -332,13 +332,7 @@ public class SqlExecuteResult {
     }
 
     public ExecutionTimer getTimer() {
-        TraceWatch traceWatch = new TraceWatch("Default");
-        if (this.sqlTuple != null) {
-            traceWatch = this.sqlTuple.getSqlWatch();
-        }
-        if (!traceWatch.isClosed()) {
-            traceWatch.close();
-        }
+        TraceWatch traceWatch = this.sqlTuple != null ? this.sqlTuple.getSqlWatch() : new TraceWatch("Default");
         return new ExecutionTimer(traceWatch);
     }
 
@@ -549,7 +543,12 @@ public class SqlExecuteResult {
             }
             this.name = traceWatch.getId();
             this.startTimeMillis = traceWatch.getStartTimeMillis();
-            this.totalDurationMicroseconds = traceWatch.getTotalTime(TimeUnit.MICROSECONDS);
+            if (traceWatch.isClosed()) {
+                this.totalDurationMicroseconds = traceWatch.getTotalTime(TimeUnit.MICROSECONDS);
+            } else {
+                this.totalDurationMicroseconds = TimeUnit.MICROSECONDS.convert(
+                        traceWatch.getTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+            }
         }
     }
 
