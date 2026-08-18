@@ -82,7 +82,9 @@ public class AsyncExecuteContext {
         while (!results.isEmpty()) {
             copiedResults.add(results.poll());
         }
-        if (!copiedResults.isEmpty() && isFinished()) {
+        if (!copiedResults.isEmpty()) {
+            // Results already handed to a poller (even if future is not done yet). Later empty+finished
+            // polls must not future.get() and re-run generateResult / SQL_AFTER_CHECK.
             terminalFutureConsumed.set(true);
         }
         return copiedResults;
