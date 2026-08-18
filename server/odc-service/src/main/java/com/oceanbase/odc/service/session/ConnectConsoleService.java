@@ -17,6 +17,7 @@ package com.oceanbase.odc.service.session;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -438,6 +439,7 @@ public class ConnectConsoleService {
         int gettingResultTimeoutSeconds =
                 Objects.isNull(timeoutSeconds) ? DEFAULT_GET_RESULT_TIMEOUT_SECONDS : timeoutSeconds;
         boolean shouldRemoveContext = false;
+        List<SqlExecuteResult> results = Collections.emptyList();
         try {
             List<JdbcGeneralResult> resultList =
                     context.getMoreSqlExecutionResults(gettingResultTimeoutSeconds * 1000L);
@@ -457,17 +459,34 @@ public class ConnectConsoleService {
                 }
             }
             shouldRemoveContext = context.isFinished();
-            List<SqlExecuteResult> results = resultList.stream().map(jdbcGeneralResult -> {
+            results = new ArrayList<>(resultList.size());
+            for (JdbcGeneralResult jdbcGeneralResult : resultList) {
                 SqlExecuteResult result = generateResult(connectionSession, jdbcGeneralResult, context.getContextMap());
                 try (TraceStage stage = result.getSqlTuple().getSqlWatch().start(SqlExecuteStages.SQL_AFTER_CHECK)) {
                     sqlInterceptService.afterCompletion(result, connectionSession, context);
                 } catch (Exception e) {
-                    throw new IllegalStateException(e);
+                    if (context.isFinished()) {
+                        log.warn("SQL after-check failed after execution completed, keep result. sqlId={}",
+                                result.getSqlId(), e);
+                    } else {
+                        throw new IllegalStateException(e);
+                    }
                 }
-                return result;
-            }).collect(Collectors.toList());
+                results.add(result);
+            }
+            if (shouldRemoveContext) {
+                closeSqlTupleWatches(context);
+            }
             return new AsyncExecuteResultResp(shouldRemoveContext, context, results);
         } catch (Exception e) {
+            if (context.isFinished()) {
+                log.warn(
+                        "Failed to assemble getMoreResults after SQL completed, return finished. sessionId={}, requestId={}",
+                        sessionId, requestId, e);
+                shouldRemoveContext = true;
+                closeSqlTupleWatches(context);
+                return new AsyncExecuteResultResp(true, context, results);
+            }
             shouldRemoveContext = true;
             // Front-end would stop getting more results if there is an exception. In this case the left queries
             // should be killed.
@@ -480,6 +499,26 @@ public class ConnectConsoleService {
         } finally {
             if (shouldRemoveContext) {
                 ConnectionSessionUtil.removeExecuteContext(connectionSession, requestId);
+            }
+        }
+    }
+
+    private void closeSqlTupleWatches(AsyncExecuteContext context) {
+        if (context == null || CollectionUtils.isEmpty(context.getSqlTuples())) {
+            return;
+        }
+        for (SqlTuple sqlTuple : context.getSqlTuples()) {
+            if (sqlTuple == null) {
+                continue;
+            }
+            TraceWatch watch = sqlTuple.getSqlWatch();
+            if (watch == null || watch.isClosed()) {
+                continue;
+            }
+            try {
+                watch.close();
+            } catch (Exception e) {
+                log.warn("Failed to close TraceWatch, sqlId={}", sqlTuple.getSqlId(), e);
             }
         }
     }

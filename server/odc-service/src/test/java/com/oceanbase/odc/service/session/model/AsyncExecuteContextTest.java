@@ -17,6 +17,7 @@ package com.oceanbase.odc.service.session.model;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -49,6 +50,18 @@ public class AsyncExecuteContextTest {
         context.addSqlExecutionResults(Collections.singletonList(result));
         context.setFuture(FutureResult.successResultList(result));
 
+        Assert.assertEquals(1, context.getMoreSqlExecutionResults(0).size());
+        Assert.assertFalse(context.markTerminalFutureConsumedIfAbsent());
+    }
+
+    @Test
+    public void getMoreSqlExecutionResults_unfinishedQueueResult_preventDuplicateTerminalFuture() {
+        JdbcGeneralResult result = JdbcGeneralResult.successResult(SqlTuple.newTuple("select sleep(2)"));
+        AsyncExecuteContext context = new AsyncExecuteContext(Collections.emptyList(), new HashMap<>());
+        context.addSqlExecutionResults(Collections.singletonList(result));
+        context.setFuture(new CompletableFuture<>());
+
+        Assert.assertFalse(context.isFinished());
         Assert.assertEquals(1, context.getMoreSqlExecutionResults(0).size());
         Assert.assertFalse(context.markTerminalFutureConsumedIfAbsent());
     }
