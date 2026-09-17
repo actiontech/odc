@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -94,10 +95,13 @@ public class MySQLConnectionExtension extends OBMySQLConnectionExtension {
 
     @Override
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
-        if (Objects.nonNull(jdbcUrlParams) && !jdbcUrlParams.containsKey("tinyInt1isBit")) {
-            jdbcUrlParams.put("tinyInt1isBit", "false");
-        }
-        return jdbcUrlParams;
+        Map<String, String> parameters =
+                Objects.isNull(jdbcUrlParams) ? new HashMap<>() : new HashMap<>(jdbcUrlParams);
+        parameters.putIfAbsent("tinyInt1isBit", "false");
+        // caching_sha2_password full authentication needs the server public key, which the driver
+        // refuses to retrieve over a non-SSL connection unless this is enabled
+        parameters.putIfAbsent("allowPublicKeyRetrieval", "true");
+        return parameters;
     }
 
 }
