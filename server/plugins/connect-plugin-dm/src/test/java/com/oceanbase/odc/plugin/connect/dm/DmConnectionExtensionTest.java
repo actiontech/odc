@@ -130,6 +130,29 @@ public class DmConnectionExtensionTest {
         }
     }
 
+    @Test
+    public void generateJdbcUrl_dropsMysqlParametersFromDatasourceFactory() {
+        Map<String, String> params = new HashMap<>();
+        params.put("allowMultiQueries", "true");
+        params.put("useSSL", "false");
+        params.put("zeroDateTimeBehavior", "round");
+        params.put("maxAllowedPacket", "64000000");
+        params.put("connectTimeout", "5000");
+        params.put("socketTimeout", "60");
+        JdbcUrlProperty mysqlInjected = new JdbcUrlProperty("10.186.61.2", 5236, "dbhub", params);
+
+        String url = new DmConnectionExtension().generateJdbcUrl(mysqlInjected);
+
+        Assert.assertTrue(url.startsWith("jdbc:dm://10.186.61.2:5236?"));
+        Assert.assertTrue(url.contains("schema=dbhub"));
+        Assert.assertTrue(url.contains("connectTimeout=5000"));
+        Assert.assertTrue(url.contains("socketTimeout=60"));
+        Assert.assertFalse(url.contains("allowMultiQueries"));
+        Assert.assertFalse(url.contains("useSSL"));
+        Assert.assertFalse(url.contains("zeroDateTimeBehavior"));
+        Assert.assertFalse(url.contains("maxAllowedPacket"));
+    }
+
     private static Map<String, String> createParams(String key, String value) {
         Map<String, String> params = new HashMap<>();
         params.put(key, value);
