@@ -180,4 +180,36 @@
             <artifactId>db-browser</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                DmJdbcDriver18 is not on Maven Central. Install the vendored jar before
+                connect-plugin-dm and odc-service resolve com.dameng:DmJdbcDriver18.
+                odc-common is built ahead of both in the reactor.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>install-dm-jdbc-driver</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.basedir}/../plugins/connect-plugin-dm/lib/DmJdbcDriver18.jar</file>
+                            <groupId>com.dameng</groupId>
+                            <artifactId>DmJdbcDriver18</artifactId>
+                            <version>${dm.jdbc.version}</version>
+                            <packaging>jar</packaging>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

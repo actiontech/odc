@@ -108,6 +108,7 @@ import com.oceanbase.odc.service.session.util.SqlRewriteUtil;
 import com.oceanbase.tools.dbbrowser.parser.result.BasicResult;
 import com.oceanbase.tools.dbbrowser.parser.result.ParseSqlResult;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
+import com.oceanbase.tools.dbbrowser.util.DmSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.HanaSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.HiveSqlBuilder;
 import com.oceanbase.tools.dbbrowser.util.MySQLSqlBuilder;
@@ -164,11 +165,12 @@ public class ConnectConsoleService {
         if (dialectType.isMysql()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isOracle() || dialectType.isKingBase()) {
-            // KingBase oracle mode: reuse OracleSqlBuilder + ROWNUM (must NOT fall into isDm throw).
+            // KingBase oracle mode: reuse OracleSqlBuilder + ROWNUM.
             sqlBuilder = new OracleSqlBuilder();
         } else if (dialectType.isDm()) {
-            throw new UnsupportedOperationException(
-                    "db-browser:1.2.3 lacks DmSqlBuilder; DM dialect SQL builder is not available in this version");
+            // libs/db-browser is installed as db-browser:1.2.3 before the server build and contains
+            // DmSqlBuilder.
+            sqlBuilder = new DmSqlBuilder();
         } else if (dialectType.isDoris()) {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isTidb()) {

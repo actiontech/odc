@@ -19,10 +19,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
@@ -51,6 +55,36 @@ import lombok.NonNull;
 @Extension
 public class DmConnectionExtension extends OBMySQLConnectionExtension {
 
+    /**
+     * Parameters added for MySQL-compatible drivers. Kept out of {@code jdbc:dm://} URLs.
+     * {@code connectTimeout} is intentionally absent: DM JDBC recognizes it.
+     */
+    private static final Set<String> MYSQL_INCOMPATIBLE_JDBC_PARAMETERS = new HashSet<>(Arrays.asList(
+            "allowLoadLocalInfile",
+            "allowLoadLocalInfileInPath",
+            "allowMultiQueries",
+            "allowUrlInLocalInfile",
+            "autoDeserialize",
+            "defaultConnectionAttributesBanList",
+            "disableSslHostnameVerification",
+            "enableFullLinkTrace",
+            "jdbcCompliantTruncation",
+            "keyStore",
+            "keyStorePassword",
+            "maxAllowedPacket",
+            "noDatetimeStringSync",
+            "oracle.jdbc.javaNio",
+            "oracle.net.socksProxyHost",
+            "oracle.net.socksProxyPort",
+            "sendConnectionAttributes",
+            "socksProxyHost",
+            "socksProxyPort",
+            "trustServerCertificate",
+            "trustStore",
+            "trustStorePassword",
+            "useSSL",
+            "zeroDateTimeBehavior"));
+
     @Override
     public String generateJdbcUrl(@NonNull JdbcUrlProperty properties) {
         String host = properties.getHost();
@@ -78,10 +112,24 @@ public class DmConnectionExtension extends OBMySQLConnectionExtension {
         return jdbcUrl.toString();
     }
 
+    /**
+     * Drop MySQL/OceanBase JDBC parameters injected by
+     * {@code OBConsoleDataSourceFactory.getJdbcParams()}. DM accepts {@code connectTimeout} and
+     * {@code schema}; the remaining keys are not DM driver properties.
+     */
     @Override
     protected Map<String, String> appendDefaultJdbcUrlParameters(Map<String, String> jdbcUrlParams) {
-        // DM does not need special default parameters
-        return jdbcUrlParams;
+        if (jdbcUrlParams == null || jdbcUrlParams.isEmpty()) {
+            return jdbcUrlParams;
+        }
+        Map<String, String> retained = new HashMap<>();
+        for (Map.Entry<String, String> entry : jdbcUrlParams.entrySet()) {
+            if (entry.getValue() == null || MYSQL_INCOMPATIBLE_JDBC_PARAMETERS.contains(entry.getKey())) {
+                continue;
+            }
+            retained.put(entry.getKey(), entry.getValue());
+        }
+        return retained.isEmpty() ? null : retained;
     }
 
     @Override

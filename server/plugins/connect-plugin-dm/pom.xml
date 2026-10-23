@@ -44,12 +44,15 @@
             <artifactId>connect-plugin-ob-mysql</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!--
+            Provided, same as ojdbc8 / ngdbc. The driver is installed from the vendored jar
+            by odc-common and packaged into odc-server via odc-service. Plugin class loaders
+            delegate to the application class loader, so the plugin jar must not embed it.
+        -->
         <dependency>
             <groupId>com.dameng</groupId>
             <artifactId>DmJdbcDriver18</artifactId>
-            <version>8.1.1.193</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/DmJdbcDriver18.jar</systemPath>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
