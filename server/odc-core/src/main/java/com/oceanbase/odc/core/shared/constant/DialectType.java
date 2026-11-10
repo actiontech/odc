@@ -40,6 +40,10 @@ public enum DialectType {
     REDIS,
     HIVE,
     GBASE_8A,
+    /**
+     * Product dialect name must remain {@code ClickHouse} (DMS library type / ConnectType wire value).
+     */
+    ClickHouse,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -139,6 +143,10 @@ public enum DialectType {
 
     public boolean isGBase8a() {
         return GBASE_8A == this;
+    }
+
+    public boolean isClickHouse() {
+        return ClickHouse == this;
     }
 
 }
