@@ -465,6 +465,7 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
             case KINGBASE:
             case SQL_SERVER:
             case HIVE:
+            case ClickHouse:
                 return schema;
             default:
                 return null;
@@ -537,6 +538,11 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                     return defaultSchema;
                 }
                 return OdcConstants.HIVE_DEFAULT_SCHEMA;
+            case ClickHouse:
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return defaultSchema;
+                }
+                return OdcConstants.CLICKHOUSE_DEFAULT_SCHEMA;
             case DB2:
                 // DB2 implicit schema = USER.toUpperCase(). When ConnectionConfig.defaultSchema is
                 // blank we fall back to the connect user; Db2ConnectionExtension.generateJdbcUrl

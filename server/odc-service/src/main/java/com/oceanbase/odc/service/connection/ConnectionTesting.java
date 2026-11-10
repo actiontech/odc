@@ -178,6 +178,9 @@ public class ConnectionTesting {
             } else if (type.getDialectType().isGBase8a()) {
                 // GBase-8a: MySQL-wire; defaultSchema from DMS AdditionalParams.database
                 schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
+            } else if (type.getDialectType().isClickHouse()) {
+                // ClickHouse HTTP JDBC; default database is "default"
+                schema = OBConsoleDataSourceFactory.getDefaultSchema(config);
             } else {
                 throw new UnsupportedOperationException("Unsupported type, " + type);
             }
@@ -218,9 +221,9 @@ public class ConnectionTesting {
             }
             if (Objects.nonNull(type)
                     && (type.getDialectType() == DialectType.MONGODB || type.getDialectType() == DialectType.REDIS
-                            || type.getDialectType().isGBase8a())) {
-                // GBase-8a uses official jdbc:gbase driver on plugin ClassLoader; skip
-                // ConnectTypeUtil (DriverManager) auto-detect which cannot see that driver.
+                            || type.getDialectType().isGBase8a() || type.getDialectType().isClickHouse())) {
+                // GBase-8a / ClickHouse drivers live on plugin ClassLoader; skip
+                // ConnectTypeUtil (DriverManager) auto-detect which cannot see those drivers.
                 return new ConnectionTestResult(result, type);
             }
             // KingBase driver lives in connect-plugin-kingbase PluginClassLoader only; skipping

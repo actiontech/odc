@@ -101,7 +101,9 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
         // Official GBase JDBC rejects these with "driver not support property …" and breaks
         // BACKEND_DS_KEY (listTables / object tree). URL-side filtering is in
         // GBase8aConnectionExtension; connectProperties must skip them here too.
-        if (!getConnectType().getDialectType().isGBase8a()) {
+        // ClickHouse JDBC rejects MySQL Connector/J security props (same class of issue as GBase-8a).
+        if (!getConnectType().getDialectType().isGBase8a()
+                && !getConnectType().getDialectType().isClickHouse()) {
             Properties properties = Optional.ofNullable(dataSource.getConnectProperties()).orElseGet(Properties::new);
             properties.setProperty("allowLoadLocalInfile", "false");
             properties.setProperty("allowUrlInLocalInfile", "false");
@@ -145,9 +147,9 @@ public class DruidDataSourceFactory extends OBConsoleDataSourceFactory {
             return "select 1 from SYSIBM.SYSDUMMY1";
         }
         if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
-                || dialectType.isGBase8a()
+                || dialectType.isGBase8a() || dialectType.isClickHouse()
                 || dialectType.isPgFamily() || dialectType.isSqlServer() || dialectType.isHive()) {
-            // GBase-8a is MySQL-wire; keep-alive must be SELECT 1 (not FROM dual).
+            // GBase-8a is MySQL-wire; ClickHouse has no DUAL — keep-alive must be SELECT 1.
             return "select 1";
         }
         return "select 1 from dual";
