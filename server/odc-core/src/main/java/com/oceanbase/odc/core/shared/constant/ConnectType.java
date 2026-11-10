@@ -43,6 +43,8 @@ public enum ConnectType {
     HIVE(DialectType.HIVE),
     // Independent GBase-8a identity for DMS→ODC sync; do not reuse MYSQL/ORACLE/KINGBASE.
     GBASE_8A(DialectType.GBASE_8A),
+    // Product type name is ClickHouse (matches DialectType / DMS db type wire value).
+    ClickHouse(DialectType.ClickHouse),
 
     // reserved for future version
     ODP_SHARDING_OB_ORACLE(DialectType.OB_ORACLE),

@@ -30,6 +30,7 @@
         <module>connect-plugin-mongodb</module>
         <module>connect-plugin-redis</module>
         <module>connect-plugin-hive</module>
+        <module>connect-plugin-clickhouse</module>
         <module>connect-plugin-db2</module>
         <module>schema-plugin-api</module>
         <module>schema-plugin-ob-mysql</module>
@@ -48,6 +49,7 @@
         <module>schema-plugin-mongodb</module>
         <module>schema-plugin-redis</module>
         <module>schema-plugin-hive</module>
+        <module>schema-plugin-clickhouse</module>
         <module>schema-plugin-db2</module>
         <module>schema-plugin-odp-sharding-ob-mysql</module>
         <module>task-plugin-api</module>
@@ -258,6 +260,12 @@
             </dependency>
             <dependency>
                 <groupId>com.oceanbase</groupId>
+                <artifactId>connect-plugin-clickhouse</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-dm</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
@@ -295,6 +303,12 @@
             <dependency>
                 <groupId>com.oceanbase</groupId>
                 <artifactId>schema-plugin-hive</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.oceanbase</groupId>
+                <artifactId>schema-plugin-clickhouse</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
