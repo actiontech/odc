@@ -58,3 +58,4 @@ venv/
 **/oss_temp_dir/
 .vscode/
 .pnpm-store/
+odc-server.pid
