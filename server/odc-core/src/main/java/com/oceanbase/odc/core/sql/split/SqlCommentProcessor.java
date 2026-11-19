@@ -192,6 +192,9 @@ public class SqlCommentProcessor {
                     // DB2 shares MySQL semantics for `--` / `/* */` comments and `;` separators
                     // (design.md §2.5 + plan.md B-23). Reuse the MySQL path; no separate parser.
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isClickHouse()) {
+                    // ClickHouse uses `;` separators and MySQL-style `--` / `/* */` comments.
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
                 }
@@ -814,7 +817,8 @@ public class SqlCommentProcessor {
                             || processor.dialectType.isDoris() || processor.dialectType.isGBase8a()
                             || processor.dialectType.isHive() || processor.dialectType.isHana()
                             || processor.dialectType.isPgFamily() || processor.dialectType.isDb2()
-                            || processor.dialectType.isSqlServer() || processor.dialectType.isMongoDB()) {
+                            || processor.dialectType.isSqlServer() || processor.dialectType.isMongoDB()
+                            || processor.dialectType.isClickHouse()) {
                         processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));
