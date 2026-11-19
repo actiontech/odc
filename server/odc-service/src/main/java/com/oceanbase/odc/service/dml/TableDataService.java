@@ -93,7 +93,10 @@ public class TableDataService {
             }
             DMLBuilder dmlBuilder;
             DialectType dialectType = connectionSession.getDialectType();
-            if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()) {
+            if (dialectType.isMysql() || dialectType.isDoris() || dialectType.isTidb()
+                    || dialectType.isClickHouse()) {
+                // ClickHouse: backticks + MySQL-family literals (S4 §10.1); UPDATE uses
+                // ClickHouseUpdateGenerator (ALTER TABLE ... UPDATE), not MySQL UPDATE.
                 dmlBuilder = new MySQLDMLBuilder(row.getUnits(), req.getWhereColumns(), connectionSession, constraints);
             } else if (dialectType.isOracle() || dialectType.isDm() || dialectType.isHana()) {
                 dmlBuilder =
@@ -115,7 +118,7 @@ public class TableDataService {
                         "Primary key or unique constraint is required to generate update condition");
             }
 
-            DMLGenerator generator = getGenerator(operate, dmlBuilder, columnName2Column);
+            DMLGenerator generator = getGenerator(operate, dmlBuilder, columnName2Column, dialectType);
             String sql = generator.generate();
 
             ResourceSql resourceSql = new ResourceSql();
@@ -157,11 +160,14 @@ public class TableDataService {
     }
 
     private DMLGenerator getGenerator(Operate operate, DMLBuilder builder,
-            Map<String, DBTableColumn> columnName2Column) {
+            Map<String, DBTableColumn> columnName2Column, DialectType dialectType) {
         switch (operate) {
             case INSERT:
                 return new InsertGenerator(builder);
             case UPDATE:
+                if (dialectType != null && dialectType.isClickHouse()) {
+                    return new ClickHouseUpdateGenerator(builder, columnName2Column);
+                }
                 return new UpdateGenerator(builder, columnName2Column);
             case DELETE:
                 return new DeleteGenerator(builder);
