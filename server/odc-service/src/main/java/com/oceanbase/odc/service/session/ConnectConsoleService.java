@@ -173,6 +173,9 @@ public class ConnectConsoleService {
             sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isTidb()) {
             sqlBuilder = new MySQLSqlBuilder();
+        } else if (dialectType.isClickHouse()) {
+            // ClickHouse HTTP/JDBC accepts MySQL-style backticks + LIMIT (S2 §8.11 AC-009).
+            sqlBuilder = new MySQLSqlBuilder();
         } else if (dialectType.isGBase8a()) {
             // MySQL wire protocol + backtick identifiers; table data uses LIMIT (not ROWNUM).
             sqlBuilder = new MySQLSqlBuilder();
@@ -309,11 +312,11 @@ public class ConnectConsoleService {
         SqlExecuteResult result = results.get(0);
         /**
          * editable will always be false because ResultSetMetaData#getTableName will return blank in certain
-         * JDBC drivers (Oracle, HANA), but the resultSet can be edited in this single-table query scenario,
-         * so we just set it to true.
+         * JDBC drivers (Oracle, HANA, ClickHouse), but the resultSet can be edited in this single-table
+         * query scenario, so we just set it to true. S4 §10.1 / §10.7 aligns ClickHouse with Oracle/HANA.
          */
         DialectType dt = connectionSession.getDialectType();
-        if (dt == DialectType.ORACLE || dt == DialectType.HANA) {
+        if (dt == DialectType.ORACLE || dt == DialectType.HANA || dt == DialectType.CLICKHOUSE) {
             if (result.getResultSetMetaData() != null) {
                 result.getResultSetMetaData().setEditable(true);
                 result.getResultSetMetaData().getFieldMetaDataList()

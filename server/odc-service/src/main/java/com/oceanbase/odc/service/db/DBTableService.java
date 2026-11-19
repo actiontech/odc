@@ -89,7 +89,10 @@ public class DBTableService {
 
     public DBTable getTable(@NotNull ConnectionSession connectionSession, String schemaName,
             @NotBlank String tableName, @NotNull DBObjectType type) {
-        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()) {
+        // ClickHouse has no db-browser SchemaAccessor; existence check uses schema-plugin like
+        // MongoDB/Redis (see DefaultConnectSessionFactory skip ColumnAccessor for CLICKHOUSE).
+        if (connectionSession.getDialectType().isMongoDB() || connectionSession.getDialectType().isRedis()
+                || connectionSession.getDialectType().isClickHouse()) {
             if (type == DBObjectType.TABLE) {
                 PreConditions.validExists(ResourceType.OB_TABLE, "tableName", tableName,
                         () -> connectionSession.getSyncJdbcExecutor(getSchemaDataSourceKey(connectionSession))
