@@ -65,16 +65,31 @@ public final class MongoBridgeUtil {
     }
 
     public static ResultSet toResultSet(MongoTabularResult result) throws SQLException {
+        return toResultSet(result, null, null);
+    }
+
+    public static ResultSet toResultSet(MongoTabularResult result, String schemaName, String tableName)
+            throws SQLException {
         CachedRowSet rowSet = RowSetProvider.newFactory().createCachedRowSet();
         RowSetMetaDataImpl metaData = new RowSetMetaDataImpl();
         metaData.setColumnCount(result.getColumns().size());
         for (int i = 0; i < result.getColumns().size(); i++) {
             int columnIndex = i + 1;
-            metaData.setColumnName(columnIndex, result.getColumns().get(i));
-            metaData.setColumnLabel(columnIndex, result.getColumns().get(i));
+            String columnName = result.getColumns().get(i);
+            metaData.setColumnName(columnIndex, columnName);
+            metaData.setColumnLabel(columnIndex, columnName);
             metaData.setColumnType(columnIndex, Types.VARCHAR);
             // ODC frontend expects columnTypeName when rendering result sets.
-            metaData.setColumnTypeName(columnIndex, "VARCHAR");
+            boolean jsonLike = "_raw_json".equals(columnName)
+                    || looksLikeJsonColumn(result, i);
+            metaData.setColumnTypeName(columnIndex, jsonLike ? "JSON" : "VARCHAR");
+            if (schemaName != null) {
+                metaData.setSchemaName(columnIndex, schemaName);
+                metaData.setCatalogName(columnIndex, schemaName);
+            }
+            if (tableName != null) {
+                metaData.setTableName(columnIndex, tableName);
+            }
         }
         rowSet.setMetaData(metaData);
         for (List<Object> row : result.getRows()) {
@@ -88,6 +103,23 @@ public final class MongoBridgeUtil {
         rowSet.moveToCurrentRow();
         rowSet.beforeFirst();
         return rowSet;
+    }
+
+    private static boolean looksLikeJsonColumn(MongoTabularResult result, int columnIndex) {
+        for (List<Object> row : result.getRows()) {
+            if (columnIndex >= row.size()) {
+                continue;
+            }
+            Object value = row.get(columnIndex);
+            if (value instanceof String) {
+                String text = ((String) value).trim();
+                if ((text.startsWith("{") && text.endsWith("}"))
+                        || (text.startsWith("[") && text.endsWith("]"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static class MongoConnectionHandler implements InvocationHandler {

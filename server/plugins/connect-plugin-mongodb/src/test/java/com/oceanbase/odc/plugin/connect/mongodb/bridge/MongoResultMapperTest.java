@@ -33,6 +33,24 @@ public class MongoResultMapperTest {
     }
 
     @Test
+    public void mapDocuments_formatsNestedAndObjectIdWithoutDocumentNoise() {
+        Document nested = new Document("city", "SH");
+        Document source = new Document("_id", new ObjectId("507f1f77bcf86cd799439011"))
+                .append("profile", nested)
+                .append("tags", Arrays.asList("a", "b"));
+        MongoTabularResult result = new MongoResultMapper().mapDocuments(Arrays.asList(source));
+        int idIdx = result.getColumns().indexOf("_id");
+        int profileIdx = result.getColumns().indexOf("profile");
+        int tagsIdx = result.getColumns().indexOf("tags");
+        Assert.assertEquals("ObjectId(\"507f1f77bcf86cd799439011\")", result.getRows().get(0).get(idIdx));
+        String profile = String.valueOf(result.getRows().get(0).get(profileIdx));
+        String tags = String.valueOf(result.getRows().get(0).get(tagsIdx));
+        Assert.assertFalse(profile.contains("Document{{"));
+        Assert.assertTrue(profile.startsWith("{"));
+        Assert.assertTrue(tags.startsWith("["));
+    }
+
+    @Test
     public void mapWriteResult_formatsAckWithoutRawJson() {
         Document doc = new Document("acknowledged", true)
                 .append("insertedId", new ObjectId("507f1f77bcf86cd799439011"));
