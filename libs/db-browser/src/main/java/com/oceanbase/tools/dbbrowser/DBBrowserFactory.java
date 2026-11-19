@@ -30,6 +30,7 @@ public interface DBBrowserFactory<T> {
     String DB2 = "DB2";
     String HANA = "HANA";
     String HIVE = "HIVE";
+    String CLICKHOUSE = "CLICKHOUSE";
 
     T create();
 

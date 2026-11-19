@@ -90,4 +90,10 @@ public class DBFunctionTemplateFactory extends AbstractDBBrowserFactory<DBObject
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBFunction> buildForClickHouse() {
+        throw new UnsupportedOperationException(
+                "ClickHouse does not support user-defined functions via this interface");
+    }
+
 }

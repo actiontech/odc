@@ -87,4 +87,9 @@ public class DBSequenceEditorFactory extends AbstractDBBrowserFactory<DBObjectEd
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectEditor<DBSequence> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support sequences");
+    }
+
 }

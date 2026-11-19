@@ -137,6 +137,11 @@ public class DBTableEditorFactory extends AbstractDBBrowserFactory<DBTableEditor
                 getTablePartitionEditor());
     }
 
+    @Override
+    public DBTableEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
     private DBTableIndexEditor getTableIndexEditor() {
         DBTableIndexEditorFactory indexFactory = new DBTableIndexEditorFactory();
         indexFactory.setType(this.type);

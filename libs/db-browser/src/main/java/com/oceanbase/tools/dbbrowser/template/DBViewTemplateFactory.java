@@ -91,4 +91,9 @@ public class DBViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBView> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
 }

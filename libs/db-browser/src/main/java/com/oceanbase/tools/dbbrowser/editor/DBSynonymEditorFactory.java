@@ -87,4 +87,9 @@ public class DBSynonymEditorFactory extends AbstractDBBrowserFactory<DBObjectEdi
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectEditor<DBSynonym> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support synonyms");
+    }
+
 }

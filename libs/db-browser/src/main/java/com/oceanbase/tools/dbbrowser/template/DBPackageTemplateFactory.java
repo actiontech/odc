@@ -99,6 +99,11 @@ public class DBPackageTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBPackage> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support packages");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

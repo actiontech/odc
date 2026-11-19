@@ -105,6 +105,11 @@ public class DBObjectOperatorFactory extends AbstractDBBrowserFactory<DBObjectOp
         return new Db2ObjectOperator(getJdbcOperations());
     }
 
+    @Override
+    public DBObjectOperator buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

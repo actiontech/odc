@@ -115,4 +115,9 @@ public class DBTableConstraintEditorFactory extends AbstractDBBrowserFactory<DBT
         return new Db2ConstraintEditor();
     }
 
+    @Override
+    public DBTableConstraintEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
 }

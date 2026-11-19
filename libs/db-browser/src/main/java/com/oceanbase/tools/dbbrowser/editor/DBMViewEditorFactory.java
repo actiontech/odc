@@ -101,6 +101,11 @@ public class DBMViewEditorFactory extends AbstractDBBrowserFactory<DBMViewEditor
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBMViewEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support materialized views");
+    }
+
     private DBTableIndexEditor getMViewIndexEditor() {
         DBMViewIndexEditorFactory indexFactory = new DBMViewIndexEditorFactory();
         indexFactory.setType(this.type);

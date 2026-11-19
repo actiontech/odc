@@ -57,6 +57,8 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
 
             case DB2:
                 return buildForDB2();
+            case CLICKHOUSE:
+                return buildForClickHouse();
             default:
                 throw new IllegalStateException("Not supported for the type, " + type);
         }
@@ -87,5 +89,7 @@ public abstract class AbstractDBBrowserFactory<T> implements DBBrowserFactory<T>
     public abstract T buildForHive();
 
     public abstract T buildForDB2();
+
+    public abstract T buildForClickHouse();
 
 }

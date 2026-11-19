@@ -122,4 +122,9 @@ public class DBTablePartitionEditorFactory extends AbstractDBBrowserFactory<DBTa
         return new Db2NoOpPartitionEditor();
     }
 
+    @Override
+    public DBTablePartitionEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
 }

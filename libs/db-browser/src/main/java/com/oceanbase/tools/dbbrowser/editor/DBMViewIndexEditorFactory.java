@@ -91,4 +91,9 @@ public class DBMViewIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
     public DBTableIndexEditor buildForDB2() {
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
+
+    @Override
+    public DBTableIndexEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support materialized view indexes");
+    }
 }
