@@ -709,13 +709,17 @@ public class ConnectConsoleService {
             log.warn("Failed to init sql type", e);
         }
         try (TraceStage s = watch.start(SqlExecuteStages.INIT_EDITABLE_INFO)) {
-            cxt.computeIfAbsent(VersionDiffConfigService.SUPPORT_EXTERNAL_TABLE,
-                    key -> versionDiffConfigService.isExternalTableSupported(connectionSession.getDialectType(),
-                            ConnectionSessionUtil.getVersion(connectionSession)));
-            cxt.computeIfAbsent(VersionDiffConfigService.SUPPORT_MATERIALIZED_VIEW,
-                    key -> versionDiffConfigService.isMViewSupported(connectionSession.getDialectType(),
-                            ConnectionSessionUtil.getVersion(connectionSession)));
-            resultTable = result.initEditableInfo(connectionSession, cxt);
+            if (connectionSession.getDialectType().isMongoDB()) {
+                resultTable = result.initMongoEditableInfo(connectionSession);
+            } else {
+                cxt.computeIfAbsent(VersionDiffConfigService.SUPPORT_EXTERNAL_TABLE,
+                        key -> versionDiffConfigService.isExternalTableSupported(connectionSession.getDialectType(),
+                                ConnectionSessionUtil.getVersion(connectionSession)));
+                cxt.computeIfAbsent(VersionDiffConfigService.SUPPORT_MATERIALIZED_VIEW,
+                        key -> versionDiffConfigService.isMViewSupported(connectionSession.getDialectType(),
+                                ConnectionSessionUtil.getVersion(connectionSession)));
+                resultTable = result.initEditableInfo(connectionSession, cxt);
+            }
         } catch (Exception e) {
             log.warn("Failed to init editable info", e);
         }

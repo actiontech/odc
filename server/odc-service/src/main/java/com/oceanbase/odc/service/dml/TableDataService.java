@@ -35,6 +35,7 @@ import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.shared.constant.ErrorCodes;
+import com.oceanbase.odc.core.shared.exception.BadRequestException;
 import com.oceanbase.odc.core.shared.exception.UnexpectedException;
 import com.oceanbase.odc.service.common.model.ResourceSql;
 import com.oceanbase.odc.service.connection.model.ConnectionConfig;
@@ -60,6 +61,9 @@ public class TableDataService {
 
     public BatchDataModifyResp batchGetModifySql(@NotNull ConnectionSession connectionSession,
             @NotNull @Valid BatchDataModifyReq req) {
+        if (connectionSession.getDialectType().isMongoDB()) {
+            return batchGetMongoModifySql(connectionSession, req);
+        }
         List<Row> sortedRows = req.getRows().stream()
                 .sorted(Comparator.comparingInt(row -> row.getOperate().ordinal()))
                 .collect(Collectors.toList());
@@ -133,6 +137,44 @@ public class TableDataService {
             if (StringUtils.isEmpty(resp.getTip()) && StringUtils.isNotBlank(resourceSql.getTip())) {
                 resp.setTip(resourceSql.getTip());
             }
+        }
+        resp.setSql(sqlBuilder.toString());
+        return resp;
+    }
+
+    private BatchDataModifyResp batchGetMongoModifySql(@NotNull ConnectionSession connectionSession,
+            @NotNull BatchDataModifyReq req) {
+        String tableName = req.getTableName();
+        String schemaName = req.getSchemaName();
+        if (StringUtils.isBlank(schemaName)) {
+            schemaName = ConnectionSessionUtil.getCurrentSchema(connectionSession);
+        }
+        BatchDataModifyResp resp = new BatchDataModifyResp();
+        resp.setTableName(tableName);
+        resp.setSchemaName(schemaName);
+        resp.setCreateRows(0);
+        resp.setDeleteRows(0);
+        resp.setUpdateAffectedMultiRows(false);
+        StringBuilder sqlBuilder = new StringBuilder();
+        for (Row row : req.getRows()) {
+            Operate operate = row.getOperate();
+            if (operate != Operate.UPDATE) {
+                throw new BadRequestException("MongoDB 结果集编辑仅支持 UPDATE，不支持增删行");
+            }
+            for (DataModifyUnit unit : row.getUnits()) {
+                unit.setSchemaName(schemaName);
+                unit.setTableName(tableName);
+            }
+            String sql = MongoUpdateGenerator.generate(tableName, row.getUnits());
+            if (StringUtils.isBlank(sql)) {
+                continue;
+            }
+            ResourceSql resourceSql = new ResourceSql();
+            resourceSql.setSql(sql);
+            resourceSql.setAffectMultiRows(false);
+            getPostAction(Operate.UPDATE, resp).accept(resourceSql);
+            // Join with '\n'; each command already ends with ';' for multi-statement split (BE-S1-09/10).
+            sqlBuilder.append(sql).append("\n");
         }
         resp.setSql(sqlBuilder.toString());
         return resp;
