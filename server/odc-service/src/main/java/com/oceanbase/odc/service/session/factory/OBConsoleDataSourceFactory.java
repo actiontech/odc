@@ -546,6 +546,12 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
                 }
                 String db2User = getDbUser(connectionConfig);
                 return db2User == null ? null : db2User.toUpperCase();
+            case MONGODB:
+                // MongoDB "schema" is the database name used in JDBC URL path and session context.
+                if (StringUtils.isNotEmpty(defaultSchema)) {
+                    return defaultSchema;
+                }
+                return null;
             default:
                 return null;
         }
