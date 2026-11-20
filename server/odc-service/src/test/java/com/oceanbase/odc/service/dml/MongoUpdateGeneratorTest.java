@@ -49,8 +49,46 @@ public class MongoUpdateGeneratorTest {
         String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures", Arrays.asList(id, name, score));
         Assert.assertTrue(sql.contains("updateOne"));
         Assert.assertTrue(sql.contains("\"name\": \"new\""));
-        Assert.assertTrue(sql.contains("\"score\": 2"));
+        // AC-HF-004: cell values stay string literals — no number guess-upcast
+        Assert.assertTrue(sql.contains("\"score\": \"2\""));
         Assert.assertFalse(sql.contains("replaceOne"));
+    }
+
+    @Test
+    public void generate_stringHexId_notPromotedToObjectId() {
+        DataModifyUnit id = unit("_id", "6afc29c73e5296e2582ea3cf", "6afc29c73e5296e2582ea3cf");
+        DataModifyUnit name = unit("name", "old", "new");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures", Arrays.asList(id, name));
+        Assert.assertTrue(sql.contains("_id: \"6afc29c73e5296e2582ea3cf\""));
+        Assert.assertFalse(sql.contains("ObjectId(\"6afc29c73e5296e2582ea3cf\")"));
+    }
+
+    @Test
+    public void generate_stringPhoneTrueNull_stayQuoted() {
+        DataModifyUnit id = unit("_id", "ObjectId(\"507f1f77bcf86cd799439011\")",
+                "ObjectId(\"507f1f77bcf86cd799439011\")");
+        DataModifyUnit phone = unit("phone", "old", "13800138000");
+        DataModifyUnit flag = unit("flag", "old", "true");
+        DataModifyUnit nil = unit("nil_field", "old", "null");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, phone, flag, nil));
+        Assert.assertTrue(sql.contains("\"phone\": \"13800138000\""));
+        Assert.assertTrue(sql.contains("\"flag\": \"true\""));
+        Assert.assertTrue(sql.contains("\"nil_field\": \"null\""));
+        Assert.assertFalse(sql.matches("(?s).*\"flag\":\\s*true(?!\").*"));
+        Assert.assertFalse(sql.contains("\"nil_field\": null"));
+    }
+
+    @Test
+    public void generate_newlineInValue_escapedCompleteUpdateOne() {
+        DataModifyUnit id = unit("_id", "ObjectId(\"507f1f77bcf86cd799439011\")",
+                "ObjectId(\"507f1f77bcf86cd799439011\")");
+        DataModifyUnit note = unit("note", "old", "line1\nline2");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures", Arrays.asList(id, note));
+        Assert.assertTrue(sql.contains("\"note\": \"line1\\nline2\""));
+        Assert.assertFalse(sql.contains("\"note\": \"line1\nline2\""));
+        Assert.assertTrue(sql.trim().endsWith(";"));
+        Assert.assertEquals(1, sql.split("\n").length);
     }
 
     @Test(expected = BadRequestException.class)
