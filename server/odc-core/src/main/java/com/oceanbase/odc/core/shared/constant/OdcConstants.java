@@ -159,6 +159,12 @@ public class OdcConstants {
     public static final String HIVE_DRIVER_CLASS_NAME = "org.apache.hive.jdbc.HiveDriver";
     public static final String HIVE_DEFAULT_SCHEMA = "default";
     public static final int HIVE_DEFAULT_PORT = 10000;
+    /**
+     * ClickHouse official JDBC driver (HTTP product port 8123, not native 9000).
+     */
+    public static final String CLICKHOUSE_DRIVER_CLASS_NAME = "com.clickhouse.jdbc.ClickHouseDriver";
+    public static final String CLICKHOUSE_DEFAULT_SCHEMA = "default";
+    public static final int CLICKHOUSE_DEFAULT_PORT = 8123;
     public static final String DM_DEFAULT_SCHEMA = "SYSDBA";
     /**
      * IBM DB2 driver class name

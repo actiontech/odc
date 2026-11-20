@@ -100,4 +100,9 @@ public class DBTableIndexEditorFactory extends AbstractDBBrowserFactory<DBTableI
         return new Db2IndexEditor();
     }
 
+    @Override
+    public DBTableIndexEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
 }

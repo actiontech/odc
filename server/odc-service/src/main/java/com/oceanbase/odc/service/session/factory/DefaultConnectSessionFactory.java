@@ -167,7 +167,9 @@ public class DefaultConnectSessionFactory implements ConnectionSessionFactory {
         ConnectionInfoUtil.initConsoleConnectionId(session);
         ConnectionInfoUtil.initOdpVersionIfExists(session);
         ConnectionSessionUtil.setConnectionConfig(session, connectionConfig);
-        if (!session.getDialectType().isMongoDB() && !session.getDialectType().isRedis()) {
+        // ClickHouse has no db-browser SchemaAccessor branch yet; object tree uses schema plugin.
+        if (!session.getDialectType().isMongoDB() && !session.getDialectType().isRedis()
+                && !session.getDialectType().isClickHouse()) {
             ConnectionSessionUtil.setColumnAccessor(session, new DatasourceColumnAccessor(session));
         }
         if (StringUtils.isNotBlank(connectionConfig.getTenantName())) {

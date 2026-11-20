@@ -404,6 +404,8 @@ public class ConnectionConfig
                 return OdcConstants.HANA_DEFAULT_SCHEMA;
             case HIVE:
                 return OdcConstants.HIVE_DEFAULT_SCHEMA;
+            case CLICKHOUSE:
+                return OdcConstants.CLICKHOUSE_DEFAULT_SCHEMA;
             case DB2:
                 // DB2 implicit schema = connect user upper-cased.
                 // OdcConstants.DB2_DEFAULT_SCHEMA is the empty-string placeholder from commit-A;

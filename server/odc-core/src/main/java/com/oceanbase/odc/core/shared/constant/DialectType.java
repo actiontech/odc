@@ -40,6 +40,11 @@ public enum DialectType {
     REDIS,
     HIVE,
     GBASE_8A,
+    /**
+     * Independent ClickHouse dialect; wire value must be {@code CLICKHOUSE} (DMS convertDBType). Do not
+     * masquerade as MYSQL/HIVE.
+     */
+    CLICKHOUSE,
     FILE_SYSTEM,
     UNKNOWN,
     ;
@@ -139,6 +144,10 @@ public enum DialectType {
 
     public boolean isGBase8a() {
         return GBASE_8A == this;
+    }
+
+    public boolean isClickHouse() {
+        return CLICKHOUSE == this;
     }
 
 }

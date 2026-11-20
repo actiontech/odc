@@ -147,6 +147,11 @@ public class DBStatsAccessorFactory extends AbstractDBBrowserFactory<DBStatsAcce
         return new Db2StatsAccessor(getJdbcOperations());
     }
 
+    @Override
+    public DBStatsAccessor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
     private JdbcOperations getJdbcOperations() {
         if (this.jdbcOperations != null) {
             return this.jdbcOperations;

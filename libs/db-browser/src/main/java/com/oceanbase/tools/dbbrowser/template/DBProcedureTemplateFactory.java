@@ -90,4 +90,9 @@ public class DBProcedureTemplateFactory extends AbstractDBBrowserFactory<DBObjec
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBProcedure> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support stored procedures");
+    }
+
 }

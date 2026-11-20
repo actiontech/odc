@@ -59,6 +59,13 @@ public class DataConverters {
             // numeric / blob conversions produce DB2-compatible literals (DB2's string/numeric
             // literal grammar is a strict superset of MySQL's in the columns we round-trip).
             initForMysqlMode();
+        } else if (dialectType.isClickHouse()) {
+            // S4 §10.1 / §10.5: reuse MySQL converters for shared shapes, then prepend
+            // ClickHouse-specific String / DateTime (+ Nullable/LowCardinality unwrap).
+            // UInt*/Int*/Float* stay unquoted via converter miss → raw numeric literal.
+            initForMysqlMode();
+            converterList.add(0, new ClickHouseDateAndTimeConverter());
+            converterList.add(0, new ClickHouseStringConverter());
         } else {
             throw new IllegalArgumentException("Illegal DialectType " + dialectType);
         }

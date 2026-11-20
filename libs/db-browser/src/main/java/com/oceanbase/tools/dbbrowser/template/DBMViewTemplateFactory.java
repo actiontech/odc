@@ -92,4 +92,9 @@ public class DBMViewTemplateFactory extends AbstractDBBrowserFactory<DBObjectTem
     public DBObjectTemplate<DBMaterializedView> buildForDB2() {
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
+
+    @Override
+    public DBObjectTemplate<DBMaterializedView> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support materialized views");
+    }
 }
