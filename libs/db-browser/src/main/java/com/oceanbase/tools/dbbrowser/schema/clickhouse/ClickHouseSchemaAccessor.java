@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -328,7 +329,7 @@ public class ClickHouseSchemaAccessor implements DBSchemaAccessor {
                 column.setFullTypeName(typeName);
                 column.setOrdinalPosition(rs.getInt("position"));
                 column.setComment(rs.getString("comment"));
-                column.setNullable(Boolean.TRUE);
+                column.setNullable(isClickHouseNullableType(typeName));
                 boolean inPk = toBool(rs.getObject("is_in_primary_key"));
                 boolean inSort = toBool(rs.getObject("is_in_sorting_key"));
                 if (inPk || inSort) {
@@ -591,7 +592,7 @@ public class ClickHouseSchemaAccessor implements DBSchemaAccessor {
                 String typeName = rs.getString(2);
                 column.setTypeName(typeName);
                 column.setFullTypeName(typeName);
-                column.setNullable(Boolean.TRUE);
+                column.setNullable(isClickHouseNullableType(typeName));
                 columns.add(column);
             });
             for (int i = 0; i < columns.size(); i++) {
@@ -610,6 +611,18 @@ public class ClickHouseSchemaAccessor implements DBSchemaAccessor {
 
     private String quoteIdentifier(String identifier) {
         return "`" + identifier.replace("`", "``") + "`";
+    }
+
+    /**
+     * ClickHouse marks nullability in the type name (e.g. {@code Nullable(String)},
+     * {@code LowCardinality(Nullable(Int32))}). Plain types like {@code String}/{@code UInt64} are
+     * non-nullable.
+     */
+    private boolean isClickHouseNullableType(String typeName) {
+        if (typeName == null) {
+            return false;
+        }
+        return typeName.toLowerCase(Locale.ROOT).contains("nullable(");
     }
 
     private String escapeLiteral(String value) {
