@@ -53,7 +53,7 @@ public class ClickHouseTableExtension implements TableExtensionPoint {
     @Override
     public List<String> showNamesLike(Connection connection, String schemaName, String tableNameLike) {
         try {
-            String sql = "SHOW TABLES FROM `" + schemaName + "`";
+            String sql = "SHOW TABLES FROM " + quoteIdentifier(schemaName);
             List<String> names = JdbcOperationsUtil.getJdbcOperations(connection)
                     .query(sql, (rs, rowNum) -> rs.getString(1));
             if (StringUtils.isBlank(tableNameLike)) {
@@ -85,8 +85,9 @@ public class ClickHouseTableExtension implements TableExtensionPoint {
         }
         table.setColumns(columns != null ? columns : Collections.emptyList());
         try {
+            String sql = "SHOW CREATE TABLE " + quoteIdentifier(schemaName) + "." + quoteIdentifier(tableName);
             String ddl = JdbcOperationsUtil.getJdbcOperations(connection).query(
-                    "SHOW CREATE TABLE `" + schemaName + "`.`" + tableName + "`",
+                    sql,
                     rs -> {
                         if (rs.next()) {
                             int cols = rs.getMetaData().getColumnCount();
@@ -99,6 +100,13 @@ public class ClickHouseTableExtension implements TableExtensionPoint {
             log.warn("Failed to get CREATE TABLE for {}.{}", schemaName, tableName, e);
         }
         return table;
+    }
+
+    private static String quoteIdentifier(String identifier) {
+        if (identifier == null) {
+            return "``";
+        }
+        return "`" + identifier.replace("`", "``") + "`";
     }
 
     @Override
