@@ -120,9 +120,10 @@ public class SqlCommentProcessor {
         List<List<OrderChar>> lines = splitLine(originalSql);
         Holder<Integer> bufferOrder = new Holder<>(0);
         for (List<OrderChar> item : lines) {
-            // MySQL-family wire dialects (incl. TiDB / Doris / GBase-8a) share ';' / comment rules.
+            // MySQL-family wire dialects (incl. TiDB / Doris / GBase-8a / ClickHouse)
+            // share ';' / comment rules (-- and /* */).
             if (Objects.nonNull(dbMode) && (dbMode.isMysql() || dbMode.isTidb() || dbMode.isDoris()
-                    || dbMode.isGBase8a())) {
+                    || dbMode.isGBase8a() || dbMode.isClickHouse())) {
                 sqlCommentProcessor.addLineMysql(offsetStrings, buffer, bufferOrder, item);
             } else {
                 sqlCommentProcessor.addLineOracle(offsetStrings, buffer, bufferOrder, item);
