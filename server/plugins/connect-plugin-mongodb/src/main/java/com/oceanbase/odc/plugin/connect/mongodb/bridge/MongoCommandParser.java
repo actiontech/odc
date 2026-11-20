@@ -34,6 +34,8 @@ public class MongoCommandParser {
             Pattern.compile("new\\s+Date\\s*\\(", Pattern.CASE_INSENSITIVE);
     private static final Pattern ISO_DATE =
             Pattern.compile("ISODate\\s*\\(\\s*\"([^\"]+)\"\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern OBJECT_ID =
+            Pattern.compile("ObjectId\\s*\\(\\s*\"([0-9a-fA-F]{24})\"\\s*\\)");
     private static final Pattern DATE_NOW =
             Pattern.compile("Date\\.now\\(\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern DATE_STRING_ARG =
@@ -71,6 +73,8 @@ public class MongoCommandParser {
             case "updateOne":
             case "updateMany":
                 return MongoParsedCommand.update(collection, method, splitTopLevelArgs(args));
+            case "replaceOne":
+                return MongoParsedCommand.replaceOne(collection, splitTopLevelArgs(args));
             case "deleteOne":
             case "deleteMany":
                 return MongoParsedCommand.delete(collection, method,
@@ -80,7 +84,7 @@ public class MongoCommandParser {
         }
     }
 
-    private Document parseDocument(String raw) {
+    Document parseDocument(String raw) {
         String json = toJson(raw.trim());
         return Document.parse(json);
     }
@@ -141,13 +145,19 @@ public class MongoCommandParser {
 
     private String toJson(String value) {
         String json = value.replace('\'', '"');
+        json = replaceObjectIds(json);
         json = replaceJavaScriptDates(json);
         json = json.replaceAll("([\\{,]\\s*)([A-Za-z_\\$][A-Za-z0-9_\\$]*)\\s*:", "$1\"$2\":");
         return json;
     }
 
+    private String replaceObjectIds(String input) {
+        // Escape literal "$oid" in replacement: Matcher treats "$o..." as group refs.
+        return OBJECT_ID.matcher(input).replaceAll("{\\\"\\$oid\\\":\\\"$1\\\"}");
+    }
+
     private String replaceJavaScriptDates(String input) {
-        String replacedIsoDate = ISO_DATE.matcher(input).replaceAll("{\"$date\":\"$1\"}");
+        String replacedIsoDate = ISO_DATE.matcher(input).replaceAll("{\\\"\\$date\\\":\\\"$1\\\"}");
         StringBuilder result = new StringBuilder();
         int index = 0;
         Matcher matcher = NEW_DATE.matcher(replacedIsoDate);
