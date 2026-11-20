@@ -121,6 +121,10 @@ public class MongoUpdateGenerator {
         }
     }
 
+    /**
+     * Filter {@code _id} literal. Only explicit {@code ObjectId("…")} / Extended JSON {@code $oid}
+     * become ObjectId; bare 24-hex stays a string (AC-HF-004 — do not promote string _id).
+     */
     static String toIdLiteral(String rawId) {
         if (rawId == null) {
             return null;
@@ -129,9 +133,6 @@ public class MongoUpdateGenerator {
         Matcher objectIdMatcher = OBJECT_ID_LITERAL.matcher(trimmed);
         if (objectIdMatcher.matches()) {
             return "ObjectId(\"" + objectIdMatcher.group(1) + "\")";
-        }
-        if (OBJECT_ID_HEX.matcher(trimmed).matches()) {
-            return "ObjectId(\"" + trimmed + "\")";
         }
         if (trimmed.startsWith("{") && trimmed.contains("$oid")) {
             try {
@@ -150,14 +151,16 @@ public class MongoUpdateGenerator {
         return quoteString(trimmed);
     }
 
+    /**
+     * {@code $set} value literal with type fidelity (AC-HF-004): no guess-upcast of phone /
+     * {@code "true"} / {@code "null"} / bare hex strings. Only Java {@code null}, explicit
+     * ObjectId/ISODate wrappers, and JSON object/array keep non-string forms.
+     */
     static String toBsonLiteral(String raw) {
         if (raw == null) {
             return "null";
         }
         String trimmed = raw.trim();
-        if ("null".equalsIgnoreCase(trimmed)) {
-            return "null";
-        }
         Matcher objectIdMatcher = OBJECT_ID_LITERAL.matcher(trimmed);
         if (objectIdMatcher.matches()) {
             return "ObjectId(\"" + objectIdMatcher.group(1) + "\")";
@@ -165,9 +168,6 @@ public class MongoUpdateGenerator {
         Matcher isoDateMatcher = ISO_DATE_LITERAL.matcher(trimmed);
         if (isoDateMatcher.matches()) {
             return "ISODate(\"" + isoDateMatcher.group(1) + "\")";
-        }
-        if (looksLikeNumber(trimmed) || "true".equalsIgnoreCase(trimmed) || "false".equalsIgnoreCase(trimmed)) {
-            return trimmed;
         }
         if ((trimmed.startsWith("{") && trimmed.endsWith("}"))
                 || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
@@ -178,7 +178,7 @@ public class MongoUpdateGenerator {
                 throw new BadRequestException("非法 JSON 字面量");
             }
         }
-        return quoteString(trimmed);
+        return quoteString(raw);
     }
 
     private static boolean looksLikeNumber(String value) {
@@ -194,11 +194,42 @@ public class MongoUpdateGenerator {
     }
 
     private static String quoteKey(String key) {
-        return "\"" + key.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + escapeJsonStringContent(key) + "\"";
     }
 
     private static String quoteString(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + escapeJsonStringContent(value) + "\"";
+    }
+
+    /** JSON-style escapes so newlines do not truncate the generated {@code updateOne} line. */
+    private static String escapeJsonStringContent(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(value.length() + 8);
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch (c) {
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static String formatCollectionRef(String collectionName) {
