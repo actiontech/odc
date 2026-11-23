@@ -86,4 +86,9 @@ public class DBTypeTemplateFactory extends AbstractDBBrowserFactory<DBObjectTemp
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBType> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support user-defined types");
+    }
+
 }

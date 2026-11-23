@@ -120,9 +120,10 @@ public class SqlCommentProcessor {
         List<List<OrderChar>> lines = splitLine(originalSql);
         Holder<Integer> bufferOrder = new Holder<>(0);
         for (List<OrderChar> item : lines) {
-            // MySQL-family wire dialects (incl. TiDB / Doris / GBase-8a) share ';' / comment rules.
+            // MySQL-family wire dialects (incl. TiDB / Doris / GBase-8a / ClickHouse)
+            // share ';' / comment rules (-- and /* */).
             if (Objects.nonNull(dbMode) && (dbMode.isMysql() || dbMode.isTidb() || dbMode.isDoris()
-                    || dbMode.isGBase8a())) {
+                    || dbMode.isGBase8a() || dbMode.isClickHouse())) {
                 sqlCommentProcessor.addLineMysql(offsetStrings, buffer, bufferOrder, item);
             } else {
                 sqlCommentProcessor.addLineOracle(offsetStrings, buffer, bufferOrder, item);
@@ -191,6 +192,9 @@ public class SqlCommentProcessor {
                 } else if (Objects.nonNull(this.dialectType) && this.dialectType.isDb2()) {
                     // DB2 shares MySQL semantics for `--` / `/* */` comments and `;` separators
                     // (design.md §2.5 + plan.md B-23). Reuse the MySQL path; no separate parser.
+                    addLineMysql(offsetStrings, buffer, bufferOrder, item);
+                } else if (Objects.nonNull(this.dialectType) && this.dialectType.isClickHouse()) {
+                    // ClickHouse uses `;` separators and MySQL-style `--` / `/* */` comments.
                     addLineMysql(offsetStrings, buffer, bufferOrder, item);
                 } else {
                     throw new IllegalArgumentException("dialect type is illegal");
@@ -814,7 +818,8 @@ public class SqlCommentProcessor {
                             || processor.dialectType.isDoris() || processor.dialectType.isGBase8a()
                             || processor.dialectType.isHive() || processor.dialectType.isHana()
                             || processor.dialectType.isPgFamily() || processor.dialectType.isDb2()
-                            || processor.dialectType.isSqlServer() || processor.dialectType.isMongoDB()) {
+                            || processor.dialectType.isSqlServer() || processor.dialectType.isMongoDB()
+                            || processor.dialectType.isClickHouse()) {
                         processor.addLineMysql(holder, buffer, bufferOrder, line.chars()
                                 .mapToObj(c -> new OrderChar((char) c, lastLineOrder++))
                                 .collect(Collectors.toList()));

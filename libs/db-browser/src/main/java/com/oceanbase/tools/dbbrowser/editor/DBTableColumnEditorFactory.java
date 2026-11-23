@@ -95,4 +95,9 @@ public class DBTableColumnEditorFactory extends AbstractDBBrowserFactory<DBTable
         return new Db2ColumnEditor();
     }
 
+    @Override
+    public DBTableColumnEditor buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse not supported yet");
+    }
+
 }

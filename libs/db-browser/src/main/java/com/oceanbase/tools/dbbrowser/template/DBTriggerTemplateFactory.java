@@ -87,4 +87,9 @@ public class DBTriggerTemplateFactory extends AbstractDBBrowserFactory<DBObjectT
         throw new UnsupportedOperationException("DB2 not supported yet");
     }
 
+    @Override
+    public DBObjectTemplate<DBTrigger> buildForClickHouse() {
+        throw new UnsupportedOperationException("ClickHouse does not support triggers");
+    }
+
 }
