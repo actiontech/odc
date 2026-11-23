@@ -30,6 +30,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -88,6 +90,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SqlExecuteResult {
     public static final String SHOW_EXTERNAL_TABLES_IN_SCHEMA = "SHOW_EXTERNAL_TABLES_IN_SCHEMA";
     public static final String SHOW_MATERIALIZED_VIEWS_IN_SCHEMA = "SHOW_MATERIALIZED_VIEWS_IN_SCHEMA";
+    private static final Pattern MONGO_SINGLE_FIND = Pattern.compile(
+            "^db\\.([A-Za-z0-9_\\-]+)\\.find\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
     private List<String> columnLabels;
     private List<String> columns;
     private SqlExecuteStatus status = SqlExecuteStatus.CREATED;
@@ -209,6 +213,86 @@ public class SqlExecuteResult {
                             && Types.ROWID != odcFieldMetaData.getColumnType());
         }
         return resultTable;
+    }
+
+    /**
+     * MongoDB result-set editability: single-collection {@code find} with {@code _id} column.
+     */
+    public OdcTable initMongoEditableInfo(@NonNull ConnectionSession connectionSession) {
+        if (Objects.isNull(this.resultSetMetaData)
+                || CollectionUtils.isEmpty(this.resultSetMetaData.getFieldMetaDataList())) {
+            return null;
+        }
+        this.resultSetMetaData.setEditable(false);
+        String collectionName = extractMongoFindCollection(getOriginSql());
+        if (StringUtils.isBlank(collectionName)) {
+            return null;
+        }
+        boolean hasIdColumn = false;
+        for (JdbcColumnMetaData field : this.resultSetMetaData.getFieldMetaDataList()) {
+            if ("_id".equals(field.getColumnName())) {
+                hasIdColumn = true;
+                break;
+            }
+        }
+        if (!hasIdColumn) {
+            return null;
+        }
+        String databaseName = null;
+        for (JdbcColumnMetaData field : this.resultSetMetaData.getFieldMetaDataList()) {
+            if (StringUtils.isNotBlank(field.schemaName())) {
+                databaseName = field.schemaName();
+                break;
+            }
+        }
+        if (StringUtils.isBlank(databaseName)) {
+            databaseName = ConnectionSessionUtil.getCurrentSchema(connectionSession);
+        }
+        if (StringUtils.isBlank(databaseName)) {
+            return null;
+        }
+        OdcTable resultTable = OdcTable.of(databaseName, collectionName);
+        this.resultSetMetaData.setEditable(true);
+        this.resultSetMetaData.setTable(resultTable);
+        for (JdbcColumnMetaData field : this.resultSetMetaData.getFieldMetaDataList()) {
+            if (StringUtils.isBlank(field.getTableName())) {
+                field.setTableName(collectionName);
+            }
+            if (StringUtils.isBlank(field.schemaName())) {
+                field.setSchemaName(databaseName);
+            }
+            // _id and _raw_json are read-only; business columns remain editable (BE-S1-04).
+            field.setEditable(!"_id".equals(field.getColumnName())
+                    && !"_raw_json".equals(field.getColumnName()));
+        }
+        return resultTable;
+    }
+
+    static String extractMongoFindCollection(String sql) {
+        if (StringUtils.isBlank(sql)) {
+            return null;
+        }
+        String normalized = sql.trim();
+        while (normalized.startsWith("/*")) {
+            int end = normalized.indexOf("*/");
+            if (end < 0) {
+                break;
+            }
+            normalized = normalized.substring(end + 2).trim();
+        }
+        int semicolon = normalized.indexOf(';');
+        if (semicolon >= 0) {
+            String trailing = normalized.substring(semicolon + 1).trim();
+            if (StringUtils.isNotBlank(trailing)) {
+                return null;
+            }
+            normalized = normalized.substring(0, semicolon).trim();
+        }
+        Matcher matcher = MONGO_SINGLE_FIND.matcher(normalized);
+        if (!matcher.matches()) {
+            return null;
+        }
+        return matcher.group(1);
     }
 
     public void initColumnInfo(@NonNull ConnectionSession connectionSession, OdcTable resultTable,

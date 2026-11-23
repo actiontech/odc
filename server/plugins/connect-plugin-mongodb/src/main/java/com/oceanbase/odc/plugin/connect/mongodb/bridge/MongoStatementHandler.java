@@ -123,9 +123,9 @@ class MongoStatementHandler implements InvocationHandler {
                 sql, command.getType(), command.getCollection());
         switch (command.getType()) {
             case FIND:
-                return setQueryResult(find(command));
+                return setQueryResult(find(command), command.getCollection());
             case AGGREGATE:
-                return setQueryResult(aggregate(command));
+                return setQueryResult(aggregate(command), command.getCollection());
             case INSERT_ONE:
                 return setUpdateResult(insertOne(command));
             case INSERT_MANY:
@@ -133,18 +133,20 @@ class MongoStatementHandler implements InvocationHandler {
             case UPDATE_ONE:
             case UPDATE_MANY:
                 return setUpdateResult(update(command));
+            case REPLACE_ONE:
+                return setUpdateResult(replaceOne(command));
             case DELETE_ONE:
             case DELETE_MANY:
                 return setUpdateResult(delete(command));
             case RUN_COMMAND:
-                return setQueryResult(runCommand(command));
+                return setQueryResult(runCommand(command), null);
             default:
                 throw new SQLException("Unsupported MongoDB command type");
         }
     }
 
-    private boolean setQueryResult(MongoTabularResult result) throws SQLException {
-        this.currentResultSet = MongoBridgeUtil.toResultSet(result);
+    private boolean setQueryResult(MongoTabularResult result, String collection) throws SQLException {
+        this.currentResultSet = MongoBridgeUtil.toResultSet(result, context.getCurrentDatabase(), collection);
         this.updateCount = -1;
         return true;
     }
@@ -200,14 +202,30 @@ class MongoStatementHandler implements InvocationHandler {
     }
 
     private Document update(MongoParsedCommand command) {
-        Document filter = Document.parse(command.getRawArgs().get(0).replace('\'', '"'));
-        Document update = Document.parse(command.getRawArgs().get(1).replace('\'', '"'));
+        if (command.getRawArgs() == null || command.getRawArgs().size() < 2) {
+            throw new IllegalArgumentException("updateOne/updateMany requires filter and update documents");
+        }
+        Document filter = parser.parseDocument(command.getRawArgs().get(0));
+        Document update = parser.parseDocument(command.getRawArgs().get(1));
         UpdateResult result;
         if (command.getType() == MongoParsedCommand.Type.UPDATE_MANY) {
             result = context.getDatabase().getCollection(command.getCollection()).updateMany(filter, update);
         } else {
             result = context.getDatabase().getCollection(command.getCollection()).updateOne(filter, update);
         }
+        return new Document("acknowledged", result.wasAcknowledged())
+                .append("matchedCount", result.getMatchedCount())
+                .append("modifiedCount", result.getModifiedCount());
+    }
+
+    private Document replaceOne(MongoParsedCommand command) {
+        if (command.getRawArgs() == null || command.getRawArgs().size() < 2) {
+            throw new IllegalArgumentException("replaceOne requires filter and replacement documents");
+        }
+        Document filter = parser.parseDocument(command.getRawArgs().get(0));
+        Document replacement = parser.parseDocument(command.getRawArgs().get(1));
+        UpdateResult result = context.getDatabase().getCollection(command.getCollection())
+                .replaceOne(filter, replacement);
         return new Document("acknowledged", result.wasAcknowledged())
                 .append("matchedCount", result.getMatchedCount())
                 .append("modifiedCount", result.getModifiedCount());

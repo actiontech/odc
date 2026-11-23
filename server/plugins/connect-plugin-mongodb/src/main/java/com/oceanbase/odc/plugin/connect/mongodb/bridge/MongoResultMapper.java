@@ -15,7 +15,9 @@
  */
 package com.oceanbase.odc.plugin.connect.mongodb.bridge;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +36,11 @@ public class MongoResultMapper {
         for (Document document : documents) {
             List<Object> row = new ArrayList<>();
             for (String column : columns) {
-                row.add("_raw_json".equals(column) ? document.toJson() : document.get(column));
+                if ("_raw_json".equals(column)) {
+                    row.add(document.toJson());
+                } else {
+                    row.add(formatCellValue(document.get(column)));
+                }
             }
             rows.add(row);
         }
@@ -62,6 +68,25 @@ public class MongoResultMapper {
         return new MongoTabularResult(columns, rows);
     }
 
+    Object formatCellValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof ObjectId) {
+            return "ObjectId(\"" + value + "\")";
+        }
+        if (value instanceof Date) {
+            return "ISODate(\"" + Instant.ofEpochMilli(((Date) value).getTime()) + "\")";
+        }
+        if (value instanceof Document) {
+            return ((Document) value).toJson();
+        }
+        if (value instanceof List) {
+            return toJsonValue(value);
+        }
+        return value;
+    }
+
     private Object formatWriteValue(Object value) {
         if (value == null) {
             return null;
@@ -73,5 +98,14 @@ public class MongoResultMapper {
             return ((Document) value).toJson();
         }
         return value;
+    }
+
+    private String toJsonValue(Object value) {
+        String wrapped = new Document("v", value).toJson();
+        int colon = wrapped.indexOf(':');
+        if (colon < 0 || wrapped.length() < 2) {
+            return String.valueOf(value);
+        }
+        return wrapped.substring(colon + 1, wrapped.length() - 1).trim();
     }
 }

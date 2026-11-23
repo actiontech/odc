@@ -99,4 +99,24 @@ public class MongoCommandParserTest {
         Date expireAt = (Date) document.get("expireAt");
         Assert.assertEquals(Instant.parse("2030-01-01T00:00:00.000Z").toEpochMilli(), expireAt.getTime());
     }
+
+    @Test
+    public void parseReplaceOne_andUpdateOne_rewritesObjectId() {
+        MongoCommandParser parser = new MongoCommandParser();
+        MongoParsedCommand replace = parser.parse(
+                "db.workbench_edit_fixtures.replaceOne({ _id: ObjectId(\"507f1f77bcf86cd799439011\") }, "
+                        + "{ \"_id\": {\"$oid\":\"507f1f77bcf86cd799439011\"}, \"name\": \"scalar-doc\" })");
+        Assert.assertEquals(MongoParsedCommand.Type.REPLACE_ONE, replace.getType());
+        Assert.assertEquals("workbench_edit_fixtures", replace.getCollection());
+        Document filter = parser.parseDocument(replace.getRawArgs().get(0));
+        Assert.assertTrue(filter.get("_id") instanceof org.bson.types.ObjectId);
+
+        MongoParsedCommand update = parser.parse(
+                "db.workbench_edit_fixtures.updateOne({ _id: ObjectId(\"507f1f77bcf86cd799439011\") }, "
+                        + "{ $set: { score: null } })");
+        Assert.assertEquals(MongoParsedCommand.Type.UPDATE_ONE, update.getType());
+        Document updateDoc = parser.parseDocument(update.getRawArgs().get(1));
+        Assert.assertTrue(updateDoc.containsKey("$set"));
+        Assert.assertNull(((Document) updateDoc.get("$set")).get("score"));
+    }
 }

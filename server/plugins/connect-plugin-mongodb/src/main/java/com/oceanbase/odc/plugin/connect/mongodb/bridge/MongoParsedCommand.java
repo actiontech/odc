@@ -31,6 +31,7 @@ public class MongoParsedCommand {
         INSERT_MANY,
         UPDATE_ONE,
         UPDATE_MANY,
+        REPLACE_ONE,
         DELETE_ONE,
         DELETE_MANY,
         RUN_COMMAND
@@ -72,6 +73,10 @@ public class MongoParsedCommand {
     public static MongoParsedCommand update(String collection, String method, List<String> args) {
         return new MongoParsedCommand("updateMany".equals(method) ? Type.UPDATE_MANY : Type.UPDATE_ONE,
                 collection, null, null, null, args);
+    }
+
+    public static MongoParsedCommand replaceOne(String collection, List<String> args) {
+        return new MongoParsedCommand(Type.REPLACE_ONE, collection, null, null, null, args);
     }
 
     public static MongoParsedCommand delete(String collection, String method, Document filter) {
