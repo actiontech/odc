@@ -224,6 +224,9 @@ public class MongoUpdateGenerator {
 
     /**
      * Emit shell literal matching the original JSON node type, using {@code raw} as the new value.
+     * Extended JSON {@code $date}/{@code $oid} must be handled before {@code isObject()} so that user
+     * shell literals {@code ISODate("…")}/{@code ObjectId("…")} are not rejected as illegal JSON
+     * (AC-HF-014).
      */
     private static String literalWithTypeHint(String raw, JsonNode typeHint) {
         String trimmed = raw == null ? null : raw.trim();
@@ -242,6 +245,55 @@ public class MongoUpdateGenerator {
                 return trimmed;
             }
             return quoteString(raw);
+        }
+        // AC-HF-014: $date / $oid Extended JSON hints accept shell literals before object JSON parse
+        if (typeHint.isObject()) {
+            JsonNode dateHint = typeHint.get("$date");
+            if (dateHint != null) {
+                if (trimmed == null) {
+                    return "null";
+                }
+                Matcher isoDateMatcher = ISO_DATE_LITERAL.matcher(trimmed);
+                if (isoDateMatcher.matches()) {
+                    return "ISODate(\"" + isoDateMatcher.group(1) + "\")";
+                }
+                if (dateHint.isTextual() && dateHint.asText().equals(trimmed)) {
+                    return "ISODate(\"" + escapeJsonStringContent(trimmed) + "\")";
+                }
+                try {
+                    JsonNode node = OBJECT_MAPPER.readTree(trimmed);
+                    JsonNode nestedDate = node.get("$date");
+                    if (nestedDate != null && nestedDate.isTextual()) {
+                        return "ISODate(\"" + nestedDate.asText() + "\")";
+                    }
+                } catch (Exception ignore) {
+                    // fall through to illegal JSON below when object/array path also fails
+                }
+                throw new BadRequestException("非法 JSON 字面量");
+            }
+            JsonNode oidHint = typeHint.get("$oid");
+            if (oidHint != null) {
+                if (trimmed == null) {
+                    return "null";
+                }
+                Matcher objectIdMatcher = OBJECT_ID_LITERAL.matcher(trimmed);
+                if (objectIdMatcher.matches()) {
+                    return "ObjectId(\"" + objectIdMatcher.group(1) + "\")";
+                }
+                if (OBJECT_ID_HEX.matcher(trimmed).matches()) {
+                    return "ObjectId(\"" + trimmed + "\")";
+                }
+                try {
+                    JsonNode node = OBJECT_MAPPER.readTree(trimmed);
+                    JsonNode nestedOid = node.get("$oid");
+                    if (nestedOid != null && OBJECT_ID_HEX.matcher(nestedOid.asText()).matches()) {
+                        return "ObjectId(\"" + nestedOid.asText() + "\")";
+                    }
+                } catch (Exception ignore) {
+                    // fall through
+                }
+                throw new BadRequestException("非法 JSON 字面量");
+            }
         }
         if (typeHint.isObject() || typeHint.isArray()) {
             try {

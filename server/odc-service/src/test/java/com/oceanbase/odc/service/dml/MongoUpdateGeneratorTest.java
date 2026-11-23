@@ -157,6 +157,58 @@ public class MongoUpdateGeneratorTest {
         Assert.assertTrue(sql.contains("\"name\": \"new\""));
     }
 
+    /**
+     * AC-HF-014: typeHint {@code $date}/{@code $oid} must accept ISODate/ObjectId shell literals
+     * instead of rejecting them as illegal JSON via isObject().
+     */
+    @Test
+    public void generate_typeHintDateAndOid_acceptsIsoDateAndObjectIdLiterals() {
+        String raw = "{\"_id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},"
+                + "\"created\":{\"$date\":\"2024-01-02T03:04:05.000Z\"},"
+                + "\"ref\":{\"$oid\":\"507f1f77bcf86cd799439012\"}}";
+        DataModifyUnit id = unit("_id", "ObjectId(\"507f1f77bcf86cd799439011\")",
+                "ObjectId(\"507f1f77bcf86cd799439011\")");
+        DataModifyUnit rawUnit = unit("_raw_json", raw, raw);
+        DataModifyUnit created = unit("created", "ISODate(\"2024-01-02T03:04:05.000Z\")",
+                "ISODate(\"2025-06-07T08:09:10.000Z\")");
+        DataModifyUnit ref = unit("ref", "ObjectId(\"507f1f77bcf86cd799439012\")",
+                "ObjectId(\"507f1f77bcf86cd799439013\")");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, rawUnit, created, ref));
+        Assert.assertTrue(sql.contains("updateOne"));
+        Assert.assertTrue(sql.contains("\"created\": ISODate(\"2025-06-07T08:09:10.000Z\")"));
+        Assert.assertTrue(sql.contains("\"ref\": ObjectId(\"507f1f77bcf86cd799439013\")"));
+        Assert.assertFalse(sql.toLowerCase().contains("非法"));
+    }
+
+    @Test
+    public void toBsonLiteral_dateHint_acceptsIsoDateLiteral() {
+        com.fasterxml.jackson.databind.JsonNode hint;
+        try {
+            hint = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree("{\"$date\":\"2024-01-02T03:04:05.000Z\"}");
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        String lit = MongoUpdateGenerator.toBsonLiteral(
+                "ISODate(\"2025-06-07T08:09:10.000Z\")", hint);
+        Assert.assertEquals("ISODate(\"2025-06-07T08:09:10.000Z\")", lit);
+    }
+
+    @Test
+    public void toBsonLiteral_oidHint_acceptsObjectIdLiteral() {
+        com.fasterxml.jackson.databind.JsonNode hint;
+        try {
+            hint = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree("{\"$oid\":\"507f1f77bcf86cd799439012\"}");
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        String lit = MongoUpdateGenerator.toBsonLiteral(
+                "ObjectId(\"507f1f77bcf86cd799439013\")", hint);
+        Assert.assertEquals("ObjectId(\"507f1f77bcf86cd799439013\")", lit);
+    }
+
     private static DataModifyUnit unit(String column, String oldData, String newData) {
         DataModifyUnit unit = new DataModifyUnit();
         unit.setColumnName(column);
