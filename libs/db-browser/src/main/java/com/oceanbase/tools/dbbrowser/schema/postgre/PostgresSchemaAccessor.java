@@ -2662,6 +2662,8 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
     @Override
     public DBSequence getSequence(String schemaName, String sequenceName) {
         String objectSchema = resolveObjectSchema(schemaName);
+        String quotedSchema = objectSchema == null ? "" : objectSchema.replace("\"", "\"\"");
+        String quotedSequence = sequenceName == null ? "" : sequenceName.replace("\"", "\"\"");
         DBSequence sequence = new DBSequence();
         sequence.setName(sequenceName);
         sequence.setUser(schemaName);
@@ -2680,9 +2682,10 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 // 序列存在
             });
 
-            // 查询序列当前值和属性
+            // 查询序列当前值和属性（必须用已解析 objectSchema，并对双引号转义）
             try {
-                String valueSql = "SELECT last_value, is_called FROM \"" + schemaName + "\".\"" + sequenceName + "\"";
+                String valueSql =
+                        "SELECT last_value, is_called FROM \"" + quotedSchema + "\".\"" + quotedSequence + "\"";
                 jdbcOperations.query(valueSql, rs -> {
                     if (rs.next()) {
                         Long lastValue = rs.getLong("last_value");
@@ -2700,9 +2703,9 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
             // 构建 DDL
             StringBuilder ddl = new StringBuilder();
-            ddl.append("CREATE SEQUENCE IF NOT EXISTS \"").append(schemaName).append("\".\"").append(sequenceName)
-                    .append("\";\n");
-            ddl.append("ALTER SEQUENCE \"").append(schemaName).append("\".\"").append(sequenceName).append("\"");
+            ddl.append("CREATE SEQUENCE IF NOT EXISTS \"").append(quotedSchema).append("\".\"")
+                    .append(quotedSequence).append("\";\n");
+            ddl.append("ALTER SEQUENCE \"").append(quotedSchema).append("\".\"").append(quotedSequence).append("\"");
             ddl.append(" OWNED BY NONE;");
             sequence.setDdl(ddl.toString());
 

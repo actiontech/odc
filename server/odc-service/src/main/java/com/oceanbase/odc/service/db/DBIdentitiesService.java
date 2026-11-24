@@ -29,6 +29,7 @@ import com.oceanbase.odc.common.util.StringUtils;
 import com.oceanbase.odc.core.authority.util.SkipAuthorize;
 import com.oceanbase.odc.core.session.ConnectionSession;
 import com.oceanbase.odc.core.session.ConnectionSessionUtil;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.service.db.browser.DBSchemaAccessors;
 import com.oceanbase.odc.service.db.model.SchemaIdentities;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
@@ -63,7 +64,10 @@ public class DBIdentitiesService {
         Map<String, SchemaIdentities> all = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         List<String> existedDatabases = schemaAccessor.showDatabases();
         boolean isSqlServer = session.getDialectType().isSqlServer();
-        if (StringUtils.isNotBlank(schemaName) && !existedDatabases.contains(schemaName)) {
+        // PG Path A library names are <catalog>.<schema>; showDatabases() returns catalogs only.
+        // Matching the whole string would always miss and return an empty identities list.
+        if (StringUtils.isNotBlank(schemaName) && !existedDatabases.contains(schemaName)
+                && !isExistingPostgresCatalogSchema(session.getDialectType(), schemaName, existedDatabases)) {
             // 对于 SQLServer，不预先创建 SchemaIdentities，因为不知道具体的 schema
             // 对于其他数据库，保持原有逻辑
             if (!isSqlServer) {
@@ -159,6 +163,22 @@ public class DBIdentitiesService {
      */
     private String getSchemaNameKey(String schemaName) {
         return schemaName == null ? "" : schemaName;
+    }
+
+    /**
+     * Path A: accept {@code <catalog>.<schema>} when the catalog part exists in {@code showDatabases()}
+     * (catalog list). GaussDB / other dialects never hit this helper via
+     * {@link DialectType#isPostgreSql()}.
+     */
+    static boolean isExistingPostgresCatalogSchema(DialectType dialectType, String schemaName,
+            List<String> existedDatabases) {
+        if (dialectType == null || !dialectType.isPostgreSql() || StringUtils.isBlank(schemaName)
+                || CollectionUtils.isEmpty(existedDatabases) || !schemaName.contains(".")) {
+            return false;
+        }
+        String[] parts = schemaName.split("\\.", 2);
+        return parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])
+                && existedDatabases.contains(parts[0]);
     }
 
 }

@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -865,6 +866,35 @@ public class PostgresSchemaAccessorTest {
 
         Assert.assertNotNull(sequence);
         Assert.assertEquals("user_id_seq", sequence.getName());
+    }
+
+    /**
+     * AC-RV-BE-003: Path A {@code catalog.schema} must use resolved objectSchema in last_value SQL and
+     * CREATE/ALTER DDL (never quote {@code "db_a.app_a"}).
+     */
+    @Test
+    public void getSequence_catalogDotSchema_usesObjectSchemaInSqlAndDdl() throws Exception {
+        when(jdbcOperations.queryForObject("SELECT current_database()", String.class)).thenReturn("other_db");
+
+        doAnswer(invocation -> {
+            Object[] args = invocation.getArgument(1);
+            Assert.assertEquals("app_a", args[0]);
+            Assert.assertEquals("user_id_seq", args[1]);
+            return null;
+        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+
+        ArgumentCaptor<String> valueSqlCaptor = ArgumentCaptor.forClass(String.class);
+        doAnswer(invocation -> null).when(jdbcOperations).query(valueSqlCaptor.capture(),
+                any(RowCallbackHandler.class));
+
+        DBSequence sequence = accessor.getSequence("db_a.app_a", "user_id_seq");
+
+        Assert.assertNotNull(sequence);
+        Assert.assertTrue(valueSqlCaptor.getValue().contains("\"app_a\".\"user_id_seq\""));
+        Assert.assertFalse(valueSqlCaptor.getValue().contains("\"db_a.app_a\""));
+        Assert.assertNotNull(sequence.getDdl());
+        Assert.assertTrue(sequence.getDdl().contains("\"app_a\".\"user_id_seq\""));
+        Assert.assertFalse(sequence.getDdl().contains("\"db_a.app_a\""));
     }
 
     // ============== Helper Methods ==============
