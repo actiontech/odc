@@ -28,6 +28,7 @@ import com.oceanbase.odc.common.util.ObjectUtil;
 import com.oceanbase.odc.common.util.StringUtils;
 import com.oceanbase.odc.core.authority.util.SkipAuthorize;
 import com.oceanbase.odc.core.session.ConnectionSession;
+import com.oceanbase.odc.core.session.ConnectionSessionUtil;
 import com.oceanbase.odc.service.db.browser.DBSchemaAccessors;
 import com.oceanbase.odc.service.db.model.SchemaIdentities;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
@@ -50,6 +51,13 @@ public class DBIdentitiesService {
             List<DBObjectType> types) {
         if (CollectionUtils.isEmpty(types)) {
             return Collections.emptyList();
+        }
+        // Oracle console shares SingleConnectionDataSource with SQL execution. Unscoped
+        // ALL_VIEWS/ALL_TABLES scans can hold the lock for minutes and surface as
+        // ConnectionOccupied on SELECT. When the UI omits schemaName, fall back to the
+        // session's current schema so dictionary queries stay OWNER-filtered.
+        if (StringUtils.isBlank(schemaName) && session.getDialectType().isOracle()) {
+            schemaName = ConnectionSessionUtil.getCurrentSchema(session);
         }
         DBSchemaAccessor schemaAccessor = DBSchemaAccessors.create(session);
         Map<String, SchemaIdentities> all = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
