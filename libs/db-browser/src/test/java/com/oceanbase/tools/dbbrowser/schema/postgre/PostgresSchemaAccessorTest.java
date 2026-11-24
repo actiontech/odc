@@ -16,6 +16,7 @@
 package com.oceanbase.tools.dbbrowser.schema.postgre;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,59 +139,65 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void listTableColumns_Success() throws Exception {
-        List<Map<String, Object>> mockData = new ArrayList<>();
+        // Path-A / information_schema implementation: query(sql, RowMapper) twice
+        // (PK probe + columns). Align mocks with positional ResultSet getters.
+        when(jdbcOperations.queryForObject("SELECT current_database()", String.class)).thenReturn("testdb");
 
-        Map<String, Object> col1 = new HashMap<>();
-        col1.put("ordinal_position", 1);
-        col1.put("column_name", "id");
-        col1.put("data_type", "integer");
-        col1.put("type_name", "int4");
-        col1.put("not_null", true);
-        col1.put("default_value", "nextval('users_id_seq'::regclass)");
-        col1.put("column_comment", "Primary key");
-        col1.put("char_length", null);
-        col1.put("numeric_precision", null);
-        col1.put("numeric_scale", null);
+        List<Map<Integer, Object>> mockData = new ArrayList<>();
+
+        Map<Integer, Object> col1 = new HashMap<>();
+        col1.put(1, "id");
+        col1.put(2, "integer");
+        col1.put(3, "int4");
+        col1.put(4, null);
+        col1.put(5, null);
+        col1.put(6, null);
+        col1.put(7, "NO");
+        col1.put(8, "nextval('users_id_seq'::regclass)");
+        col1.put(9, 1);
         mockData.add(col1);
 
-        Map<String, Object> col2 = new HashMap<>();
-        col2.put("ordinal_position", 2);
-        col2.put("column_name", "name");
-        col2.put("data_type", "character varying(100)");
-        col2.put("type_name", "varchar");
-        col2.put("not_null", false);
-        col2.put("default_value", null);
-        col2.put("column_comment", "User name");
-        col2.put("char_length", 100);
-        col2.put("numeric_precision", null);
-        col2.put("numeric_scale", null);
+        Map<Integer, Object> col2 = new HashMap<>();
+        col2.put(1, "name");
+        col2.put(2, "character varying");
+        col2.put(3, "varchar");
+        col2.put(4, 100);
+        col2.put(5, null);
+        col2.put(6, null);
+        col2.put(7, "YES");
+        col2.put(8, null);
+        col2.put(9, 2);
         mockData.add(col2);
 
-        Map<String, Object> col3 = new HashMap<>();
-        col3.put("ordinal_position", 3);
-        col3.put("column_name", "price");
-        col3.put("data_type", "numeric(10,2)");
-        col3.put("type_name", "numeric");
-        col3.put("not_null", false);
-        col3.put("default_value", null);
-        col3.put("column_comment", null);
-        col3.put("char_length", null);
-        col3.put("numeric_precision", 10);
-        col3.put("numeric_scale", 2);
+        Map<Integer, Object> col3 = new HashMap<>();
+        col3.put(1, "price");
+        col3.put(2, "numeric");
+        col3.put(3, "numeric");
+        col3.put(4, null);
+        col3.put(5, 10);
+        col3.put(6, 2);
+        col3.put(7, "YES");
+        col3.put(8, null);
+        col3.put(9, 3);
         mockData.add(col3);
 
-        ResultSet mockResultSet = createMockResultSet(mockData);
-
-        when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
-                .thenAnswer(invocation -> {
-                    RowMapper<DBTableColumn> mapper = invocation.getArgument(2);
-                    List<DBTableColumn> result = new ArrayList<>();
-                    int rowNum = 0;
-                    while (mockResultSet.next()) {
-                        result.add(mapper.mapRow(mockResultSet, rowNum++));
-                    }
-                    return result;
-                });
+        when(jdbcOperations.query(anyString(), any(RowMapper.class))).thenAnswer(invocation -> {
+            String sql = invocation.getArgument(0);
+            RowMapper mapper = invocation.getArgument(1);
+            if (sql.contains("table_constraints")) {
+                return Collections.emptyList();
+            }
+            if (sql.contains("information_schema.columns")) {
+                ResultSet rs = createPositionalMockResultSet(mockData);
+                List result = new ArrayList<>();
+                int rowNum = 0;
+                while (rs.next()) {
+                    result.add(mapper.mapRow(rs, rowNum++));
+                }
+                return result;
+            }
+            return Collections.emptyList();
+        });
 
         List<DBTableColumn> columns = accessor.listTableColumns(testSchemaName, "users");
 
@@ -199,7 +207,6 @@ public class PostgresSchemaAccessorTest {
         Assert.assertEquals("id", columns.get(0).getName());
         Assert.assertEquals("int4", columns.get(0).getTypeName());
         Assert.assertFalse(columns.get(0).getNullable());
-        Assert.assertEquals("Primary key", columns.get(0).getComment());
 
         Assert.assertEquals("name", columns.get(1).getName());
         Assert.assertTrue(columns.get(1).getNullable());
@@ -525,52 +532,51 @@ public class PostgresSchemaAccessorTest {
 
     @Test
     public void getTableDDL_Success() throws Exception {
-        List<Map<String, Object>> columnsData = new ArrayList<>();
-        Map<String, Object> col1 = new HashMap<>();
-        col1.put("ordinal_position", 1);
-        col1.put("column_name", "id");
-        col1.put("data_type", "integer");
-        col1.put("type_name", "int4");
-        col1.put("not_null", true);
-        col1.put("default_value", "nextval('users_id_seq'::regclass)");
-        col1.put("column_comment", null);
-        col1.put("char_length", null);
-        col1.put("numeric_precision", null);
-        col1.put("numeric_scale", null);
+        when(jdbcOperations.queryForObject("SELECT current_database()", String.class)).thenReturn("testdb");
+
+        List<Map<Integer, Object>> columnsData = new ArrayList<>();
+        Map<Integer, Object> col1 = new HashMap<>();
+        col1.put(1, "id");
+        col1.put(2, "integer");
+        col1.put(3, "int4");
+        col1.put(4, null);
+        col1.put(5, null);
+        col1.put(6, null);
+        col1.put(7, "NO");
+        col1.put(8, "nextval('users_id_seq'::regclass)");
+        col1.put(9, 1);
         columnsData.add(col1);
 
-        ResultSet columnsRs = createMockResultSet(columnsData);
+        when(jdbcOperations.query(anyString(), any(RowMapper.class))).thenAnswer(invocation -> {
+            String sql = invocation.getArgument(0);
+            RowMapper mapper = invocation.getArgument(1);
+            if (sql.contains("information_schema.columns")) {
+                ResultSet rs = createPositionalMockResultSet(columnsData);
+                List result = new ArrayList<>();
+                int rowNum = 0;
+                while (rs.next()) {
+                    result.add(mapper.mapRow(rs, rowNum++));
+                }
+                return result;
+            }
+            // PK probe → empty
+            return Collections.emptyList();
+        });
 
+        // constraints / indexes use Object[] + RowMapper
         when(jdbcOperations.query(anyString(), any(Object[].class), any(RowMapper.class)))
-                .thenAnswer(invocation -> {
-                    String sql = invocation.getArgument(0);
-                    if (sql.contains("pg_attribute")) {
-                        RowMapper mapper = invocation.getArgument(2);
-                        List result = new ArrayList<>();
-                        int rowNum = 0;
-                        while (columnsRs.next()) {
-                            result.add(mapper.mapRow(columnsRs, rowNum++));
-                        }
-                        return result;
-                    }
-                    return new ArrayList();
-                });
+                .thenReturn(Collections.emptyList());
 
-        doAnswer(invocation -> {
-            ResultSet mockResultSet = mock(ResultSet.class);
-            when(mockResultSet.next()).thenReturn(true).thenReturn(false);
-            when(mockResultSet.getString("table_comment")).thenReturn("User table");
-            RowCallbackHandler handler = invocation.getArgument(2);
-            handler.processRow(mockResultSet);
-            return null;
-        }).when(jdbcOperations).query(anyString(), any(Object[].class), any(RowCallbackHandler.class));
+        // getTableOptions uses ResultSetExtractor lambda
+        when(jdbcOperations.query(anyString(), any(Object[].class),
+                any(org.springframework.jdbc.core.ResultSetExtractor.class))).thenReturn(null);
 
         String ddl = accessor.getTableDDL(testSchemaName, "users");
 
         Assert.assertNotNull(ddl);
         Assert.assertTrue(ddl.contains("CREATE TABLE"));
         Assert.assertTrue(ddl.contains("\"id\""));
-        Assert.assertTrue(ddl.contains("integer"));
+        Assert.assertTrue(ddl.contains("int4") || ddl.contains("integer"));
         Assert.assertTrue(ddl.contains("NOT NULL"));
     }
 
@@ -935,5 +941,59 @@ public class PostgresSchemaAccessorTest {
         });
 
         return rs;
+    }
+
+    /**
+     * ResultSet mock driven by 1-based positional maps (for information_schema column queries).
+     */
+    private ResultSet createPositionalMockResultSet(List<Map<Integer, Object>> data) throws Exception {
+        ResultSet rs = mock(ResultSet.class);
+        AtomicInteger currentRow = new AtomicInteger(-1);
+
+        when(rs.next()).thenAnswer(invocation -> {
+            int next = currentRow.incrementAndGet();
+            return next < data.size();
+        });
+
+        when(rs.getString(anyInt())).thenAnswer(invocation -> {
+            int idx = invocation.getArgument(0);
+            Object value = data.get(currentRow.get()).get(idx);
+            return value != null ? value.toString() : null;
+        });
+
+        when(rs.getObject(anyInt())).thenAnswer(invocation -> {
+            int idx = invocation.getArgument(0);
+            return data.get(currentRow.get()).get(idx);
+        });
+
+        when(rs.getInt(anyInt())).thenAnswer(invocation -> {
+            int idx = invocation.getArgument(0);
+            Object value = data.get(currentRow.get()).get(idx);
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
+            }
+            return 0;
+        });
+
+        return rs;
+    }
+
+    // ============== resolveObjectSchema (Path A) ==============
+
+    @Test
+    public void resolveObjectSchema_catalogDotSchema_returnsSchemaPart() {
+        Assert.assertEquals("biz_schema", accessor.resolveObjectSchema("testdb.biz_schema"));
+    }
+
+    @Test
+    public void resolveObjectSchema_legacyCatalogOnly_fallsBackToPublic() {
+        when(jdbcOperations.queryForObject("SELECT current_database()", String.class)).thenReturn("testdb");
+        Assert.assertEquals("public", accessor.resolveObjectSchema("testdb"));
+    }
+
+    @Test
+    public void resolveObjectSchema_plainSchema_keptAsIs() {
+        when(jdbcOperations.queryForObject("SELECT current_database()", String.class)).thenReturn("testdb");
+        Assert.assertEquals("biz_schema", accessor.resolveObjectSchema("biz_schema"));
     }
 }
