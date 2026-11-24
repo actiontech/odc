@@ -341,4 +341,19 @@ public class PostgresSessionExtensionTest {
 
         Assert.assertEquals(sql1, sql2);
     }
+
+    // ==================== Path A search_path 解析 ====================
+
+    @Test
+    public void testResolveSchemaForSearchPath_catalogDotSchema() {
+        Assert.assertEquals("biz_schema",
+                extension.resolveSchemaForSearchPath(mockConnection, "testdb.biz_schema"));
+    }
+
+    @Test
+    public void testResolveSchemaForSearchPath_plainSchemaKept() {
+        // getCurrentDatabase may fail on mock connection and return null → keep schema as-is
+        Assert.assertEquals("biz_schema",
+                extension.resolveSchemaForSearchPath(mockConnection, "biz_schema"));
+    }
 }

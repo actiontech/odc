@@ -50,19 +50,17 @@ public class PostgresSessionExtension extends OBMySQLSessionExtension {
     /**
      * 切换当前 Schema
      * <p>
-     * PostgreSQL 使用 search_path 来控制 schema 搜索路径。 执行 SET search_path TO <schemaName> 切换当前 schema。
+     * PostgreSQL 使用 search_path 来控制 schema 搜索路径。 执行 SET search_path TO <schemaName> 切换当前 schema。 入参可能是
+     * Path A 的 {@code <catalog>.<schema>}、真实 schema 名，或存量仅 catalog 名（回退 public）。
+     * </p>
      *
      * @param connection 数据库连接
-     * @param schemaName 目标 Schema 名称
+     * @param schemaName 目标 Schema 名称（或 catalog.schema / 仅 catalog）
      * @throws SQLException 执行 SQL 时发生异常
      */
     @Override
     public void switchSchema(Connection connection, String schemaName) throws SQLException {
-        // Resource-tree nodes are catalogs; map catalog name to default schema public.
-        String currentDatabase = getCurrentDatabase(connection);
-        if (Objects.equals(schemaName, currentDatabase)) {
-            schemaName = "public";
-        }
+        schemaName = resolveSchemaForSearchPath(connection, schemaName);
         String currentSchema = getCurrentSchema(connection);
         if (Objects.equals(currentSchema, schemaName)) {
             return;
@@ -72,6 +70,29 @@ public class PostgresSessionExtension extends OBMySQLSessionExtension {
         String escapedSchema = escapeIdentifier(schemaName);
         String sql = "SET search_path TO " + escapedSchema;
         JdbcOperationsUtil.getJdbcOperations(connection).execute(sql);
+    }
+
+    /**
+     * Map session/schema switch input to the real PG schema for {@code search_path}.
+     * <ul>
+     * <li>{@code catalog.schema} → schema after the first {@code .}</li>
+     * <li>name equals {@code current_database()} → legacy catalog-only node → {@code public}</li>
+     * <li>otherwise keep as-is (already a schema name such as {@code public} / {@code biz_schema})</li>
+     * </ul>
+     */
+    String resolveSchemaForSearchPath(Connection connection, String schemaName) {
+        if (schemaName != null && schemaName.contains(".")) {
+            String[] parts = schemaName.split("\\.", 2);
+            if (parts.length == 2 && parts[0] != null && !parts[0].isEmpty() && parts[1] != null
+                    && !parts[1].isEmpty()) {
+                return parts[1];
+            }
+        }
+        String currentDatabase = getCurrentDatabase(connection);
+        if (Objects.equals(schemaName, currentDatabase)) {
+            return "public";
+        }
+        return schemaName;
     }
 
     /**

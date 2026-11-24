@@ -222,27 +222,60 @@ public class OBConsoleDataSourceFactory implements CloneableDataSourceFactory {
     }
 
     /**
+     * Resolve PostgreSQL resource-tree database name into JDBC catalog + schema.
+     * <p>
+     * Path A stores ODC「库」as {@code <catalog>.<schema>}. Split on the first {@code .}. Names without a
+     * dot are legacy catalog-only records and fall back to schema {@code public}.
+     * </p>
+     *
+     * @param databaseName resource-tree database node name
+     * @return {@code [catalogName, schemaName]}；blank input yields {@code [null, null]}
+     */
+    public static String[] resolvePostgresCatalogAndSchema(String databaseName) {
+        if (StringUtils.isBlank(databaseName)) {
+            return new String[] {null, null};
+        }
+        if (databaseName.contains(".")) {
+            String[] parts = databaseName.split("\\.", 2);
+            if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])) {
+                return new String[] {parts[0], parts[1]};
+            }
+        }
+        return new String[] {databaseName, OdcConstants.POSTGRESQL_DEFAULT_SCHEMA};
+    }
+
+    /**
      * Bind a resource-tree database node to the PostgreSQL/GaussDB JDBC catalog.
      * <p>
      * PG cannot {@code USE} another database mid-connection; the catalog must be present in the JDBC
-     * URL. Tree nodes after multi-database sync are catalogs (from {@code pg_database}), so selecting
-     * node {@code wms_ftest} must reconnect to that catalog. Object metadata still lives under schemas
-     * (default {@code public}), which becomes {@code currentSchema}/{@code search_path}.
+     * URL. For {@link DialectType#POSTGRESQL}, tree nodes after Path-A sync are
+     * {@code <catalog>.<schema>}：catalog goes into the JDBC URL, schema becomes
+     * {@code currentSchema}/{@code search_path}. Legacy catalog-only names (no {@code .}) keep schema
+     * {@code public}.
+     * </p>
+     * <p>
+     * {@link DialectType#GAUSSDB} is explicitly unchanged: whole node name is still the catalog and
+     * default schema remains {@code public}（Gauss 基线对账见 AC-BE-005）.
      * </p>
      *
      * @param connectionConfig connection to mutate (caller should clone if shared)
-     * @param databaseName resource-tree database node name (catalog)
+     * @param databaseName resource-tree database node name
      */
     public static void applyPostgresCatalogForDatabase(ConnectionConfig connectionConfig, String databaseName) {
         if (connectionConfig == null || StringUtils.isBlank(databaseName)) {
             return;
         }
         DialectType dialectType = connectionConfig.getDialectType();
-        if (DialectType.POSTGRESQL != dialectType && DialectType.GAUSSDB != dialectType) {
+        if (DialectType.POSTGRESQL == dialectType) {
+            String[] catalogAndSchema = resolvePostgresCatalogAndSchema(databaseName);
+            connectionConfig.setCatalogName(catalogAndSchema[0]);
+            connectionConfig.setDefaultSchema(catalogAndSchema[1]);
             return;
         }
-        connectionConfig.setCatalogName(databaseName);
-        connectionConfig.setDefaultSchema(OdcConstants.POSTGRESQL_DEFAULT_SCHEMA);
+        if (DialectType.GAUSSDB == dialectType) {
+            connectionConfig.setCatalogName(databaseName);
+            connectionConfig.setDefaultSchema(OdcConstants.POSTGRESQL_DEFAULT_SCHEMA);
+        }
     }
 
     public static String getUsername(@NonNull ConnectionConfig connectionConfig) {
