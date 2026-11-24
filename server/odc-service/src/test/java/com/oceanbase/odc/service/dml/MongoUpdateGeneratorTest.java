@@ -112,6 +112,103 @@ public class MongoUpdateGeneratorTest {
         MongoUpdateGenerator.generate("workbench_edit_fixtures", Arrays.asList(id, name, raw));
     }
 
+    /** AC-HF-010: unchanged _raw_json supplies types — number/boolean unquoted; strings stay quoted. */
+    @Test
+    public void generate_unchangedRawJson_preservesNumberBooleanAndQuotedStrings() {
+        String raw = "{\"_id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},"
+                + "\"score\":1,\"flag\":true,"
+                + "\"phone\":\"13800138000\",\"flag_str\":\"true\",\"null_str\":\"null\"}";
+        DataModifyUnit id = unit("_id", "ObjectId(\"507f1f77bcf86cd799439011\")",
+                "ObjectId(\"507f1f77bcf86cd799439011\")");
+        DataModifyUnit rawUnit = unit("_raw_json", raw, raw);
+        DataModifyUnit score = unit("score", "1", "2");
+        DataModifyUnit flag = unit("flag", "true", "false");
+        DataModifyUnit phone = unit("phone", "13800138000", "13900139000");
+        DataModifyUnit flagStr = unit("flag_str", "true", "true");
+        DataModifyUnit nullStr = unit("null_str", "null", "null");
+        // flag_str / null_str unchanged → not in $set; only changed fields
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, rawUnit, score, flag, phone, flagStr, nullStr));
+        Assert.assertTrue(sql.contains("\"score\": 2"));
+        Assert.assertFalse(sql.contains("\"score\": \"2\""));
+        Assert.assertTrue(sql.contains("\"flag\": false"));
+        Assert.assertFalse(sql.matches("(?s).*\"flag\":\\s*\"false\".*"));
+        Assert.assertTrue(sql.contains("\"phone\": \"13900139000\""));
+        // change string "true" / "null" fields to assert quoting
+        DataModifyUnit flagStrEdit = unit("flag_str", "true", "false");
+        DataModifyUnit nullStrEdit = unit("null_str", "null", "nullish");
+        String sql2 = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, rawUnit, flagStrEdit, nullStrEdit));
+        Assert.assertTrue(sql2.contains("\"flag_str\": \"false\""));
+        Assert.assertTrue(sql2.contains("\"null_str\": \"nullish\""));
+    }
+
+    /** AC-HF-010: string _id \"42\" from _raw_json must stay quoted (no numeric promotion). */
+    @Test
+    public void generate_unchangedRawJson_stringId42_staysQuoted() {
+        String raw = "{\"_id\":\"42\",\"name\":\"old\"}";
+        DataModifyUnit id = unit("_id", "42", "42");
+        DataModifyUnit rawUnit = unit("_raw_json", raw, raw);
+        DataModifyUnit name = unit("name", "old", "new");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, rawUnit, name));
+        Assert.assertTrue(sql.contains("_id: \"42\""));
+        Assert.assertFalse(sql.contains("_id: 42 }") || sql.contains("_id: 42,"));
+        Assert.assertTrue(sql.contains("\"name\": \"new\""));
+    }
+
+    /**
+     * AC-HF-014: typeHint {@code $date}/{@code $oid} must accept ISODate/ObjectId shell literals
+     * instead of rejecting them as illegal JSON via isObject().
+     */
+    @Test
+    public void generate_typeHintDateAndOid_acceptsIsoDateAndObjectIdLiterals() {
+        String raw = "{\"_id\":{\"$oid\":\"507f1f77bcf86cd799439011\"},"
+                + "\"created\":{\"$date\":\"2024-01-02T03:04:05.000Z\"},"
+                + "\"ref\":{\"$oid\":\"507f1f77bcf86cd799439012\"}}";
+        DataModifyUnit id = unit("_id", "ObjectId(\"507f1f77bcf86cd799439011\")",
+                "ObjectId(\"507f1f77bcf86cd799439011\")");
+        DataModifyUnit rawUnit = unit("_raw_json", raw, raw);
+        DataModifyUnit created = unit("created", "ISODate(\"2024-01-02T03:04:05.000Z\")",
+                "ISODate(\"2025-06-07T08:09:10.000Z\")");
+        DataModifyUnit ref = unit("ref", "ObjectId(\"507f1f77bcf86cd799439012\")",
+                "ObjectId(\"507f1f77bcf86cd799439013\")");
+        String sql = MongoUpdateGenerator.generate("workbench_edit_fixtures",
+                Arrays.asList(id, rawUnit, created, ref));
+        Assert.assertTrue(sql.contains("updateOne"));
+        Assert.assertTrue(sql.contains("\"created\": ISODate(\"2025-06-07T08:09:10.000Z\")"));
+        Assert.assertTrue(sql.contains("\"ref\": ObjectId(\"507f1f77bcf86cd799439013\")"));
+        Assert.assertFalse(sql.toLowerCase().contains("非法"));
+    }
+
+    @Test
+    public void toBsonLiteral_dateHint_acceptsIsoDateLiteral() {
+        com.fasterxml.jackson.databind.JsonNode hint;
+        try {
+            hint = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree("{\"$date\":\"2024-01-02T03:04:05.000Z\"}");
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        String lit = MongoUpdateGenerator.toBsonLiteral(
+                "ISODate(\"2025-06-07T08:09:10.000Z\")", hint);
+        Assert.assertEquals("ISODate(\"2025-06-07T08:09:10.000Z\")", lit);
+    }
+
+    @Test
+    public void toBsonLiteral_oidHint_acceptsObjectIdLiteral() {
+        com.fasterxml.jackson.databind.JsonNode hint;
+        try {
+            hint = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree("{\"$oid\":\"507f1f77bcf86cd799439012\"}");
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        String lit = MongoUpdateGenerator.toBsonLiteral(
+                "ObjectId(\"507f1f77bcf86cd799439013\")", hint);
+        Assert.assertEquals("ObjectId(\"507f1f77bcf86cd799439013\")", lit);
+    }
+
     private static DataModifyUnit unit(String column, String oldData, String newData) {
         DataModifyUnit unit = new DataModifyUnit();
         unit.setColumnName(column);
