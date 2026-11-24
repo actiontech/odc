@@ -63,4 +63,30 @@ public class PostgresCatalogSchemaDatabaseListerTest {
             Assert.assertTrue(expected.getMessage().contains("POSTGRESQL"));
         }
     }
+
+    @Test
+    public void assertSyncListNotSilentlyEmpty_allCatalogsFailed_throws() {
+        try {
+            PostgresCatalogSchemaDatabaseLister.assertSyncListNotSilentlyEmpty(3, 0, 3);
+            Assert.fail("all-failed sync must abort");
+        } catch (IllegalStateException expected) {
+            Assert.assertTrue(expected.getMessage().contains("All PostgreSQL catalogs failed"));
+        }
+    }
+
+    @Test
+    public void assertSyncListNotSilentlyEmpty_partialSkip_allowsEmptySchemas() {
+        // One catalog connected but yielded no user schemas; two failed — not "all failed".
+        PostgresCatalogSchemaDatabaseLister.assertSyncListNotSilentlyEmpty(3, 0, 2);
+    }
+
+    @Test
+    public void assertSyncListNotSilentlyEmpty_success_noop() {
+        PostgresCatalogSchemaDatabaseLister.assertSyncListNotSilentlyEmpty(2, 5, 0);
+    }
+
+    @Test
+    public void assertSyncListNotSilentlyEmpty_noCatalogs_noop() {
+        PostgresCatalogSchemaDatabaseLister.assertSyncListNotSilentlyEmpty(0, 0, 0);
+    }
 }

@@ -17,7 +17,6 @@ package com.oceanbase.odc.service.connection.database;
 
 import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -37,6 +36,11 @@ import lombok.extern.slf4j.Slf4j;
  * <p>
  * Uses {@link ConnectionConfig} credentials (plugin ClassLoader-safe). Invoked only for
  * {@link DialectType#POSTGRESQL}; GaussDB must not call this.
+ * </p>
+ * <p>
+ * Failure policy (AC-RV-BE-002): probe failure or catalogs non-empty but every catalog connection
+ * fails must throw — never return an empty list that would mark/delete existing
+ * {@code connect_database} rows. A single catalog without CONNECT may still be skipped.
  * </p>
  */
 @Slf4j
@@ -72,12 +76,15 @@ final class PostgresCatalogSchemaDatabaseLister {
                             rs.getString("collation")));
         } catch (Exception e) {
             log.warn("Failed to list PostgreSQL catalogs for datasource id={}", connectionConfig.getId(), e);
-            return Collections.emptyList();
+            throw new IllegalStateException(
+                    "Failed to probe PostgreSQL catalogs during metadata sync; aborting to protect existing databases",
+                    e);
         } finally {
             closeQuietly(probeDs);
         }
 
         List<DBDatabase> result = new ArrayList<>();
+        int failedCatalogCount = 0;
         for (CatalogMeta catalog : catalogs) {
             ConnectionConfig catalogConfig = CONNECTION_MAPPER.clone(connectionConfig);
             catalogConfig.setCatalogName(catalog.name);
@@ -98,6 +105,7 @@ final class PostgresCatalogSchemaDatabaseLister {
                     result.add(database);
                 }
             } catch (Exception e) {
+                failedCatalogCount++;
                 log.warn(
                         "Skip PostgreSQL catalog '{}' during metadata sync (no CONNECT or connect failed): {}",
                         catalog.name, e.getMessage());
@@ -105,7 +113,21 @@ final class PostgresCatalogSchemaDatabaseLister {
                 closeQuietly(catalogDs);
             }
         }
+        assertSyncListNotSilentlyEmpty(catalogs.size(), result.size(), failedCatalogCount);
         return result;
+    }
+
+    /**
+     * When catalogs were discovered but every per-catalog connect failed, throw instead of returning
+     * empty (which would soft-delete / mark-missing all existing Path A rows).
+     */
+    static void assertSyncListNotSilentlyEmpty(int catalogCount, int resultSize, int failedCatalogCount) {
+        if (catalogCount > 0 && resultSize == 0 && failedCatalogCount >= catalogCount) {
+            throw new IllegalStateException(
+                    "All PostgreSQL catalogs failed during metadata sync (" + failedCatalogCount
+                            + "/" + catalogCount
+                            + "); aborting to protect existing connect_database rows");
+        }
     }
 
     private static boolean isSystemSchema(String schema) {
