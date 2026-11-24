@@ -16,19 +16,38 @@
 package com.oceanbase.odc.plugin.schema.postgres;
 
 import java.sql.Connection;
+import java.util.List;
 
 import org.pf4j.Extension;
 
 import com.oceanbase.odc.plugin.schema.obmysql.OBMySQLDatabaseExtension;
 import com.oceanbase.odc.plugin.schema.postgres.utils.DBAccessorUtil;
+import com.oceanbase.tools.dbbrowser.model.DBDatabase;
+import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.schema.DBSchemaAccessor;
 
+import lombok.NonNull;
+
+/**
+ * PostgreSQL database extension. Sync / list returns {@code <catalog>.<schema>} nodes (path A).
+ * GaussDB uses {@code GaussDBDatabaseExtension} and is intentionally not routed here.
+ */
 @Extension
 public class PostgresDatabaseExtension extends OBMySQLDatabaseExtension {
 
     @Override
     protected DBSchemaAccessor getSchemaAccessor(Connection connection) {
         return DBAccessorUtil.getSchemaAccessor(connection);
+    }
+
+    @Override
+    public List<DBObjectIdentity> list(@NonNull Connection connection) {
+        return PostgresCatalogSchemaEnumerator.listIdentities(connection);
+    }
+
+    @Override
+    public List<DBDatabase> listDetails(@NonNull Connection connection) {
+        return PostgresCatalogSchemaEnumerator.listDetails(connection);
     }
 
 }
