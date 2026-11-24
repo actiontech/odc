@@ -496,15 +496,17 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (StringUtils.isBlank(schemaName)) {
             return Collections.emptyList();
         }
+        String requestedSchemaName = schemaName;
         String objectSchema = resolveObjectSchema(schemaName);
         String sql = "select schemaname, matviewname from pg_matviews "
-                + "where schemaname = '" + objectSchema + "' "
+                + "where schemaname = ? "
                 + "order by matviewname;";
         try {
-            return jdbcOperations.query(sql, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBObjectIdentity identity = new DBObjectIdentity();
                 identity.setType(DBObjectType.MATERIALIZED_VIEW);
-                identity.setSchemaName(rs.getString(1));
+                // Keep Path A library name on identity (same as listTables).
+                identity.setSchemaName(requestedSchemaName);
                 identity.setName(rs.getString(2));
                 return identity;
             });

@@ -635,8 +635,11 @@ public class DatabaseService {
         Long currentProjectId = connection.getProjectId();
         boolean blockExcludeSchemas = dbSchemaSyncProperties.isBlockExclusionsWhenSyncDbToProject() && !bastionEnabled;
         List<String> excludeSchemas = dbSchemaSyncProperties.getExcludeSchemas(connection.getDialectType());
-        DataSource teamDataSource = getDataSourceFactory(connection).getDataSource();
         ExecutorService executorService = Executors.newFixedThreadPool(1);
+        // PG Path A sync opens per-catalog DataSources inside the lister; teamDataSource is unused there.
+        final DataSource teamDataSource =
+                DialectType.POSTGRESQL == connection.getDialectType() ? null
+                        : getDataSourceFactory(connection).getDataSource();
         Future<List<DatabaseEntity>> future = executorService.submit(() -> {
             List<DBDatabase> latest;
             // POSTGRESQL only: expand to <catalog>.<schema>. GaussDB never enters this branch.
@@ -779,8 +782,11 @@ public class DatabaseService {
 
     private void syncIndividualDataSources(ConnectionConfig connection)
             throws ExecutionException, InterruptedException, TimeoutException {
-        DataSource individualDataSource = getDataSourceFactory(connection).getDataSource();
         ExecutorService executorService = Executors.newFixedThreadPool(1);
+        // PG Path A sync uses Lister-owned DataSources; individualDataSource is unused there.
+        final DataSource individualDataSource =
+                DialectType.POSTGRESQL == connection.getDialectType() ? null
+                        : getDataSourceFactory(connection).getDataSource();
         Future<Set<String>> future = executorService.submit(() -> {
             if (DialectType.POSTGRESQL == connection.getDialectType()) {
                 return PostgresCatalogSchemaDatabaseLister.list(connection).stream()

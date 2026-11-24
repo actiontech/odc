@@ -16,16 +16,12 @@
 package com.oceanbase.odc.plugin.schema.postgres;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 
 import com.oceanbase.odc.common.util.JdbcOperationsUtil;
 import com.oceanbase.odc.common.util.StringUtils;
-import com.oceanbase.odc.plugin.schema.api.SchemaSyncConnectionContext;
 import com.oceanbase.tools.dbbrowser.model.DBDatabase;
 import com.oceanbase.tools.dbbrowser.model.DBObjectIdentity;
 import com.oceanbase.tools.dbbrowser.model.DBObjectType;
@@ -33,11 +29,12 @@ import com.oceanbase.tools.dbbrowser.model.DBObjectType;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Enumerate PostgreSQL databases as ODC library nodes {@code <catalog>.<schema>}.
+ * Plugin-side PostgreSQL library listing as {@code <catalog>.<schema>} for the <b>current</b>
+ * catalog only.
  * <p>
- * Cross-catalog schema listing requires a dedicated JDBC connection per catalog. Prefer
- * {@link SchemaSyncConnectionContext} credentials (set by sync). A single catalog connect/list
- * failure is logged and skipped so the rest of the instance still syncs.
+ * Full multi-catalog sync (with ConnectionConfig credentials) is owned by service-side
+ * {@code PostgresCatalogSchemaDatabaseLister}. This enumerator must not open cross-catalog JDBC
+ * connections with empty passwords (former dead {@code SchemaSyncConnectionContext} path).
  * </p>
  * <p>
  * <b>GaussDB isolation:</b> only invoked from {@link PostgresDatabaseExtension}; GaussDB keeps its
@@ -75,11 +72,15 @@ final class PostgresCatalogSchemaEnumerator {
         List<DBDatabase> result = new ArrayList<>();
         String currentCatalog = currentDatabase(connection);
         for (CatalogMeta catalog : catalogs) {
+            if (!StringUtils.equals(catalog.name, currentCatalog)) {
+                // Cross-catalog expansion requires service Lister credentials; skip here.
+                continue;
+            }
             try {
-                appendSchemas(connection, currentCatalog, catalog, result);
+                appendFromConnection(connection, catalog, result);
             } catch (Exception e) {
                 log.warn(
-                        "Skip PostgreSQL catalog '{}' during metadata sync (no CONNECT or connect failed): {}",
+                        "Skip PostgreSQL catalog '{}' during plugin list (connect/list failed): {}",
                         catalog.name, e.getMessage());
             }
         }
@@ -96,17 +97,6 @@ final class PostgresCatalogSchemaEnumerator {
             identities.add(identity);
         }
         return identities;
-    }
-
-    private static void appendSchemas(Connection probeConnection, String currentCatalog, CatalogMeta catalog,
-            List<DBDatabase> result) throws SQLException {
-        if (StringUtils.equals(catalog.name, currentCatalog)) {
-            appendFromConnection(probeConnection, catalog, result);
-            return;
-        }
-        try (Connection catalogConnection = openCatalogConnection(probeConnection, catalog.name)) {
-            appendFromConnection(catalogConnection, catalog, result);
-        }
     }
 
     private static void appendFromConnection(Connection connection, CatalogMeta catalog, List<DBDatabase> result) {
@@ -140,7 +130,8 @@ final class PostgresCatalogSchemaEnumerator {
                             rs.getString("collation")));
         } catch (Exception e) {
             log.warn("Failed to list PostgreSQL catalogs from pg_database", e);
-            return Collections.emptyList();
+            // Plugin path: surface failure to caller rather than silently empty (sync uses Lister).
+            throw new IllegalStateException("Failed to list PostgreSQL catalogs from pg_database", e);
         }
     }
 
@@ -152,55 +143,6 @@ final class PostgresCatalogSchemaEnumerator {
             log.debug("Failed to read current_database()", e);
             return null;
         }
-    }
-
-    private static Connection openCatalogConnection(Connection probeConnection, String catalog)
-            throws SQLException {
-        SchemaSyncConnectionContext.Auth auth = SchemaSyncConnectionContext.get();
-        String baseUrl;
-        String username;
-        String password;
-        if (auth != null && StringUtils.isNotBlank(auth.getJdbcUrl())) {
-            baseUrl = auth.getJdbcUrl();
-            username = auth.getUsername();
-            password = auth.getPassword();
-        } else {
-            baseUrl = probeConnection.getMetaData().getURL();
-            username = probeConnection.getMetaData().getUserName();
-            password = "";
-        }
-        String catalogUrl = rewriteCatalogInJdbcUrl(baseUrl, catalog);
-        Properties properties = new Properties();
-        if (StringUtils.isNotBlank(username)) {
-            properties.setProperty("user", username);
-        }
-        if (password != null) {
-            properties.setProperty("password", password);
-        }
-        return DriverManager.getConnection(catalogUrl, properties);
-    }
-
-    /**
-     * Replace the database path segment in {@code jdbc:postgresql://host:port/db?...}.
-     */
-    static String rewriteCatalogInJdbcUrl(String jdbcUrl, String catalog) {
-        if (StringUtils.isBlank(jdbcUrl) || StringUtils.isBlank(catalog)) {
-            throw new IllegalArgumentException("jdbcUrl and catalog are required");
-        }
-        String prefix = "jdbc:postgresql://";
-        if (!jdbcUrl.startsWith(prefix)) {
-            throw new IllegalArgumentException("Not a PostgreSQL JDBC URL: " + jdbcUrl);
-        }
-        String rest = jdbcUrl.substring(prefix.length());
-        int slash = rest.indexOf('/');
-        if (slash < 0) {
-            throw new IllegalArgumentException("PostgreSQL JDBC URL missing catalog path: " + jdbcUrl);
-        }
-        String hostPort = rest.substring(0, slash);
-        String afterSlash = rest.substring(slash + 1);
-        int q = afterSlash.indexOf('?');
-        String query = q >= 0 ? afterSlash.substring(q) : "";
-        return prefix + hostPort + "/" + catalog + query;
     }
 
     private static final class CatalogMeta {
