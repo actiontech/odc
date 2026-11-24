@@ -117,4 +117,32 @@ public class PostgresSqlBuilder extends SqlBuilder {
         // PostgreSQL's LIKE behavior depends on standard_conforming_strings setting
         return super.like(fieldKey, fieldLikeValue);
     }
+
+    /**
+     * Append schema prefix for PostgreSQL identifiers.
+     * <p>
+     * Path A ODC library names are {@code <catalog>.<schema>}. Callers (Editor / Operator / Template /
+     * "view table data") often pass that full name into this method. Quoting the whole string would
+     * emit {@code "db_a.app_a".} and yield {@code relation "db_a.app_a.test" does not
+     * exist}. When the argument is a dotted catalog.schema pair, only the real schema part is quoted as
+     * the prefix.
+     * </p>
+     *
+     * @param schemaName schema name, or Path A {@code <catalog>.<schema>}
+     * @return this SqlBuilder
+     */
+    @Override
+    public SqlBuilder schemaPrefixIfNotBlank(String schemaName) {
+        if (StringUtils.isBlank(schemaName)) {
+            return this;
+        }
+        String objectSchema = schemaName;
+        if (schemaName.contains(".")) {
+            String[] parts = schemaName.split("\\.", 2);
+            if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])) {
+                objectSchema = parts[1];
+            }
+        }
+        return this.identifier(objectSchema).append(".");
+    }
 }
