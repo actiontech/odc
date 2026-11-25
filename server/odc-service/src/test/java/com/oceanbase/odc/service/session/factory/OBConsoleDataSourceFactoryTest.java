@@ -250,4 +250,43 @@ public class OBConsoleDataSourceFactoryTest {
         Assert.assertNull(
                 OBConsoleDataSourceFactory.resolveEffectiveCatalogName(null, null, "any"));
     }
+
+    @Test
+    public void testResolvePostgresCatalogAndSchema_catalogDotSchema() {
+        String[] parts = OBConsoleDataSourceFactory.resolvePostgresCatalogAndSchema("testdb.biz_schema");
+        Assert.assertEquals("testdb", parts[0]);
+        Assert.assertEquals("biz_schema", parts[1]);
+    }
+
+    @Test
+    public void testResolvePostgresCatalogAndSchema_legacyCatalogOnly_fallsBackToPublic() {
+        String[] parts = OBConsoleDataSourceFactory.resolvePostgresCatalogAndSchema("testdb");
+        Assert.assertEquals("testdb", parts[0]);
+        Assert.assertEquals("public", parts[1]);
+    }
+
+    @Test
+    public void testApplyPostgresCatalogForDatabase_POSTGRESQL_splitsCatalogSchema() {
+        ConnectionConfig config = newConfig(DialectType.POSTGRESQL, "public");
+        OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(config, "testdb.biz_schema");
+        Assert.assertEquals("testdb", config.getCatalogName());
+        Assert.assertEquals("biz_schema", config.getDefaultSchema());
+    }
+
+    @Test
+    public void testApplyPostgresCatalogForDatabase_POSTGRESQL_legacyCatalog_usesPublic() {
+        ConnectionConfig config = newConfig(DialectType.POSTGRESQL, null);
+        OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(config, "testdb");
+        Assert.assertEquals("testdb", config.getCatalogName());
+        Assert.assertEquals("public", config.getDefaultSchema());
+    }
+
+    @Test
+    public void testApplyPostgresCatalogForDatabase_GAUSSDB_keepsWholeNameAsCatalog() {
+        // AC-BE-005 isolation: GaussDB must not adopt Path-A catalog.schema split.
+        ConnectionConfig config = newConfig(DialectType.GAUSSDB, null);
+        OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(config, "testdb.biz_schema");
+        Assert.assertEquals("testdb.biz_schema", config.getCatalogName());
+        Assert.assertEquals("public", config.getDefaultSchema());
+    }
 }

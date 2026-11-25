@@ -141,13 +141,24 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
     }
 
     /**
-     * Map resource-tree catalog node name to the PG schema used for object queries. When
-     * {@code schemaName} equals {@code current_database()}, use {@code public}; otherwise keep as-is
-     * (real schema names such as {@code public} / custom schemas still work).
+     * Map resource-tree / API {@code schemaName} to the real PG schema used in
+     * {@code information_schema} / {@code pg_catalog} predicates.
+     * <ul>
+     * <li>{@code <catalog>.<schema>} → schema after the first {@code .}（Path A 库名）</li>
+     * <li>name equals {@code current_database()} → legacy catalog-only node → {@code public}</li>
+     * <li>otherwise keep as-is (already a schema such as {@code public} / {@code biz_schema})</li>
+     * </ul>
+     * GaussDB 复用本 accessor 时库名不含点号，仍走 catalog→public 旧路径，行为不变。
      */
     protected String resolveObjectSchema(String schemaName) {
         if (StringUtils.isBlank(schemaName)) {
             return schemaName;
+        }
+        if (schemaName.contains(".")) {
+            String[] parts = schemaName.split("\\.", 2);
+            if (parts.length == 2 && StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1])) {
+                return parts[1];
+            }
         }
         try {
             String currentDb = jdbcOperations.queryForObject("SELECT current_database()", String.class);
@@ -452,6 +463,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public List<String> showSystemViews(String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT c.relname AS view_name ");
         sql.append("FROM pg_catalog.pg_class c ");
@@ -459,9 +471,9 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         sql.append("WHERE c.relkind = 'v' ");
 
         List<Object> params = new ArrayList<>();
-        if (StringUtils.isNotBlank(schemaName)) {
+        if (StringUtils.isNotBlank(objectSchema)) {
             sql.append("  AND n.nspname = ?");
-            params.add(schemaName);
+            params.add(objectSchema);
         } else {
             sql.append("  AND (n.nspname LIKE 'pg_%' OR n.nspname = 'information_schema')");
         }
@@ -484,14 +496,17 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (StringUtils.isBlank(schemaName)) {
             return Collections.emptyList();
         }
+        String requestedSchemaName = schemaName;
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "select schemaname, matviewname from pg_matviews "
-                + "where schemaname = '" + schemaName + "' "
+                + "where schemaname = ? "
                 + "order by matviewname;";
         try {
-            return jdbcOperations.query(sql, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBObjectIdentity identity = new DBObjectIdentity();
                 identity.setType(DBObjectType.MATERIALIZED_VIEW);
-                identity.setSchemaName(rs.getString(1));
+                // Keep Path A library name on identity (same as listTables).
+                identity.setSchemaName(requestedSchemaName);
                 identity.setName(rs.getString(2));
                 return identity;
             });
@@ -764,6 +779,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (StringUtils.isBlank(schemaName)) {
             return Collections.emptyList();
         }
+        String objectSchema = resolveObjectSchema(schemaName);
 
         String sql = "SELECT t.tgname AS trigger_name, " +
                 "  c.relname AS table_name " +
@@ -775,7 +791,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY t.tgname";
 
         try {
-            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBPLObjectIdentity identity = new DBPLObjectIdentity();
                 identity.setSchemaName(schemaName);
                 identity.setName(rs.getString("trigger_name"));
@@ -801,6 +817,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (StringUtils.isBlank(schemaName)) {
             return Collections.emptyList();
         }
+        String objectSchema = resolveObjectSchema(schemaName);
 
         String sql = "SELECT t.typname AS type_name " +
                 "FROM pg_catalog.pg_type t " +
@@ -810,7 +827,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY t.typname";
 
         try {
-            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBPLObjectIdentity identity = new DBPLObjectIdentity();
                 identity.setSchemaName(schemaName);
                 identity.setName(rs.getString("type_name"));
@@ -839,6 +856,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (StringUtils.isBlank(schemaName)) {
             return Collections.emptyList();
         }
+        String objectSchema = resolveObjectSchema(schemaName);
 
         String sql = "SELECT c.relname AS sequence_name " +
                 "FROM pg_catalog.pg_class c " +
@@ -848,7 +866,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY c.relname";
 
         try {
-            return jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBObjectIdentity identity = new DBObjectIdentity();
                 identity.setSchemaName(schemaName);
                 identity.setName(rs.getString("sequence_name"));
@@ -884,11 +902,12 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
         if (tableNames == null || tableNames.isEmpty()) {
             return Collections.emptyMap();
         }
+        String objectSchema = resolveObjectSchema(schemaName);
 
         // 构建 IN 子句
         StringBuilder inClause = new StringBuilder();
         List<Object> params = new ArrayList<>();
-        params.add(schemaName);
+        params.add(objectSchema);
         for (int i = 0; i < tableNames.size(); i++) {
             if (i > 0) {
                 inClause.append(",");
@@ -1102,6 +1121,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public Map<String, List<DBTableColumn>> listBasicTableColumns(String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    c.relname AS table_name, " +
                 "    a.attnum AS ordinal_position, " +
@@ -1120,7 +1140,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY c.relname, a.attnum";
 
         try {
-            List<DBTableColumn> columns = jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            List<DBTableColumn> columns = jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBTableColumn column = new DBTableColumn();
                 column.setSchemaName(schemaName);
                 column.setTableName(rs.getString("table_name"));
@@ -1150,6 +1170,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public List<DBTableColumn> listBasicTableColumns(String schemaName, String tableName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    a.attnum AS ordinal_position, " +
                 "    a.attname AS column_name, " +
@@ -1167,7 +1188,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY a.attnum";
 
         try {
-            return jdbcOperations.query(sql, new Object[] {schemaName, tableName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema, tableName}, (rs, rowNum) -> {
                 DBTableColumn column = new DBTableColumn();
                 column.setSchemaName(schemaName);
                 column.setTableName(tableName);
@@ -1198,6 +1219,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public Map<String, List<DBTableColumn>> listBasicViewColumns(String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    c.relname AS view_name, " +
                 "    a.attnum AS ordinal_position, " +
@@ -1215,7 +1237,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY c.relname, a.attnum";
 
         try {
-            List<DBTableColumn> columns = jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            List<DBTableColumn> columns = jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 DBTableColumn column = new DBTableColumn();
                 column.setSchemaName(schemaName);
                 column.setTableName(rs.getString("view_name"));
@@ -1245,6 +1267,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public List<DBTableColumn> listBasicViewColumns(String schemaName, String viewName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    a.attnum AS ordinal_position, " +
                 "    a.attname AS column_name, " +
@@ -1262,7 +1285,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "ORDER BY a.attnum";
 
         try {
-            return jdbcOperations.query(sql, new Object[] {schemaName, viewName}, (rs, rowNum) -> {
+            return jdbcOperations.query(sql, new Object[] {objectSchema, viewName}, (rs, rowNum) -> {
                 DBTableColumn column = new DBTableColumn();
                 column.setSchemaName(schemaName);
                 column.setTableName(viewName);
@@ -1314,6 +1337,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public Map<String, List<DBTableIndex>> listTableIndexes(String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    t.relname AS table_name, " +
                 "    i.relname AS index_name, " +
@@ -1335,7 +1359,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
             Map<String, Map<String, DBTableIndex>> tableIndexMap = new LinkedHashMap<>();
             Map<String, AtomicInteger> tableIndexCounterMap = new HashMap<>();
 
-            jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 String tableName = rs.getString("table_name");
                 String indexName = rs.getString("index_name");
 
@@ -1501,6 +1525,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
     @Override
     public Map<String, List<DBTableConstraint>> listTableConstraints(
             String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         Map<String, Map<String, DBTableConstraint>> tableConstraintMap = new LinkedHashMap<>();
         AtomicInteger constraintCounter = new AtomicInteger(1);
 
@@ -1518,7 +1543,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND con.contype IN ('p', 'u') " +
                 "ORDER BY t.relname, con.conname, a.attnum";
 
-        jdbcOperations.query(pkUniqueSql, new Object[] {schemaName}, (rs, rowNum) -> {
+        jdbcOperations.query(pkUniqueSql, new Object[] {objectSchema}, (rs, rowNum) -> {
             String tableName = rs.getString("table_name");
             String constraintName = rs.getString("constraint_name");
             String constraintType = rs.getString("constraint_type");
@@ -1575,7 +1600,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND con.contype = 'f' " +
                 "ORDER BY t.relname, con.conname, a.attnum";
 
-        jdbcOperations.query(fkSql, new Object[] {schemaName}, (rs, rowNum) -> {
+        jdbcOperations.query(fkSql, new Object[] {objectSchema}, (rs, rowNum) -> {
             String tableName = rs.getString("table_name");
             String constraintName = rs.getString("constraint_name");
 
@@ -1628,7 +1653,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND con.contype = 'c' " +
                 "ORDER BY t.relname, con.conname";
 
-        jdbcOperations.query(checkSql, new Object[] {schemaName}, (rs, rowNum) -> {
+        jdbcOperations.query(checkSql, new Object[] {objectSchema}, (rs, rowNum) -> {
             String tableName = rs.getString("table_name");
             String constraintName = rs.getString("constraint_name");
             String definition = rs.getString("constraint_definition");
@@ -1862,6 +1887,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
     @Override
     public Map<String, DBTableOptions> listTableOptions(
             String schemaName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         String sql = "SELECT " +
                 "    c.relname AS table_name, " +
                 "    obj_description(c.oid) AS table_comment, " +
@@ -1874,7 +1900,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
         try {
             Map<String, DBTableOptions> result = new LinkedHashMap<>();
-            jdbcOperations.query(sql, new Object[] {schemaName}, (rs, rowNum) -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema}, (rs, rowNum) -> {
                 String tableName = rs.getString("table_name");
                 DBTableOptions options = new DBTableOptions();
 
@@ -2353,6 +2379,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBView getView(String schemaName, String viewName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         DBView view = new DBView();
         view.setViewName(viewName);
         view.setSchemaName(schemaName);
@@ -2369,7 +2396,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "WHERE v.table_schema = ? AND v.table_name = ?";
 
         try {
-            jdbcOperations.query(infoSql, new Object[] {schemaName, viewName}, rs -> {
+            jdbcOperations.query(infoSql, new Object[] {objectSchema, viewName}, rs -> {
                 view.setDefiner(rs.getString("table_schema"));
 
                 String checkOption = rs.getString("check_option");
@@ -2389,7 +2416,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 String viewDefinition = rs.getString("view_definition");
                 if (StringUtils.isNotBlank(viewDefinition)) {
                     StringBuilder ddl = new StringBuilder();
-                    ddl.append("CREATE OR REPLACE VIEW \"").append(schemaName).append("\".\"").append(viewName)
+                    ddl.append("CREATE OR REPLACE VIEW \"").append(objectSchema).append("\".\"").append(viewName)
                             .append("\" AS ").append(viewDefinition);
                     view.setDdl(ddl.toString());
                 }
@@ -2420,6 +2447,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBFunction getFunction(String schemaName, String functionName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         DBFunction function = new DBFunction();
         function.setFunName(functionName);
 
@@ -2441,7 +2469,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND p.prokind = 'f'";
 
         try {
-            jdbcOperations.query(sql, new Object[] {schemaName, functionName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema, functionName}, rs -> {
                 function.setDdl(rs.getString("function_ddl"));
                 function.setReturnType(rs.getString("return_type"));
                 function.setStatus("VALID");
@@ -2468,6 +2496,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBProcedure getProcedure(String schemaName, String procedureName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         DBProcedure procedure = new DBProcedure();
         procedure.setProName(procedureName);
 
@@ -2488,7 +2517,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND p.prokind = 'p'";
 
         try {
-            jdbcOperations.query(sql, new Object[] {schemaName, procedureName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema, procedureName}, rs -> {
                 procedure.setDdl(rs.getString("procedure_ddl"));
             });
         } catch (BadSqlGrammarException e) {
@@ -2527,6 +2556,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBTrigger getTrigger(String schemaName, String triggerName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         DBTrigger trigger = new DBTrigger();
         trigger.setTriggerName(triggerName);
 
@@ -2545,7 +2575,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "  AND NOT t.tgisinternal";
 
         try {
-            jdbcOperations.query(sql, new Object[] {schemaName, triggerName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema, triggerName}, rs -> {
                 trigger.setSchemaName(rs.getString("schema_name"));
                 trigger.setSchemaMode(rs.getString("table_name"));
                 trigger.setTableName(rs.getString("table_name"));
@@ -2582,6 +2612,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBType getType(String schemaName, String typeName) {
+        String objectSchema = resolveObjectSchema(schemaName);
         DBType type = new DBType();
         type.setTypeName(typeName);
         type.setOwner(schemaName);
@@ -2597,7 +2628,7 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "WHERE n.nspname = ? AND t.typname = ?";
 
         try {
-            jdbcOperations.query(sql, new Object[] {schemaName, typeName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema, typeName}, rs -> {
                 String typeKind = rs.getString("type_kind");
                 if ("c".equals(typeKind)) {
                     type.setType("COMPOSITE");
@@ -2632,6 +2663,9 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
      */
     @Override
     public DBSequence getSequence(String schemaName, String sequenceName) {
+        String objectSchema = resolveObjectSchema(schemaName);
+        String quotedSchema = objectSchema == null ? "" : objectSchema.replace("\"", "\"\"");
+        String quotedSequence = sequenceName == null ? "" : sequenceName.replace("\"", "\"\"");
         DBSequence sequence = new DBSequence();
         sequence.setName(sequenceName);
         sequence.setUser(schemaName);
@@ -2646,13 +2680,14 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
                 "WHERE n.nspname = ? AND s.relname = ? AND s.relkind = 'S'";
 
         try {
-            jdbcOperations.query(sql, new Object[] {schemaName, sequenceName}, rs -> {
+            jdbcOperations.query(sql, new Object[] {objectSchema, sequenceName}, rs -> {
                 // 序列存在
             });
 
-            // 查询序列当前值和属性
+            // 查询序列当前值和属性（必须用已解析 objectSchema，并对双引号转义）
             try {
-                String valueSql = "SELECT last_value, is_called FROM \"" + schemaName + "\".\"" + sequenceName + "\"";
+                String valueSql =
+                        "SELECT last_value, is_called FROM \"" + quotedSchema + "\".\"" + quotedSequence + "\"";
                 jdbcOperations.query(valueSql, rs -> {
                     if (rs.next()) {
                         Long lastValue = rs.getLong("last_value");
@@ -2670,9 +2705,9 @@ public class PostgresSchemaAccessor implements DBSchemaAccessor {
 
             // 构建 DDL
             StringBuilder ddl = new StringBuilder();
-            ddl.append("CREATE SEQUENCE IF NOT EXISTS \"").append(schemaName).append("\".\"").append(sequenceName)
-                    .append("\";\n");
-            ddl.append("ALTER SEQUENCE \"").append(schemaName).append("\".\"").append(sequenceName).append("\"");
+            ddl.append("CREATE SEQUENCE IF NOT EXISTS \"").append(quotedSchema).append("\".\"")
+                    .append(quotedSequence).append("\";\n");
+            ddl.append("ALTER SEQUENCE \"").append(quotedSchema).append("\".\"").append(quotedSequence).append("\"");
             ddl.append(" OWNED BY NONE;");
             sequence.setDdl(ddl.toString());
 

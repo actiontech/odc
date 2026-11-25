@@ -74,6 +74,7 @@ import com.oceanbase.odc.core.authority.util.SkipAuthorize;
 import com.oceanbase.odc.core.session.ConnectionSession;
 import com.oceanbase.odc.core.shared.PreConditions;
 import com.oceanbase.odc.core.shared.Verify;
+import com.oceanbase.odc.core.shared.constant.DialectType;
 import com.oceanbase.odc.core.shared.constant.ErrorCodes;
 import com.oceanbase.odc.core.shared.constant.OrganizationType;
 import com.oceanbase.odc.core.shared.constant.ResourceRoleName;
@@ -634,35 +635,47 @@ public class DatabaseService {
         Long currentProjectId = connection.getProjectId();
         boolean blockExcludeSchemas = dbSchemaSyncProperties.isBlockExclusionsWhenSyncDbToProject() && !bastionEnabled;
         List<String> excludeSchemas = dbSchemaSyncProperties.getExcludeSchemas(connection.getDialectType());
-        DataSource teamDataSource = getDataSourceFactory(connection).getDataSource();
         ExecutorService executorService = Executors.newFixedThreadPool(1);
+        // PG Path A sync opens per-catalog DataSources inside the lister; teamDataSource is unused there.
+        final DataSource teamDataSource =
+                DialectType.POSTGRESQL == connection.getDialectType() ? null
+                        : getDataSourceFactory(connection).getDataSource();
         Future<List<DatabaseEntity>> future = executorService.submit(() -> {
-            try (Connection conn = teamDataSource.getConnection()) {
-                return dbSchemaService.listDatabases(connection.getDialectType(), conn).stream().map(database -> {
-                    DatabaseEntity entity = new DatabaseEntity();
-                    entity.setDatabaseId(com.oceanbase.odc.common.util.StringUtils.uuid());
-                    entity.setConnectType(connection.getType());
-                    entity.setExisted(Boolean.TRUE);
-                    entity.setName(database.getName());
-                    entity.setCharsetName(database.getCharset());
-                    entity.setCollationName(database.getCollation());
-                    entity.setTableCount(0L);
-                    entity.setOrganizationId(connection.getOrganizationId());
-                    entity.setEnvironmentId(connection.getEnvironmentId());
-                    entity.setConnectionId(connection.getId());
-                    entity.setSyncStatus(DatabaseSyncStatus.SUCCEEDED);
-                    entity.setProjectId(currentProjectId);
-                    entity.setObjectSyncStatus(DBObjectSyncStatus.INITIALIZED);
-                    if (blockExcludeSchemas && excludeSchemas.contains(database.getName())) {
-                        entity.setProjectId(null);
-                    }
-                    entity.setLastSyncTime(new Date(System.currentTimeMillis()));
-                    return entity;
-                }).collect(Collectors.toList());
+            List<DBDatabase> latest;
+            // POSTGRESQL only: expand to <catalog>.<schema>. GaussDB never enters this branch.
+            if (DialectType.POSTGRESQL == connection.getDialectType()) {
+                latest = PostgresCatalogSchemaDatabaseLister.list(connection);
+            } else {
+                try (Connection conn = teamDataSource.getConnection()) {
+                    latest = dbSchemaService.listDatabases(connection.getDialectType(), conn);
+                }
             }
+            return latest.stream().map(database -> {
+                DatabaseEntity entity = new DatabaseEntity();
+                entity.setDatabaseId(com.oceanbase.odc.common.util.StringUtils.uuid());
+                entity.setConnectType(connection.getType());
+                entity.setExisted(Boolean.TRUE);
+                entity.setName(database.getName());
+                entity.setCharsetName(database.getCharset());
+                entity.setCollationName(database.getCollation());
+                entity.setTableCount(0L);
+                entity.setOrganizationId(connection.getOrganizationId());
+                entity.setEnvironmentId(connection.getEnvironmentId());
+                entity.setConnectionId(connection.getId());
+                entity.setSyncStatus(DatabaseSyncStatus.SUCCEEDED);
+                entity.setProjectId(currentProjectId);
+                entity.setObjectSyncStatus(DBObjectSyncStatus.INITIALIZED);
+                if (blockExcludeSchemas && excludeSchemas.contains(database.getName())) {
+                    entity.setProjectId(null);
+                }
+                entity.setLastSyncTime(new Date(System.currentTimeMillis()));
+                return entity;
+            }).collect(Collectors.toList());
         });
         try {
-            List<DatabaseEntity> latestDatabases = future.get(10, TimeUnit.SECONDS);
+            // PG may open per-catalog connections; allow more time than single-connection dialects.
+            long syncTimeoutSeconds = DialectType.POSTGRESQL == connection.getDialectType() ? 60L : 10L;
+            List<DatabaseEntity> latestDatabases = future.get(syncTimeoutSeconds, TimeUnit.SECONDS);
             Map<String, List<DatabaseEntity>> latestDatabaseName2Database =
                     latestDatabases.stream().filter(Objects::nonNull)
                             .collect(Collectors.groupingBy(DatabaseEntity::getName));
@@ -769,15 +782,23 @@ public class DatabaseService {
 
     private void syncIndividualDataSources(ConnectionConfig connection)
             throws ExecutionException, InterruptedException, TimeoutException {
-        DataSource individualDataSource = getDataSourceFactory(connection).getDataSource();
         ExecutorService executorService = Executors.newFixedThreadPool(1);
+        // PG Path A sync uses Lister-owned DataSources; individualDataSource is unused there.
+        final DataSource individualDataSource =
+                DialectType.POSTGRESQL == connection.getDialectType() ? null
+                        : getDataSourceFactory(connection).getDataSource();
         Future<Set<String>> future = executorService.submit(() -> {
+            if (DialectType.POSTGRESQL == connection.getDialectType()) {
+                return PostgresCatalogSchemaDatabaseLister.list(connection).stream()
+                        .map(DBDatabase::getName).collect(Collectors.toSet());
+            }
             try (Connection conn = individualDataSource.getConnection()) {
                 return dbSchemaService.showDatabases(connection.getDialectType(), conn);
             }
         });
         try {
-            Set<String> latestDatabaseNames = future.get(10, TimeUnit.SECONDS);
+            long syncTimeoutSeconds = DialectType.POSTGRESQL == connection.getDialectType() ? 60L : 10L;
+            Set<String> latestDatabaseNames = future.get(syncTimeoutSeconds, TimeUnit.SECONDS);
             List<DatabaseEntity> existedDatabasesInDb = databaseRepository.findByConnectionId(connection.getId())
                     .stream().filter(DatabaseEntity::getExisted).collect(Collectors.toList());
             Map<String, List<DatabaseEntity>> existedDatabaseName2Database =

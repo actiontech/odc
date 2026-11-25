@@ -130,4 +130,25 @@ public class GaussDBSessionExtensionTest {
     public void testSetClientInfo_returns_false() {
         Assert.assertFalse(extension.setClientInfo(connection, new DBClientInfo(null, null, null)));
     }
+
+    /**
+     * AC-BE-005: GaussDB must NOT adopt Path-A {@code catalog.schema} split for search_path. A dotted
+     * tree-node name stays a single quoted identifier (pre-Path-A behaviour).
+     */
+    @Test
+    public void testSwitchSchema_dottedName_keepsWholeIdentifier_noCatalogSchemaSplit() throws Exception {
+        try (MockedStatic<JdbcOperationsUtil> ms = mockStatic(JdbcOperationsUtil.class)) {
+            ms.when(() -> JdbcOperationsUtil.getJdbcOperations(connection)).thenReturn(jdbc);
+            when(jdbc.queryForObject(eq("SELECT current_database()"), eq(String.class)))
+                    .thenReturn("postgres");
+
+            extension.switchSchema(connection, "testdb.biz_schema");
+
+            ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+            verify(jdbc, times(1)).execute(sqlCaptor.capture());
+            Assert.assertEquals("SET search_path TO \"testdb.biz_schema\"", sqlCaptor.getValue());
+            Assert.assertFalse("GAUSSDB must not split catalog.schema for search_path",
+                    sqlCaptor.getValue().contains("TO \"biz_schema\""));
+        }
+    }
 }

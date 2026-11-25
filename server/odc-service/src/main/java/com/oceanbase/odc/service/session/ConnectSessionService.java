@@ -294,9 +294,11 @@ public class ConnectSessionService {
                 connection.setDefaultSchema(StringUtils.isNotBlank(catalogAndSchema[1])
                         ? catalogAndSchema[1]
                         : schemaName);
-            } else if (DialectType.POSTGRESQL == connection.getDialectType()
-                    || DialectType.GAUSSDB == connection.getDialectType()) {
-                // Tree node is a catalog; reconnect JDBC URL to that database (PG cannot USE mid-session).
+            } else if (DialectType.POSTGRESQL == connection.getDialectType()) {
+                // Path A: tree node is <catalog>.<schema> (or legacy catalog-only → public).
+                OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(connection, schemaName);
+            } else if (DialectType.GAUSSDB == connection.getDialectType()) {
+                // GaussDB isolation: catalog-only node + public schema (unchanged).
                 OBConsoleDataSourceFactory.applyPostgresCatalogForDatabase(connection, schemaName);
             } else {
                 connection.setDefaultSchema(schemaName);

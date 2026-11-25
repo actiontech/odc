@@ -188,6 +188,33 @@ public class PostgresSqlBuilderTest {
         Assert.assertEquals("\"mytable\"", result);
     }
 
+    /**
+     * Path A: {@code <catalog>.<schema>} must quote only the real schema, not the whole string.
+     */
+    @Test
+    public void testSchemaPrefixIfNotBlank_CatalogDotSchema_usesSchemaPartOnly() {
+        String result = builder.schemaPrefixIfNotBlank("db_a.app_a").identifier("test").toString();
+        Assert.assertEquals("\"app_a\".\"test\"", result);
+    }
+
+    /**
+     * Plain schema name (no catalog prefix) keeps prior quoting behavior.
+     */
+    @Test
+    public void testSchemaPrefixIfNotBlank_PlainSchema_unchanged() {
+        String result = builder.schemaPrefixIfNotBlank("app_a").identifier("test").toString();
+        Assert.assertEquals("\"app_a\".\"test\"", result);
+    }
+
+    /**
+     * Two-arg identifier also goes through schemaPrefixIfNotBlank.
+     */
+    @Test
+    public void testIdentifier_TwoArgs_CatalogDotSchema() {
+        String result = builder.identifier("db_a.app_a", "test").toString();
+        Assert.assertEquals("\"app_a\".\"test\"", result);
+    }
+
     // ========== identifier(String, String) Tests ==========
 
     /**
